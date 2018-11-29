@@ -1,0 +1,6 @@
+Bitmain vpu driver
+
+Required properties:
+- compatible: "bitmain,vpu"
+- reg: vpu register regions
+- interrupts: vpu interrupt number

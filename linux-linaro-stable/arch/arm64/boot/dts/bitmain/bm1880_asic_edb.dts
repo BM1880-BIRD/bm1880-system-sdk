@@ -1,0 +1,48 @@
+/dts-v1/;
+
+#include "bm1880_asic.dtsi"
+
+/ {
+	memory {
+		reg = <0x1 0x00000000 0x0 0x40000000>; // 1GB
+		device_type = "memory";
+	};
+
+	emmc:bm-emmc@50100000 {
+		broken-cd;
+	};
+
+	reserved-memory {
+		#address-cells = <0x2>;
+		#size-cells = <0x2>;
+		ranges;
+
+		cma_reserved: linux,cma {
+			compatible = "shared-dma-pool";
+			reusable;
+			size = <0x0 0x1000000>; // 16MB
+			alignment = <0x0 0x2000>; // 8KB
+			linux,cma-default;
+		};
+
+		ion_reserved: ion@110000000 {
+			compatible = "ion-region";
+			reg = <0x1 0x10000000 0x0 0x20000000>; // 512MB
+		};
+
+		jpu_reserved: jpu_id@130000000 {
+			reg = <0x1 0x30000000 0x0 0x08000000>; // 128M
+			no-map;
+		};
+
+		vpu_reserved: vpu_id@138000000 {
+			reg = <0x1 0x38000000 0x0 0x08000000>; // 128M
+			no-map;
+		};
+	};
+	/delete-node/ ethernet@58028000; //delete ETH1
+	/delete-node/ hpnfc@500C0000; // delete NAND
+	aliases {
+		/delete-property/ ethernet1;
+	};
+};

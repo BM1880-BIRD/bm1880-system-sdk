@@ -1,0 +1,29 @@
+Bitmain Platforms Device Tree Bindings
+
+Boards with a Bitmain BM168x/BM188x SoC shall have the
+following property:
+
+Required properties:
+- compatible : ""
+        this is a legacy name from qemu platform.
+
+Required root node property:
+
+compatible: Must contain one of
+   "linux,dummy-virt"
+   "bitmain,bm1682"
+   "bitmain,bm1684"
+   "bitmian,bm1880"
+
+
+Supported boards:
+
+- Evaluation board for BM1682:
+    Required root node properties:
+      - compatible = "bitmain,bm1682-evb", "bitmain,bm1682";
+- Evaluation board for BM1684:
+    Required root node properties:
+      - compatible = "bitmain,bm1684-evb", "bitmain,bm1684";
+- Evaluation board for BM1880:
+    Required root node properties:
+      - compatible = "bitmain,bm1880-evb", "bitmain,bm1880";

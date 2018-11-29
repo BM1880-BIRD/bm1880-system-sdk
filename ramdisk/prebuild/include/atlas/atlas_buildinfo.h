@@ -1,0 +1,31 @@
+#ifndef ATL_INSTINFO_H
+   #define ATL_INSTINFO_H
+
+#define ATL_ARCH "GENERIC64"
+#define ATL_INSTFLAGS "-1 0 -a 1 -l 1"
+#define ATL_F2CDEFS "-DAdd_ -DF77_INTEGER=int -DStringSunStyle"
+#define ATL_ARCHDEFS "-DATL_OS_Linux -DATL_ARCH_GENERIC -DATL_USE64BITS -DATL_GAS_ARM64"
+#define ATL_DKCFLAGS "-O -fomit-frame-pointer -fPIC"
+#define ATL_DKC "/usr/bin/gcc-6"
+#define ATL_SKCFLAGS "-O -fomit-frame-pointer -fPIC"
+#define ATL_SKC "/usr/bin/gcc-6"
+#define ATL_DMCFLAGS "-O -fomit-frame-pointer -fPIC"
+#define ATL_DMC "/usr/bin/gcc-6"
+#define ATL_SMCFLAGS "-O -fomit-frame-pointer -fPIC"
+#define ATL_SMC "/usr/bin/gcc-6"
+#define ATL_ICCFLAGS "-DL2SIZE=33554432 -I/build/atlas-MRbCZl/atlas-3.10.3/build/atlas-base/include -I/build/atlas-MRbCZl/atlas-3.10.3/build/atlas-base/../..//include -I/build/atlas-MRbCZl/atlas-3.10.3/build/atlas-base/../..//include/contrib -DAdd_ -DF77_INTEGER=int -DStringSunStyle -DATL_OS_Linux -DATL_ARCH_GENERIC -DATL_USE64BITS -DATL_GAS_ARM64 -DWALL -O -fomit-frame-pointer -fPIC"
+#define ATL_ICC "/usr/bin/gcc-6"
+#define ATL_F77FLAGS "-O -fPIC"
+#define ATL_F77 "/usr/bin/gfortran"
+#define ATL_DKCVERS "gcc-6 (Debian 6.3.0-2) 6.3.0 20161229"
+#define ATL_SKCVERS "gcc-6 (Debian 6.3.0-2) 6.3.0 20161229"
+#define ATL_DMCVERS "gcc-6 (Debian 6.3.0-2) 6.3.0 20161229"
+#define ATL_SMCVERS "gcc-6 (Debian 6.3.0-2) 6.3.0 20161229"
+#define ATL_ICCVERS "gcc-6 (Debian 6.3.0-2) 6.3.0 20161229"
+#define ATL_F77VERS "GNU Fortran (Debian 6.3.0-2) 6.3.0 20161229"
+#define ATL_SYSINFO "Linux arm-linaro-01 3.16.0-4-arm64 #1 SMP Debian 3.16.7-ckt2-1 (2014-12-08) aarch64 GNU/Linux"
+#define ATL_DATE    "Tue Jan 17 23:03:47 UTC 2017"
+#define ATL_UNAM    "buildd"
+#define ATL_VERS    "3.10.3"
+
+#endif

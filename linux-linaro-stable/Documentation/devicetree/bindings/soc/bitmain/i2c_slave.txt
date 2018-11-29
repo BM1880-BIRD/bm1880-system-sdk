@@ -1,0 +1,5 @@
+Bitmain bm1682 i2c slave mode driver, just for soc aisc platform.
+Required properties:
+- compatible: "snps,dw-i2c-slave"
+- reg: should be the i2c slave address in slave mode. Must set bit30 as slave
+  mask flag.

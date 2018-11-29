@@ -1,0 +1,3 @@
+Bitmain bm1684/bm1880 subsys_int_en driver, just for soc aisc platform.
+Required properties:
+- compatible: "bitmain,subsys-int-en"

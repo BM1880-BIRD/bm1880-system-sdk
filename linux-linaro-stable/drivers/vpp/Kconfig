@@ -1,0 +1,19 @@
+menu "vpp driver "
+comment "vpp driver "
+
+config VPP_ENB
+	tristate "vpp kernel driver"
+	help
+	this is vpp kernel driver
+
+config VPP_1880
+	tristate "vpp support 1880"
+	help
+	this is vpp support 1880
+
+config VPP_1684
+	tristate "vpp support 1684"
+	help
+	this is vpp support 1684
+
+endmenu

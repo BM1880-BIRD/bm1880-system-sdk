@@ -1,0 +1,23 @@
+* BITMAIN I2S/PCM module
+
+Required properties:
+- compatible: "bitmain,audio"
+- bitmain,model: The module name of bitmain platform.
+- bitmain,audio-codec: The codec used by BM1880 platform.
+- bitmain,i2s-controller: the i2s interface used by BM1880.
+- bitmain,codec-clock-rate: The clock rate.
+
+Example:
+
+	sound {
+
+		compatible = "bitmain,audio";
+
+		bitmain,model = "BM1880";
+
+		bitmain,audio-codec = <&adau1372>;
+
+		bitmain,i2s-controller = <&i2s0>;
+
+		bitmain,codec-clock-rate = <12288000>;
+	}

@@ -1,0 +1,3 @@
+libpython2.7-dev binary: python-script-but-no-python-dep
+
+libpython2.7-dev binary: arch-dependent-file-not-in-arch-specific-directory

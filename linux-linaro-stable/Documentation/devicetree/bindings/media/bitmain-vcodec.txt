@@ -1,0 +1,19 @@
+Bitmain Video Decoder (bitmain-vdec)
+
+Bitmain Video Decoder is the HW video acceleration in Bitmain SoCs which
+supports high resolution decoding functionalities.
+
+Required properties:
+- compatible : "bitmain,bitmain-vdec" for decoder
+- reg : Physical base address of the video codec registers and length of
+  memory mapped region.
+- interrupts : interrupt number to the cpu.
+
+Example:
+vpu: vpu@50440000 {
+    compatible = "bitmain,bitmain-vdec";
+    reg = <0 0x50440000 0 0x10000>,    /*vpu register*/
+    interrupts = <GIC_SPI 80 IRQ_TYPE_LEVEL_HIGH>,
+		<GIC_SPI 81 IRQ_TYPE_LEVEL_HIGH>,
+		<GIC_SPI 82 IRQ_TYPE_LEVEL_HIGH>;
+  };

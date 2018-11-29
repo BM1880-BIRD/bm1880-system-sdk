@@ -1,0 +1,86 @@
+	    SUMMARY OF THE HDF5 CONFIGURATION
+	    =================================
+
+General Information:
+-------------------
+                   HDF5 Version: 1.10.0-patch1
+                  Configured on: Sat Mar  3 03:16:06 UTC 2018
+                  Configured by: buildd@arm-conova-01
+                    Host system: aarch64-unknown-linux-gnu
+              Uname information: Linux arm-conova-01 4.9.0-6-arm64 #1 SMP Debian 4.9.82-1+deb9u2 (2018-02-21) aarch64 GNU/Linux
+                       Byte sex: little-endian
+             Installation point: /usr
+		    Flavor name: serial
+
+Compiling Options:
+------------------
+                     Build Mode: production
+              Debugging Symbols: no
+                        Asserts: no
+                      Profiling: no
+             Optimization Level: high
+
+Linking Options:
+----------------
+                      Libraries: static, shared
+  Statically Linked Executables: 
+                        LDFLAGS: -Wl,-z,relro
+                     H5_LDFLAGS: -Wl,--version-script,$(top_srcdir)/debian/map_serial.ver
+                     AM_LDFLAGS: 
+                Extra libraries: -lpthread -lsz -lz -ldl -lm 
+                       Archiver: ar
+                         Ranlib: aarch64-linux-gnu-ranlib
+
+Languages:
+----------
+                              C: yes
+                     C Compiler: /usr/bin/gcc
+                       CPPFLAGS: -Wdate-time -D_FORTIFY_SOURCE=2
+                    H5_CPPFLAGS: -D_GNU_SOURCE -D_POSIX_C_SOURCE=200112L   -DNDEBUG -UH5_DEBUG_API
+                    AM_CPPFLAGS: 
+                        C Flags: -g -O2 -fdebug-prefix-map=/build/hdf5-C7qQzR/hdf5-1.10.0-patch1+docs=. -fstack-protector-strong -Wformat -Werror=format-security
+                     H5 C Flags:   -std=c99 -pedantic -Wall -W -Wundef -Wshadow -Wpointer-arith -Wbad-function-cast -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Waggregate-return -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs -Winline -finline-functions -s -O
+                     AM C Flags: 
+               Shared C Library: yes
+               Static C Library: yes
+
+
+                        Fortran: yes
+               Fortran Compiler: /usr/bin/gfortran
+                  Fortran Flags: -g -O2 -fdebug-prefix-map=/build/hdf5-C7qQzR/hdf5-1.10.0-patch1+docs=. -fstack-protector-strong
+               H5 Fortran Flags:  -pedantic -Wall -Wextra -Wunderflow -Wimplicit-interface -Wsurprising -Wno-c-binding-type  -s -O2
+               AM Fortran Flags: 
+         Shared Fortran Library: yes
+         Static Fortran Library: yes
+
+                            C++: yes
+                   C++ Compiler: /usr/bin/g++
+                      C++ Flags: -g -O2 -fdebug-prefix-map=/build/hdf5-C7qQzR/hdf5-1.10.0-patch1+docs=. -fstack-protector-strong -Wformat -Werror=format-security
+                   H5 C++ Flags:   -pedantic -Wall -W -Wundef -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Waggregate-return -Wredundant-decls -Winline -Wsign-promo -Woverloaded-virtual -Wold-style-cast -Weffc++ -Wreorder -Wnon-virtual-dtor -Wctor-dtor-privacy -Wabi -finline-functions -s -O
+                   AM C++ Flags: 
+             Shared C++ Library: yes
+             Static C++ Library: yes
+
+                           Java: yes
+                  Java Compiler: /usr/bin/java (openjdk 1.8.0_151)
+
+
+Features:
+---------
+                  Parallel HDF5: no
+             High-level library: yes
+                   Threadsafety: yes
+            Default API mapping: v18
+ With deprecated public symbols: yes
+         I/O filters (external): deflate(zlib),szip(encoder)
+                            MPE: no
+                     Direct VFD: no
+                        dmalloc: no
+ Packages w/ extra debug output: none
+                    API tracing: no
+           Using memory checker: no
+Memory allocation sanity checks: no
+            Metadata trace file: no
+         Function stack tracing: no
+      Strict file format checks: no
+   Optimization instrumentation: no

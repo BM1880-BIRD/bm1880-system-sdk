@@ -1,0 +1,8 @@
+Bitmain NPU driver
+
+Required properties:
+- compatible: "bitmain,npu"
+- reg: GDMA and broadcast engine's register regions
+- interrupts: GDMA interrupt number
+- resets: reset handles for NPS and GDMA
+- reset-names: should be "nps" and "gdma"

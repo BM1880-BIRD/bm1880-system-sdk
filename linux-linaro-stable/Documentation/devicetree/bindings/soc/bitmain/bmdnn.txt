@@ -1,0 +1,7 @@
+Bitmain NPU driver, PCIe host style, just for aicplatform demo.
+
+Required properties:
+- compatible: "bitmain,bmdnn"
+- reg: to simulate the 3 PCIe bars, here should also provide 3 register regions,
+       same as the PCIe bar mappings.
+- interrupts: CDMA interrupt number

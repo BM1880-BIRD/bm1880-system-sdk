@@ -1,0 +1,73 @@
+make ARCH=arm64 CROSS_COMPILE=/home/xiaojun/bitmain/bm1880/host-tools/gcc/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu- -C /home/xiaojun/bitmain/bm1880/linux-linaro-stable/linux/bm1880_asic_evb_ddr3_256m M=/home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525  modules
+make[1]: Entering directory '/home/xiaojun/bitmain/bm1880/linux-linaro-stable/linux/bm1880_asic_evb_ddr3_256m'
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_cmd.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_security.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_debug.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_io.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_ioctl_query.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_ioctl_set.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_ieee80211.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_mlme.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_mlme_ext.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_mi.o
+/home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_mi.c: In function ‘_rtw_mi_stop_drv_threads’:
+/home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_mi.c:662:3: warning: this ‘if’ clause does not guard... [-Wmisleading-indentation]
+   if ((iface) && (iface->bup == _TRUE))
+   ^~
+/home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_mi.c:665:4: note: ...this statement, but the latter is misleadingly indented as if it is guarded by the ‘if’
+    rtw_stop_drv_threads(iface);
+    ^~~~~~~~~~~~~~~~~~~~
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_wlan_util.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_vht.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_pwrctrl.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_rf.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_recv.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_sta_mgt.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_ap.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_xmit.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_p2p.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_rson.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_tdls.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_br_ext.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_iol.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_sreset.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_btcoex_wifionly.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_btcoex.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_beamforming.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/rtw_odm.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/core/efuse/rtw_efuse.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/os_dep/osdep_service.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/os_dep/linux/os_intfs.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/os_dep/linux/usb_intf.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/os_dep/linux/usb_ops_linux.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/os_dep/linux/ioctl_linux.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/os_dep/linux/xmit_linux.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/os_dep/linux/mlme_linux.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/os_dep/linux/recv_linux.o
+  CC [M]  /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/os_dep/linux/ioctl_cfg80211.o
+In file included from /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/include/osdep_intf.h:131:0,
+                 from /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/include/drv_types.h:104,
+                 from /home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/os_dep/linux/ioctl_cfg80211.c:17:
+/home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/os_dep/linux/ioctl_cfg80211.c: In function ‘rtw_cfg80211_indicate_sta_assoc’:
+/home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/include/../os_dep/linux/ioctl_cfg80211.h:320:60: error: implicit declaration of function ‘cfg80211_send_rx_assoc’ [-Werror=implicit-function-declaration]
+ #define rtw_cfg80211_send_rx_assoc(adapter, bss, buf, len) cfg80211_send_rx_assoc((adapter)->pnetdev, bss, buf, len)
+                                                            ^
+/home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/os_dep/linux/ioctl_cfg80211.c:3807:3: note: in expansion of macro ‘rtw_cfg80211_send_rx_assoc’
+   rtw_cfg80211_send_rx_assoc(padapter, NULL, pmgmt_frame, frame_len);
+   ^
+/home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/os_dep/linux/ioctl_cfg80211.c: In function ‘rtw_cfg80211_indicate_sta_disassoc’:
+/home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/os_dep/linux/ioctl_cfg80211.c:3864:2: error: implicit declaration of function ‘cfg80211_send_disassoc’ [-Werror=implicit-function-declaration]
+  cfg80211_send_disassoc(padapter->pnetdev, mgmt_buf, frame_len);
+  ^~~~~~~~~~~~~~~~~~~~~~
+cc1: some warnings being treated as errors
+/home/xiaojun/bitmain/bm1880/linux-linaro-stable/scripts/Makefile.build:293: recipe for target '/home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/os_dep/linux/ioctl_cfg80211.o' failed
+make[4]: *** [/home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525/os_dep/linux/ioctl_cfg80211.o] Error 1
+/home/xiaojun/bitmain/bm1880/linux-linaro-stable/Makefile:1490: recipe for target '_module_/home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525' failed
+make[3]: *** [_module_/home/xiaojun/bitmain/wifi/RTL8821CU_WiFi_linux_v5.2.15.3_28211_COEX20171114-2525.20180611/driver/rtl8821CU_WiFi_linux_v5.2.15.3_28211.20180611_COEX20171114-2525] Error 2
+Makefile:150: recipe for target 'sub-make' failed
+make[2]: *** [sub-make] Error 2
+Makefile:24: recipe for target '__sub-make' failed
+make[1]: *** [__sub-make] Error 2
+make[1]: Leaving directory '/home/xiaojun/bitmain/bm1880/linux-linaro-stable/linux/bm1880_asic_evb_ddr3_256m'
+Makefile:1865: recipe for target 'modules' failed
+make: *** [modules] Error 2

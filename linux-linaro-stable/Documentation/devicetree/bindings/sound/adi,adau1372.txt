@@ -1,0 +1,27 @@
+Analog Devices ADAU1372
+
+Required properties:
+
+ - compatible:		Should contain one of the following:
+			"adi,adau1372"
+
+ - reg:			The i2c address. Value depends on the state of ADDR0
+			and ADDR1, as wired in hardware.
+
+Optional properties:
+ - clock-names:		If provided must be "mclk".
+ - clocks:		phandle + clock-specifiers for the clock that provides
+			the audio master clock for the device.
+
+Examples:
+#include <dt-bindings/sound/adau1372.h>
+
+	i2c_bus {
+		adau1372@3C {
+			compatible = "adi,adau1372";
+			reg = <0x3C>;
+
+			clock-names = "mclk";
+			clocks = <&audio_clock>;
+		};
+	};

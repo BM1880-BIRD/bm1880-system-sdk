@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# edb platform env setup.
+
+#usb hub setup start
+#1. Reset usb hub, set BM_TUSB_RST_L 0.
+echo 488 > /sys/class/gpio/export
+echo out > /sys/class/gpio/gpio488/direction
+echo 0 > /sys/class/gpio/gpio488/value
+
+#2. Set EN_P5V.
+echo 485 > /sys/class/gpio/export
+echo out > /sys/class/gpio/gpio485/direction
+echo 0 > /sys/class/gpio/gpio485/value
+
+#3. Set EN_P5V_USBHUB.
+echo 489 > /sys/class/gpio/export
+echo out > /sys/class/gpio/gpio489/direction
+echo 0 > /sys/class/gpio/gpio489/value
+
+#4. Reset usb hub set BM_TUSB_RST_L 0->1.
+echo 1 > /sys/class/gpio/gpio485/value
+echo 1 > /sys/class/gpio/gpio489/value
+sleep 1
+echo 1 > /sys/class/gpio/gpio488/value
+#usb hub setup end
+
+#mdev
+echo /sbin/mdev > /proc/sys/kernel/hotplug
+mdev -s

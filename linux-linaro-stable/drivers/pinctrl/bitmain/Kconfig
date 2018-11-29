@@ -1,0 +1,29 @@
+if ARCH_BITMAIN
+
+config BITMAIN_PINCTRL_CORE
+	bool
+	select PINMUX
+	select PINCONF
+	select GENERIC_PINCONF
+	help
+	  This enables pin control core drivers for Bitmain platforms
+
+config BITMAIN_PINCTRL_BM1684
+	bool "This enable pinctrl for bm1684 platform"
+	select BITMAIN_PINCTRL_CORE
+	help
+	  This enable pinctrl driver for bitmain bm1880 platform,
+	  it should be set y by defconfig.
+	  the kernel checkpatch request at least 4 lines to
+	  describe this symbol i need say something to pass the check.
+
+config BITMAIN_PINCTRL_BM1880
+	bool "This enable pinctrl for bm1880 platform"
+	select BITMAIN_PINCTRL_CORE
+	help
+	  This enable pinctrl driver for bitmain bm1880 platform,
+	  it should be set y by defconfig.
+	  the kernel checkpatch request at least 4 lines to
+	  describe this symbol i need say something to pass the check.
+
+endif

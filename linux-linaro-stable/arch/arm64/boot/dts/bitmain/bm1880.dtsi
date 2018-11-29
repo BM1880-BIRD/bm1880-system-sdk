@@ -1,0 +1,3126 @@
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/reset/bm1880-resets.h>
+/memreserve/	0x0000000100000000 0x0000000000020000; // ATF BL31
+/ {
+	compatible = "linux,dummy-virt";
+	#size-cells = <0x2>;
+	#address-cells = <0x2>;
+	interrupt-parent = <&gic>;
+
+	aliases {
+		serial0 = &uart0;
+	};
+
+	rst: reset-controller {
+		#reset-cells = <1>;
+		compatible = "bitmain,reset";
+		reg = <0x0 0x50010C00 0x0 0x8>;
+	};
+
+	clk_rst: clk-reset-controller {
+		#reset-cells = <1>;
+		compatible = "bitmain,clk-reset";
+		reg = <0x0 0x50010800 0x0 0x8>;
+	};
+
+
+
+	gic: interrupt-controller {
+		compatible = "arm,cortex-a15-gic";
+		ranges;
+		#size-cells = <0x2>;
+		#address-cells = <0x2>;
+		interrupt-controller;
+		#interrupt-cells = <0x3>;
+		reg = <0x0 0x50001000 0x0 0x1000>,
+			  <0x0 0x50002000 0x0 0x2000>;
+	};
+
+	psci {
+		migrate = <0xc4000005>;
+		cpu_on = <0xc4000003>;
+		cpu_off = <0x84000002>;
+		cpu_suspend = <0xc4000001>;
+		sys_poweroff = <0x84000008>;
+		sys_reset = <0x84000009>;
+		method = "smc";
+		compatible = "arm,psci-0.2", "arm,psci";
+	};
+
+	cpus {
+		#size-cells = <0x0>;
+		#address-cells = <0x1>;
+
+		cpu@0 {
+			reg = <0x0>;
+			enable-method = "psci";
+			compatible = "arm,cortex-a53";
+			device_type = "cpu";
+		};
+
+		cpu@1 {
+			reg = <0x1>;
+			enable-method = "psci";
+			compatible = "arm,cortex-a53";
+			device_type = "cpu";
+		};
+
+	};
+
+	subsys_inten {
+		compatible = "bitmain,subsys-int-en";
+		regbase = <0x5801900c>;
+		i2s-in-offset = <0x1>;
+		i2s-int-mask = <0xf>;
+	};
+
+	dmac: dma@0x58010000 {
+		compatible = "snps,dmac-bm";
+		reg = <0x0 0x58010000 0x0 0x1000>;
+		interrupts = <GIC_SPI 0 IRQ_TYPE_LEVEL_HIGH>;
+
+		dma-channels = /bits/ 8 <8>;
+		#dma-cells = <3>;
+		dma-requests = /bits/ 8 <16>;
+		chan_allocation_order = /bits/ 8 <0>;
+		chan_priority = /bits/ 8 <0>;
+		block_size = <32>; /* max 32 data items */
+		dma-masters = /bits/ 8 <2>;
+		data-width = <4 4>; /* bytes */
+		axi_tr_width = <4>; /* bytes */
+		block-ts = <31>;
+	};
+
+	pwm0: pwm@50029000 {
+		compatible = "bitmain,bm-pwm";
+		reg = <0x0 0x50029000 0x0 0x400>;
+		clocks = <&pclk>;
+		#pwm-cells = <1>;
+	};
+
+	pwm1: pwm@50029400 {
+		compatible = "bitmain,bm-pwm";
+		reg = <0x0 0x50029400 0x0 0x400>;
+		clocks = <&pclk>;
+		#pwm-cells = <2>;
+	};
+
+	pwm2: pwm@50029800 {
+		compatible = "bitmain,bm-pwm";
+		reg = <0x0 0x50029800 0x0 0x400>;
+		clocks = <&pclk>;
+		#pwm-cells = <3>;
+	};
+
+	pwm3: pwm@50029C00 {
+		compatible = "bitmain,bm-pwm";
+		reg = <0x0 0x50029C00 0x0 0x400>;
+		clocks = <&pclk>;
+		#pwm-cells = <4>;
+	};
+
+	eth_csrclk: eth_csrclk {
+		clock-output-names = "eth_csrclk";
+		clock-frequency = <250000000>;
+		#clock-cells = <0x0>;
+		compatible = "fixed-clock";
+	};
+
+	eth_ptpclk: eth_ptpclk {
+		clock-output-names = "eth_ptpclk";
+		clock-frequency = <50000000>;
+		#clock-cells = <0x0>;
+		compatible = "fixed-clock";
+	};
+
+	audio_clock: audio_clock {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <12288000>;
+		};
+
+	gpio0: gpio@50027000 {
+		compatible = "snps,dw-apb-gpio";
+		reg = <0x0 0x50027000 0x0 0x400>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port0a: gpio-controller@0 {
+			compatible = "snps,dw-apb-gpio-port";
+			bank-name = "port0a";
+			gpio-controller;
+			#gpio-cells = <2>;
+			snps,nr-gpios = <32>;
+			reg = <0>;
+			interrupt-controller;
+			interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>;
+		};
+	};
+
+	gpio1: gpio@50027400 {
+		compatible = "snps,dw-apb-gpio";
+		reg = <0x0 0x50027400 0x0 0x400>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port1a: gpio-controller@1 {
+			compatible = "snps,dw-apb-gpio-port";
+			bank-name = "port1a";
+			gpio-controller;
+			#gpio-cells = <2>;
+			snps,nr-gpios = <32>;
+			reg = <0>;
+			interrupt-controller;
+			interrupts = <GIC_SPI 67 IRQ_TYPE_LEVEL_HIGH>;
+		};
+	};
+
+	gpio2: gpio@50027800 {
+		compatible = "snps,dw-apb-gpio";
+		reg = <0x0 0x50027800 0x0 0x400>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port2a: gpio-controller@2 {
+			compatible = "snps,dw-apb-gpio-port";
+			bank-name = "port2a";
+			gpio-controller;
+			#gpio-cells = <2>;
+			snps,nr-gpios = <3>;
+			reg = <0>;
+			interrupt-controller;
+			interrupts = <GIC_SPI 66 IRQ_TYPE_LEVEL_HIGH>;
+		};
+	};
+
+	i2c0: i2c@5001A000 {
+		compatible = "snps,designware-i2c";
+		clocks = <&i2c_srcclk>;
+		reg = <0x0 0x5001A000 0x0 0x1000>;
+		interrupts = <GIC_SPI 74 IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000>;
+
+		#size-cells = <0x0>;
+		#address-cells = <0x1>;
+		adau1372_1: adau1372@3c {
+			compatible = "adi,adau1372";
+			reg = <0x3c>;
+			clocks = <&audio_clock>;
+			clock-names = "mclk";
+		};
+	};
+
+	i2c1: i2c@5001C000 {
+		compatible = "snps,designware-i2c";
+		clocks = <&i2c_srcclk>;
+		reg = <0x0 0x5001C000 0x0 0x1000>;
+		interrupts = <GIC_SPI 73 IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000>;
+
+		#size-cells = <0x0>;
+		#address-cells = <0x1>;
+		adau1372_2: adau1372@3c {
+			compatible = "adi,adau1372";
+			reg = <0x3c>;
+			clocks = <&audio_clock>;
+			clock-names = "mclk";
+		};
+	};
+
+	i2c2: i2c@5001E000 {
+		compatible = "snps,designware-i2c";
+		clocks = <&i2c_srcclk>;
+		reg = <0x0 0x5001E000 0x0 0x1000>;
+		interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000>;
+	};
+
+	i2c3: i2c@50020000 {
+		compatible = "snps,designware-i2c";
+		clocks = <&i2c_srcclk>;
+		reg = <0x0 0x50020000 0x0 0x1000>;
+		interrupts = <GIC_SPI 71 IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000>;
+	};
+
+	i2c4: i2c@50032000 {
+		compatible = "snps,designware-i2c";
+		clocks = <&i2c_srcclk>;
+		reg = <0x0 0x50032000 0x0 0x1000>;
+		interrupts = <GIC_SPI 70 IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000>;
+	};
+
+	i2s_mclk: i2s_mclk {
+		clock-output-names = "i2s_mclk";
+		clock-frequency = <12288000>;
+		#clock-cells = <0x0>;
+		compatible = "fixed-clock";
+	};
+
+	i2s0: i2s@58012000 {
+		compatible = "snps,designware-i2s";
+		reg = <0x0 0x58012000 0x0 0x2000>;
+	//	interrupts = <GIC_SPI 0 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&i2s_mclk 0>;
+		clock-names = "i2sclk";
+		#sound-dai-cells = <0>;
+		dmas = <&dmac 2 1 1 /* read channel */
+			&dmac 3 1 1>; /* write channel */
+		dma-names = "rx", "tx";
+	};
+
+	i2s1: i2s@58014000 {
+		compatible = "snps,designware-i2s";
+		reg = <0x0 0x58014000 0x0 0x2000>;
+	//	interrupts = <GIC_SPI 0 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&i2s_mclk 0>;
+		clock-names = "i2sclk";
+		#sound-dai-cells = <0>;
+		dmas = <&dmac 0 1 1 /* read channel */
+			&dmac 1 1 1>; /* write channel */
+		dma-names = "rx", "tx";
+	};
+
+	sound0 {
+
+		compatible = "bitmain,audio";
+
+		bitmain,model = "BM1880";
+
+		bitmain,audio-codec = <&adau1372_1>;
+
+		bitmain,i2s-controller = <&i2s0>;
+
+		bitmain,codec-clock-rate = <12288000>;
+
+	};
+
+	sound1 {
+
+		compatible = "bitmain,audio";
+
+		bitmain,model = "BM1880";
+
+		bitmain,audio-codec = <&adau1372_2>;
+
+		bitmain,i2s-controller = <&i2s1>;
+
+		bitmain,codec-clock-rate = <12288000>;
+
+	};
+#if 1
+	otg0:bm-usb-otg@50080000 {
+		compatible = "bitmain,usb-otg";
+		reg = <0x0 0x50080000 0x0 0x10000>,
+			<0x0 0x50010064 0x0 0x04>,//ddr_addr_mode
+			<0x0 0x50010038 0x0 0x08>;//USB Control and Status Register 0
+		interrupts = <GIC_SPI 82 IRQ_TYPE_EDGE_RISING>;
+		clock-frequency = <25000000>;
+		dr_mode		= "otg";
+		resets = <&rst 9>;
+		reset-names = "usb";
+		vbus-gpio = <&port0a 4 0>;
+	};
+
+	host0:bm-usb-host@50090000 {
+		compatible = "bitmain,xhci-platform";
+		reg = <0x0 0x50090000 0x0 0x10000>,
+			<0x0 0x50010048 0x0 0x08>//USB PHY Control and Status Register
+			;
+		interrupts = <GIC_SPI 85 IRQ_TYPE_EDGE_RISING>;
+		otg-controller = <&otg0>;
+		clock-frequency = <25000000>;
+	};
+
+	usb0:bm-usb-dev@500A0000 {
+		compatible = "bitmain,usb-dev";
+		reg = <0x0 0x500A0000 0x0 0x1000>;
+		interrupts = <GIC_SPI 83 IRQ_TYPE_EDGE_RISING>;
+		clock-frequency = <25000000>;
+		otg-controller = <&otg0>;
+	};
+#endif
+
+	hpnfc0: hpnfc@500C0000{
+		compatible = "hpnfc-dt";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x0 0x500C0000 0x0 0x3000>, <0x0 0x500C3000 0x0 0x1000>;
+		interrupts = <GIC_SPI 81 IRQ_TYPE_LEVEL_HIGH>;
+		dma-mask = <0xFFFFFFFF>;
+		ecc-sec-size = <512>;
+		ecc-corr-cap = <8>;
+		rsvd-block-count = <32>;
+		nand-ecc-mode = "hw";
+		resets = <&clk_rst CLK_RST_AXI_NF>,
+				 <&clk_rst CLK_RST_APB_NF>,
+				 <&clk_rst CLK_RST_NF>;
+		reset-names = "axi_nf",
+					  "apb_nf",
+					  "nf";
+	};
+
+	jpu: jpu@50070000 {
+		compatible = "bitmain,jpeg";
+		memory-region = <&jpu_reserved>;
+		reg = <0x0 0x50070000 0x0 0x300>;
+		interrupts = <GIC_SPI 75 IRQ_TYPE_LEVEL_HIGH>; //75 boda intr
+		resets = <&rst RST_JPEG>,
+			<&clk_rst CLK_RST_AXI2>,
+			<&clk_rst CLK_RST_APB_JPEG>,
+			<&clk_rst CLK_RST_JPEG_AXI>;
+		reset-names = "jpeg",
+			"axi2",
+			"apb_jpeg",
+			"jpeg_axi";
+	};
+
+	vpu: vpu@50040000 {
+		compatible = "bitmain,bitmain-vdec";
+		memory-region = <&vpu_reserved>;
+		reg = <0x0 0x50040000 0x0 0x10000>;
+		interrupts = <GIC_SPI 76 IRQ_TYPE_LEVEL_HIGH>; //76 boda intr
+		resets = <&rst RST_VIDEO>,
+			<&clk_rst CLK_RST_AXI2>,
+			<&clk_rst CLK_RST_APB_VIDEO>,
+			<&clk_rst CLK_RST_VIDEO_AXI>;
+		reset-names = "coda",
+			"axi2",
+			"apb_video",
+			"video_axi";
+	};
+
+	vpp: vpp@58007000 {
+		compatible = "bitmain, bitmain-vpp";
+		reg = <0x0 0x58007000 0x0 0x1000>;
+		interrupts = <GIC_SPI 77 IRQ_TYPE_LEVEL_HIGH>;
+		resets = <&clk_rst CLK_RST_AXI2>,
+			<&clk_rst CLK_RST_APB_VPP>,
+			<&clk_rst CLK_RST_VPP_AXI>;
+		reset-names = "axi2",
+			"apb_vpp",
+			"vpp_axi";
+		};
+
+	npu {
+		compatible = "bitmain,npu";
+		reg = <0x0 0x58000000 0x0 0x1000>,
+			  <0x0 0x58002000 0x0 0x1000>,
+			  <0x0 0x500100ec 0x0 0x4>;
+		reg-names = "gdma", "nps", "spll";
+		interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 80 IRQ_TYPE_LEVEL_HIGH>;
+		resets = <&rst RST_TPU>,
+			<&rst RST_GDMA>,
+			<&clk_rst CLK_RST_AXI1>,
+			<&clk_rst CLK_RST_TPU_AXI>,
+			<&clk_rst CLK_RST_AXI_GDMA>;
+		reset-names = "nps",
+			"gdma",
+			"axi1",
+			"tpu_axi",
+			"axi_gdma";
+	};
+
+	bitmain-ion {
+		compatible = "bitmain,bitmain-ion";
+
+		heap_carveout@0 {
+			compatible = "bitmain,carveout";
+			memory-region = <&ion_reserved>;
+		};
+	};
+
+	bmpctrl: pinctrl@50010400 {
+		compatible = "bitmain,pinctrl-bm1880";
+		reg = <0 0x50010400 0 0x120>;
+		pinctrl-names = "nop", "uart10_sel";
+		pinctrl-0 = <>;
+		pinctrl-1 = <&uart10_sel>;
+		nand_acquire: nand_acquire {
+			mux {
+				groups = "nand_grp";
+				function = "nand_a";
+			};
+		};
+		nand_release: nand_release{
+			mux {
+				groups = "null_grp";
+				function = "nand_r";
+			};
+		};
+		spi_acquire: spi_acquire {
+			mux {
+				groups = "spi_grp";
+				function = "spi_a";
+			};
+		};
+		spi_release: spi_release{
+			mux {
+				groups = "null_grp";
+				function = "spi_r";
+			};
+		};
+		emmc_acquire: emmc_acquire {
+			mux {
+				groups = "emmc_grp";
+				function = "emmc_a";
+			};
+		};
+		emmc_release: emmc_release{
+			mux {
+				groups = "null_grp";
+				function = "emmc_r";
+			};
+		};
+		uart1_acquire: uart1_acquire {
+			mux {
+				groups = "uart1_grp";
+				function = "uart1_a";
+			};
+		};
+		uart1_release: uart1_release{
+			mux {
+				groups = "null_grp";
+				function = "uart1_r";
+			};
+		};
+		uart2_acquire: uart2_acquire {
+			mux {
+				groups = "uart2_grp";
+				function = "uart2_a";
+			};
+		};
+		uart2_release: uart2_release{
+			mux {
+				groups = "null_grp";
+				function = "uart2_r";
+			};
+		};
+		uart3_acquire: uart3_acquire {
+			mux {
+				groups = "uart3_grp";
+				function = "uart3_a";
+			};
+		};
+		uart3_release: uart3_release{
+			mux {
+				groups = "null_grp";
+				function = "uart3_r";
+			};
+		};
+		//4
+		uart4_acquire: uart4_acquire {
+			mux {
+				groups = "uart4_grp";
+				function = "uart4_a";
+			};
+		};
+		uart4_release: uart4_release{
+			mux {
+				groups = "null_grp";
+				function = "uart4_r";
+			};
+		};
+		uart5_acquire: uart5_acquire {
+			mux {
+				groups = "uart5_grp";
+				function = "uart5_a";
+			};
+		};
+		uart5_release: uart5_release{
+			mux {
+				groups = "null_grp";
+				function = "uart5_r";
+			};
+		};
+		//6
+		uart6_acquire: uart6_acquire {
+			mux {
+				groups = "uart6_grp";
+				function = "uart6_a";
+			};
+		};
+		uart6_release: uart6_release{
+			mux {
+				groups = "null_grp";
+				function = "uart6_r";
+			};
+		};
+		//7
+		uart7_acquire: uart7_acquire {
+			mux {
+				groups = "uart7_grp";
+				function = "uart7_a";
+			};
+		};
+		uart7_release: uart7_release{
+			mux {
+				groups = "null_grp";
+				function = "uart7_r";
+			};
+		};
+		//8
+		uart8_acquire: uart8_acquire {
+			mux {
+				groups = "uart8_grp";
+				function = "uart8_a";
+			};
+		};
+		uart8_release: uart8_release{
+			mux {
+				groups = "null_grp";
+				function = "uart8_r";
+			};
+		};
+		//9
+		uart9_acquire: uart9_acquire {
+			mux {
+				groups = "uart9_grp";
+				function = "uart9_a";
+			};
+		};
+		uart9_release: uart9_release{
+			mux {
+				groups = "null_grp";
+				function = "uart9_r";
+			};
+		};
+		//10
+		uart10_acquire: uart10_acquire {
+			mux {
+				groups = "uart10_grp";
+				function = "uart10_a";
+			};
+		};
+		uart10_release: uart10_release{
+			mux {
+				groups = "null_grp";
+				function = "uart10_r";
+			};
+		};
+		//11
+		uart11_acquire: uart11_acquire {
+			mux {
+				groups = "uart11_grp";
+				function = "uart11_a";
+			};
+		};
+		uart11_release: uart11_release{
+			mux {
+				groups = "null_grp";
+				function = "uart11_r";
+			};
+		};
+		uart10_sel: uart10_sel {
+			mux {
+				groups = "uart10_grp";
+				function = "uart10_a";
+			};
+			pin {
+				groups = "uart10_grp";
+				bias-pull-pin-default;
+			};
+		};
+		pwm0_acquire: pwm0_acquire {
+			mux {
+				groups = "pwm0_grp";
+				function = "pwm0_a";
+			};
+		};
+		pwm0_release: pwm0_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm0_r";
+			};
+		};
+		pwm1_acquire: pwm1_acquire {
+			mux {
+				groups = "pwm1_grp";
+				function = "pwm1_a";
+			};
+		};
+		pwm1_release: pwm1_release{
+			mux {
+			groups = "null_grp";
+			function = "pwm1_r";
+			};
+		};
+		pwm2_acquire: pwm2_acquire {
+			mux {
+				groups = "pwm2_grp";
+				function = "pwm2_a";
+			};
+		};
+		pwm2_release: pwm2_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm2_r";
+			};
+		};
+		pwm3_acquire: pwm3_acquire {
+			mux {
+				groups = "pwm3_grp";
+				function = "pwm3_a";
+			};
+		};
+		pwm3_release: pwm3_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm3_r";
+			};
+		};
+		pwm4_acquire: pwm4_acquire {
+			mux {
+				groups = "pwm4_grp";
+				function = "pwm4_a";
+			};
+		};
+		pwm4_release: pwm4_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm4_r";
+			};
+		};
+		pwm5_acquire: pwm5_acquire {
+			mux {
+				groups = "pwm5_grp";
+				function = "pwm5_a";
+			};
+		};
+		pwm5_release: pwm5_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm5_r";
+			};
+		};
+		pwm6_acquire: pwm6_acquire {
+			mux {
+				groups = "pwm6_grp";
+				function = "pwm6_a";
+			};
+		};
+		pwm6_release: pwm6_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm6_r";
+			};
+		};
+		pwm7_acquire: pwm7_acquire {
+			mux {
+				groups = "pwm7_grp";
+				function = "pwm7_a";
+			};
+		};
+		pwm7_release: pwm7_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm7_r";
+			};
+		};
+		pwm8_acquire: pwm8_acquire {
+			mux {
+				groups = "pwm8_grp";
+				function = "pwm8_a";
+			};
+		};
+		pwm8_release: pwm8_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm8_r";
+			};
+		};
+		pwm9_acquire: pwm9_acquire {
+			mux {
+				groups = "pwm9_grp";
+				function = "pwm9_a";
+			};
+		};
+		pwm9_release: pwm9_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm9_r";
+			};
+		};
+		pwm10_acquire: pwm10_acquire {
+			mux {
+				groups = "pwm10_grp";
+				function = "pwm10_a";
+			};
+		};
+		pwm10_release: pwm10_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm10_r";
+			};
+		};
+		pwm11_acquire: pwm11_acquire {
+			mux {
+				groups = "pwm11_grp";
+				function = "pwm11_a";
+			};
+		};
+		pwm11_release: pwm11_release{
+			mux {
+			groups = "null_grp";
+			function = "pwm11_r";
+			};
+		};
+		pwm12_acquire: pwm12_acquire {
+			mux {
+				groups = "pwm12_grp";
+				function = "pwm12_a";
+			};
+		};
+		pwm12_release: pwm12_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm12_r";
+			};
+		};
+		pwm13_acquire: pwm13_acquire {
+			mux {
+				groups = "pwm13_grp";
+				function = "pwm13_a";
+			};
+		};
+		pwm13_release: pwm13_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm13_r";
+			};
+		};
+		pwm14_acquire: pwm14_acquire {
+			mux {
+				groups = "pwm14_grp";
+				function = "pwm14_a";
+			};
+		};
+		pwm14_release: pwm14_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm14_r";
+			};
+		};
+		pwm15_acquire: pwm15_acquire {
+			mux {
+				groups = "pwm15_grp";
+				function = "pwm15_a";
+			};
+		};
+		pwm15_release: pwm15_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm15_r";
+			};
+		};
+		pwm16_acquire: pwm16_acquire {
+			mux {
+				groups = "pwm16_grp";
+				function = "pwm16_a";
+			};
+		};
+		pwm16_release: pwm16_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm16_r";
+			};
+		};
+		pwm17_acquire: pwm17_acquire {
+			mux {
+				groups = "pwm17_grp";
+				function = "pwm17_a";
+			};
+		};
+		pwm17_release: pwm17_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm17_r";
+			};
+		};
+		pwm18_acquire: pwm18_acquire {
+			mux {
+				groups = "pwm18_grp";
+				function = "pwm18_a";
+			};
+		};
+		pwm18_release: pwm18_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm18_r";
+			};
+		};
+		pwm19_acquire: pwm19_acquire {
+			mux {
+				groups = "pwm19_grp";
+				function = "pwm19_a";
+			};
+		};
+		pwm19_release: pwm19_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm19_r";
+			};
+		};
+		pwm20_acquire: pwm20_acquire {
+			mux {
+				groups = "pwm20_grp";
+				function = "pwm20_a";
+			};
+		};
+		pwm20_release: pwm20_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm20_r";
+			};
+		};
+		pwm21_acquire: pwm21_acquire {
+			mux {
+				groups = "pwm21_grp";
+				function = "pwm21_a";
+			};
+		};
+		pwm21_release: pwm21_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm21_r";
+			};
+		};
+		pwm22_acquire: pwm22_acquire {
+			mux {
+				groups = "pwm22_grp";
+				function = "pwm22_a";
+			};
+		};
+		pwm22_release: pwm22_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm22_r";
+			};
+		};
+		pwm23_acquire: pwm23_acquire {
+			mux {
+				groups = "pwm23_grp";
+				function = "pwm23_a";
+			};
+		};
+		pwm23_release: pwm23_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm23_r";
+			};
+		};
+		pwm24_acquire: pwm24_acquire {
+			mux {
+				groups = "pwm24_grp";
+				function = "pwm24_a";
+			};
+		};
+		pwm24_release: pwm24_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm24_r";
+			};
+		};
+		pwm25_acquire: pwm25_acquire {
+			mux {
+				groups = "pwm25_grp";
+				function = "pwm25_a";
+			};
+		};
+		pwm25_release: pwm25_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm25_r";
+			};
+		};
+		pwm26_acquire: pwm26_acquire {
+			mux {
+				groups = "pwm26_grp";
+				function = "pwm26_a";
+			};
+		};
+		pwm26_release: pwm26_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm26_r";
+			};
+		};
+		pwm27_acquire: pwm27_acquire {
+			mux {
+				groups = "pwm27_grp";
+				function = "pwm27_a";
+			};
+		};
+		pwm27_release: pwm27_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm27_r";
+			};
+		};
+		pwm28_acquire: pwm28_acquire {
+			mux {
+				groups = "pwm28_grp";
+				function = "pwm28_a";
+			};
+		};
+		pwm28_release: pwm28_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm28_r";
+			};
+		};
+		pwm29_acquire: pwm29_acquire {
+			mux {
+				groups = "pwm29_grp";
+				function = "pwm29_a";
+			};
+		};
+		pwm29_release: pwm29_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm29_r";
+			};
+		};
+		pwm30_acquire: pwm30_acquire {
+			mux {
+				groups = "pwm30_grp";
+				function = "pwm30_a";
+			};
+		};
+		pwm30_release: pwm30_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm30_r";
+			};
+		};
+		pwm31_acquire: pwm31_acquire {
+			mux {
+				groups = "pwm31_grp";
+				function = "pwm31_a";
+			};
+		};
+		pwm31_release: pwm31_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm31_r";
+			};
+		};
+		pwm32_acquire: pwm32_acquire {
+			mux {
+				groups = "pwm32_grp";
+				function = "pwm32_a";
+			};
+		};
+		pwm32_release: pwm32_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm32_r";
+			};
+		};
+		pwm33_acquire: pwm33_acquire {
+			mux {
+				groups = "pwm33_grp";
+				function = "pwm33_a";
+			};
+		};
+		pwm33_release: pwm33_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm33_r";
+			};
+		};
+		pwm34_acquire: pwm34_acquire {
+			mux {
+				groups = "pwm34_grp";
+				function = "pwm34_a";
+			};
+		};
+		pwm34_release: pwm34_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm34_r";
+			};
+		};
+		pwm35_acquire: pwm35_acquire {
+			mux {
+				groups = "pwm35_grp";
+				function = "pwm35_a";
+			};
+		};
+		pwm35_release: pwm35_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm35_r";
+			};
+		};
+		pwm36_acquire: pwm36_acquire {
+			mux {
+				groups = "pwm36_grp";
+				function = "pwm36_a";
+			};
+		};
+		pwm36_release: pwm36_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm36_r";
+			};
+		};
+		pwm37_acquire: pwm37_acquire {
+			mux {
+				groups = "pwm37_grp";
+				function = "pwm37_a";
+			};
+		};
+		pwm37_release: pwm37_release{
+			mux {
+				groups = "null_grp";
+				function = "pwm37_r";
+			};
+		};
+		i2c0_acquire: i2c0_acquire {
+			mux {
+				groups = "i2c0_grp";
+				function = "i2c0_a";
+			};
+		};
+		i2c0_release: i2c0_release{
+			mux {
+				groups = "null_grp";
+				function = "i2c0_r";
+			};
+		};
+		i2c1_acquire: i2c1_acquire {
+			mux {
+				groups = "i2c1_grp";
+				function = "i2c1_a";
+			};
+		};
+		i2c1_release: i2c1_release{
+			mux {
+				groups = "null_grp";
+				function = "i2c1_r";
+			};
+		};
+		i2c2_acquire: i2c2_acquire {
+			mux {
+				groups = "i2c2_grp";
+				function = "i2c2_a";
+			};
+		};
+		i2c2_release: i2c2_release{
+			mux {
+				groups = "null_grp";
+				function = "i2c2_r";
+			};
+		};
+		i2c3_acquire: i2c3_acquire {
+			mux {
+				groups = "i2c3_grp";
+				function = "i2c3_a";
+			};
+		};
+		i2c3_release: i2c3_release{
+			mux {
+				groups = "null_grp";
+				function = "i2c3_r";
+			};
+		};
+		i2c4_acquire: i2c4_acquire {
+			mux {
+				groups = "i2c4_grp";
+				function = "i2c4_a";
+			};
+		};
+		i2c4_release: i2c4_release{
+			mux {
+				groups = "null_grp";
+				function = "i2c4_r";
+			};
+		};
+		eth0_acquire: eth0_acquire {
+			mux {
+				groups = "eth0_grp";
+				function = "eth0_a";
+			};
+		};
+		eth0_release: eth0_release{
+			mux {
+				groups = "null_grp";
+				function = "eth0_r";
+			};
+		};
+		eth1_acquire: eth1_acquire {
+			mux {
+				groups = "eth1_grp";
+				function = "eth1_a";
+			};
+		};
+		eth1_release: eth1_release{
+			mux {
+				groups = "null_grp";
+				function = "eth1_r";
+			};
+		};
+		i2s0_acquire: i2s0_acquire {
+			mux {
+				groups = "i2s0_grp";
+				function = "i2s0_a";
+			};
+		};
+		i2s0_release: i2s0_release{
+			mux {
+				groups = "null_grp";
+				function = "i2s0_r";
+			};
+		};
+		i2s0_mclkin_acquire: i2s0_mclkin_acquire {
+			mux {
+				groups = "i2s0_mclkin_grp";
+				function = "i2s0_mclkin_a";
+			};
+		};
+		i2s0_mclkin_release: i2s0_mclkin_release{
+			mux {
+				groups = "null_grp";
+				function = "i2s0_mclkin_r";
+			};
+		};
+		i2s1_acquire: i2s1_acquire {
+			mux {
+				groups = "i2s1_grp";
+				function = "i2s1_a";
+			};
+		};
+		i2s1_release: i2s1_release{
+			mux {
+				groups = "null_grp";
+				function = "i2s1_r";
+			};
+		};
+		i2s1_mclkin_acquire: i2s1_mclkin_acquire {
+			mux {
+				groups = "i2s1_mclkin_grp";
+				function = "i2s1_mclkin_a";
+			};
+		};
+		i2s1_mclkin_release: i2s1_mclkin_release{
+			mux {
+				groups = "null_grp";
+				function = "i2s1_mclkin_r";
+			};
+		};
+		gpio0_acquire: gpio0_acquire {
+			mux {
+				groups = "gpio0_grp";
+				function = "gpio0_a";
+			};
+		};
+		gpio0_release: gpio0_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio0_r";
+			};
+		};
+		gpio1_acquire: gpio1_acquire {
+			mux {
+				groups = "gpio1_grp";
+				function = "gpio1_a";
+			};
+		};
+		gpio1_release: gpio1_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio1_r";
+			};
+		};
+		gpio2_acquire: gpio2_acquire {
+			mux {
+				groups = "gpio2_grp";
+				function = "gpio2_a";
+			};
+		};
+		gpio2_release: gpio2_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio2_r";
+			};
+		};
+		gpio3_acquire: gpio3_acquire {
+			mux {
+				groups = "gpio3_grp";
+				function = "gpio3_a";
+			};
+		};
+		gpio3_release: gpio3_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio3_r";
+			};
+		};
+		gpio4_acquire: gpio4_acquire {
+			mux {
+				groups = "gpio4_grp";
+				function = "gpio4_a";
+			};
+		};
+		gpio4_release: gpio4_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio4_r";
+			};
+		};
+		gpio5_acquire: gpio5_acquire {
+			mux {
+				groups = "gpio5_grp";
+				function = "gpio5_a";
+			};
+		};
+		gpio5_release: gpio5_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio5_r";
+			};
+		};
+		gpio6_acquire: gpio6_acquire {
+			mux {
+				groups = "gpio6_grp";
+				function = "gpio6_a";
+			};
+		};
+		gpio6_release: gpio6_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio6_r";
+			};
+		};
+		gpio7_acquire: gpio7_acquire {
+			mux {
+				groups = "gpio7_grp";
+				function = "gpio7_a";
+			};
+		};
+		gpio7_release: gpio7_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio7_r";
+			};
+		};
+		gpio8_acquire: gpio8_acquire {
+			mux {
+				groups = "gpio8_grp";
+				function = "gpio8_a";
+			};
+		};
+		gpio8_release: gpio8_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio8_r";
+			};
+		};
+		gpio9_acquire: gpio9_acquire {
+			mux {
+				groups = "gpio9_grp";
+				function = "gpio9_a";
+			};
+		};
+		gpio9_release: gpio9_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio9_r";
+			};
+		};
+		gpio10_acquire: gpio10_acquire {
+			mux {
+				groups = "gpio10_grp";
+				function = "gpio10_a";
+			};
+		};
+		gpio10_release: gpio10_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio10_r";
+			};
+		};
+		gpio11_acquire: gpio11_acquire {
+			mux {
+				groups = "gpio11_grp";
+				function = "gpio11_a";
+			};
+		};
+		gpio11_release: gpio11_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio11_r";
+			};
+		};
+		gpio12_acquire: gpio12_acquire {
+			mux {
+				groups = "gpio12_grp";
+				function = "gpio12_a";
+			};
+		};
+		gpio12_release: gpio12_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio12_r";
+			};
+		};
+		gpio13_acquire: gpio13_acquire {
+			mux {
+				groups = "gpio13_grp";
+				function = "gpio13_a";
+			};
+		};
+		gpio13_release: gpio13_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio13_r";
+			};
+		};
+		gpio14_acquire: gpio14_acquire {
+			mux {
+				groups = "gpio14_grp";
+				function = "gpio14_a";
+			};
+		};
+		gpio14_release: gpio14_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio14_r";
+			};
+		};
+		gpio15_acquire: gpio15_acquire {
+			mux {
+				groups = "gpio15_grp";
+				function = "gpio15_a";
+			};
+		};
+		gpio15_release: gpio15_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio15_r";
+			};
+		};
+		gpio16_acquire: gpio16_acquire {
+			mux {
+				groups = "gpio16_grp";
+				function = "gpio16_a";
+			};
+		};
+		gpio16_release: gpio16_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio16_r";
+			};
+		};
+		gpio17_acquire: gpio17_acquire {
+			mux {
+				groups = "gpio17_grp";
+				function = "gpio17_a";
+			};
+		};
+		gpio17_release: gpio17_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio17_r";
+			};
+		};
+		gpio18_acquire: gpio18_acquire {
+			mux {
+				groups = "gpio18_grp";
+				function = "gpio18_a";
+			};
+		};
+		gpio18_release: gpio18_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio18_r";
+			};
+		};
+		gpio19_acquire: gpio19_acquire {
+			mux {
+				groups = "gpio19_grp";
+				function = "gpio19_a";
+			};
+		};
+		gpio19_release: gpio19_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio19_r";
+			};
+		};
+		gpio20_acquire: gpio20_acquire {
+			mux {
+				groups = "gpio20_grp";
+				function = "gpio20_a";
+			};
+		};
+		gpio20_release: gpio20_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio20_r";
+			};
+		};
+		gpio21_acquire: gpio21_acquire {
+			mux {
+				groups = "gpio21_grp";
+				function = "gpio21_a";
+			};
+		};
+		gpio21_release: gpio21_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio21_r";
+			};
+		};
+		gpio22_acquire: gpio22_acquire {
+			mux {
+				groups = "gpio22_grp";
+				function = "gpio22_a";
+			};
+		};
+		gpio22_release: gpio22_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio22_r";
+			};
+		};
+		gpio23_acquire: gpio23_acquire {
+			mux {
+				groups = "gpio23_grp";
+				function = "gpio23_a";
+			};
+		};
+		gpio23_release: gpio23_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio23_r";
+			};
+		};
+		gpio24_acquire: gpio24_acquire {
+			mux {
+				groups = "gpio24_grp";
+				function = "gpio24_a";
+			};
+		};
+		gpio24_release: gpio24_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio24_r";
+			};
+		};
+		gpio25_acquire: gpio25_acquire {
+			mux {
+				groups = "gpio25_grp";
+				function = "gpio25_a";
+			};
+		};
+		gpio25_release: gpio25_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio25_r";
+			};
+		};
+		gpio26_acquire: gpio26_acquire {
+			mux {
+				groups = "gpio26_grp";
+				function = "gpio26_a";
+			};
+		};
+		gpio26_release: gpio26_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio26_r";
+			};
+		};
+		gpio27_acquire: gpio27_acquire {
+			mux {
+				groups = "gpio27_grp";
+				function = "gpio27_a";
+			};
+		};
+		gpio27_release: gpio27_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio27_r";
+			};
+		};
+		gpio28_acquire: gpio28_acquire {
+			mux {
+				groups = "gpio28_grp";
+				function = "gpio28_a";
+			};
+		};
+		gpio28_release: gpio28_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio28_r";
+			};
+		};
+		gpio29_acquire: gpio29_acquire {
+			mux {
+				groups = "gpio29_grp";
+				function = "gpio29_a";
+			};
+		};
+		gpio29_release: gpio29_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio29_r";
+			};
+		};
+		gpio30_acquire: gpio30_acquire {
+			mux {
+				groups = "gpio30_grp";
+				function = "gpio30_a";
+			};
+		};
+		gpio30_release: gpio30_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio30_r";
+			};
+		};
+		gpio31_acquire: gpio31_acquire {
+			mux {
+				groups = "gpio31_grp";
+				function = "gpio31_a";
+			};
+		};
+		gpio31_release: gpio31_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio31_r";
+			};
+		};
+		gpio32_acquire: gpio32_acquire {
+			mux {
+				groups = "gpio32_grp";
+				function = "gpio32_a";
+			};
+		};
+		gpio32_release: gpio32_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio32_r";
+			};
+		};
+		gpio33_acquire: gpio33_acquire {
+			mux {
+				groups = "gpio33_grp";
+				function = "gpio33_a";
+			};
+		};
+		gpio33_release: gpio33_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio33_r";
+			};
+		};
+		gpio34_acquire: gpio34_acquire {
+			mux {
+				groups = "gpio34_grp";
+				function = "gpio34_a";
+			};
+		};
+		gpio34_release: gpio34_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio34_r";
+			};
+		};
+		gpio35_acquire: gpio35_acquire {
+			mux {
+				groups = "gpio35_grp";
+				function = "gpio35_a";
+			};
+		};
+		gpio35_release: gpio35_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio35_r";
+			};
+		};
+		gpio36_acquire: gpio36_acquire {
+			mux {
+				groups = "gpio36_grp";
+				function = "gpio36_a";
+			};
+		};
+		gpio36_release: gpio36_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio36_r";
+			};
+		};
+		gpio37_acquire: gpio37_acquire {
+			mux {
+				groups = "gpio37_grp";
+				function = "gpio37_a";
+			};
+		};
+		gpio37_release: gpio37_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio37_r";
+			};
+		};
+		gpio38_acquire: gpio38_acquire {
+			mux {
+				groups = "gpio38_grp";
+				function = "gpio38_a";
+			};
+		};
+		gpio38_release: gpio38_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio38_r";
+			};
+		};
+		gpio39_acquire: gpio39_acquire {
+			mux {
+				groups = "gpio39_grp";
+				function = "gpio39_a";
+			};
+		};
+		gpio39_release: gpio39_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio39_r";
+			};
+		};
+		gpio40_acquire: gpio40_acquire {
+			mux {
+				groups = "gpio40_grp";
+				function = "gpio40_a";
+			};
+		};
+		gpio40_release: gpio40_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio40_r";
+			};
+		};
+		gpio41_acquire: gpio41_acquire {
+			mux {
+				groups = "gpio41_grp";
+				function = "gpio41_a";
+			};
+		};
+		gpio41_release: gpio41_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio41_r";
+			};
+		};
+		gpio42_acquire: gpio42_acquire {
+			mux {
+				groups = "gpio42_grp";
+				function = "gpio42_a";
+			};
+		};
+		gpio42_release: gpio42_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio42_r";
+			};
+		};
+		gpio43_acquire: gpio43_acquire {
+			mux {
+				groups = "gpio43_grp";
+				function = "gpio43_a";
+			};
+		};
+		gpio43_release: gpio43_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio43_r";
+			};
+		};
+		gpio44_acquire: gpio44_acquire {
+			mux {
+				groups = "gpio44_grp";
+				function = "gpio44_a";
+			};
+		};
+		gpio44_release: gpio44_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio44_r";
+			};
+		};
+		gpio45_acquire: gpio45_acquire {
+			mux {
+				groups = "gpio45_grp";
+				function = "gpio45_a";
+			};
+		};
+		gpio45_release: gpio45_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio45_r";
+			};
+		};
+		gpio46_acquire: gpio46_acquire {
+			mux {
+				groups = "gpio46_grp";
+				function = "gpio46_a";
+			};
+		};
+		gpio46_release: gpio46_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio46_r";
+			};
+		};
+		gpio47_acquire: gpio47_acquire {
+			mux {
+				groups = "gpio47_grp";
+				function = "gpio47_a";
+			};
+		};
+		gpio47_release: gpio47_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio47_r";
+			};
+		};
+		gpio48_acquire: gpio48_acquire {
+			mux {
+				groups = "gpio48_grp";
+				function = "gpio48_a";
+			};
+		};
+		gpio48_release: gpio48_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio48_r";
+			};
+		};
+		gpio49_acquire: gpio49_acquire {
+			mux {
+				groups = "gpio49_grp";
+				function = "gpio49_a";
+			};
+		};
+		gpio49_release: gpio49_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio49_r";
+			};
+		};
+		gpio50_acquire: gpio50_acquire {
+			mux {
+				groups = "gpio50_grp";
+				function = "gpio50_a";
+			};
+		};
+		gpio50_release: gpio50_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio50_r";
+			};
+		};
+		gpio51_acquire: gpio51_acquire {
+			mux {
+				groups = "gpio51_grp";
+				function = "gpio51_a";
+			};
+		};
+		gpio51_release: gpio51_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio51_r";
+			};
+		};
+		gpio52_acquire: gpio52_acquire {
+			mux {
+				groups = "gpio52_grp";
+				function = "gpio52_a";
+			};
+		};
+		gpio52_release: gpio52_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio52_r";
+			};
+		};
+		gpio53_acquire: gpio53_acquire {
+			mux {
+				groups = "gpio53_grp";
+				function = "gpio53_a";
+			};
+		};
+		gpio53_release: gpio53_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio53_r";
+			};
+		};
+		gpio54_acquire: gpio54_acquire {
+			mux {
+				groups = "gpio54_grp";
+				function = "gpio54_a";
+			};
+		};
+		gpio54_release: gpio54_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio54_r";
+			};
+		};
+		gpio55_acquire: gpio55_acquire {
+			mux {
+				groups = "gpio55_grp";
+				function = "gpio55_a";
+			};
+		};
+		gpio55_release: gpio55_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio55_r";
+			};
+		};
+		gpio56_acquire: gpio56_acquire {
+			mux {
+				groups = "gpio56_grp";
+				function = "gpio56_a";
+			};
+		};
+		gpio56_release: gpio56_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio56_r";
+			};
+		};
+		gpio57_acquire: gpio57_acquire {
+			mux {
+				groups = "gpio57_grp";
+				function = "gpio57_a";
+			};
+		};
+		gpio57_release: gpio57_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio57_r";
+			};
+		};
+		gpio58_acquire: gpio58_acquire {
+			mux {
+				groups = "gpio58_grp";
+				function = "gpio58_a";
+			};
+		};
+		gpio58_release: gpio58_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio58_r";
+			};
+		};
+		gpio59_acquire: gpio59_acquire {
+			mux {
+				groups = "gpio59_grp";
+				function = "gpio59_a";
+			};
+		};
+		gpio59_release: gpio59_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio59_r";
+			};
+		};
+		gpio60_acquire: gpio60_acquire {
+			mux {
+				groups = "gpio60_grp";
+				function = "gpio60_a";
+			};
+		};
+		gpio60_release: gpio60_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio60_r";
+			};
+		};
+		gpio61_acquire: gpio61_acquire {
+			mux {
+				groups = "gpio61_grp";
+				function = "gpio61_a";
+			};
+		};
+		gpio61_release: gpio61_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio61_r";
+			};
+		};
+		gpio62_acquire: gpio62_acquire {
+			mux {
+				groups = "gpio62_grp";
+				function = "gpio62_a";
+			};
+		};
+		gpio62_release: gpio62_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio62_r";
+			};
+		};
+		gpio63_acquire: gpio63_acquire {
+			mux {
+				groups = "gpio63_grp";
+				function = "gpio63_a";
+			};
+		};
+		gpio63_release: gpio63_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio63_r";
+			};
+		};
+		gpio64_acquire: gpio64_acquire {
+			mux {
+				groups = "gpio64_grp";
+				function = "gpio64_a";
+			};
+		};
+		gpio64_release: gpio64_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio64_r";
+			};
+		};
+		gpio65_acquire: gpio65_acquire {
+			mux {
+				groups = "gpio65_grp";
+				function = "gpio65_a";
+			};
+		};
+		gpio65_release: gpio65_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio65_r";
+			};
+		};
+		gpio66_acquire: gpio66_acquire {
+			mux {
+				groups = "gpio66_grp";
+				function = "gpio66_a";
+			};
+		};
+		gpio66_release: gpio66_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio66_r";
+			};
+		};
+		gpio67_acquire: gpio67_acquire {
+			mux {
+				groups = "gpio67_grp";
+				function = "gpio67_a";
+			};
+		};
+		gpio67_release: gpio67_release {
+			mux {
+				groups = "null_grp";
+				function = "gpio67_r";
+			};
+		};
+	};
+
+	nand-mux{
+		compatible = "bitmain,nand-mux";
+		pinctrl-names= "nand_a", "nand_r";
+		pinctrl-0= <&nand_acquire>;
+		pinctrl-1= <&nand_release>;
+	};
+
+	spi-mux{
+		compatible = "bitmain,spi-mux";
+		pinctrl-names= "spi_a", "spi_r";
+		pinctrl-0= <&spi_acquire>;
+		pinctrl-1= <&spi_release>;
+	};
+
+	emmc-mux{
+		compatible = "bitmain,emmc-mux";
+		pinctrl-names= "emmc_a", "emmc_r";
+		pinctrl-0= <&emmc_acquire>;
+		pinctrl-1= <&emmc_release>;
+	};
+
+	eth0-mux{
+		compatible = "bitmain,eth-mux";
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&eth0_acquire>;
+		pinctrl-1= <&eth0_release>;
+	};
+
+	eth1-mux{
+		compatible = "bitmain,eth-mux";
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&eth1_acquire>;
+		pinctrl-1= <&eth1_release>;
+	};
+
+	i2s0-mux{
+		compatible = "bitmain,i2s-mux";
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&i2s0_acquire>;
+		pinctrl-1= <&i2s0_release>;
+	};
+
+	i2s0-mclkin-mux{
+		compatible = "bitmain,i2s-mux";
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&i2s0_mclkin_acquire>;
+		pinctrl-1= <&i2s0_mclkin_release>;
+	};
+
+	i2s1-mux{
+		compatible = "bitmain,i2s-mux";
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&i2s1_acquire>;
+		pinctrl-1= <&i2s1_release>;
+	};
+
+	i2s1-mclkin-mux{
+		compatible = "bitmain,i2s-mux";
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&i2s1_mclkin_acquire>;
+		pinctrl-1= <&i2s1_mclkin_release>;
+	};
+
+	uart1-mux{
+		compatible = "bitmain,uart1-mux";
+		pinctrl-names= "uart1_a", "uart1_r";
+		pinctrl-0= <&uart1_acquire>;
+		pinctrl-1= <&uart1_release>;
+	};
+
+	uart2-mux{
+		compatible = "bitmain,uart2-mux";
+		pinctrl-names= "uart2_a", "uart2_r";
+		pinctrl-0= <&uart2_acquire>;
+		pinctrl-1= <&uart2_release>;
+	};
+
+	uart3-mux{
+		compatible = "bitmain,uart3-mux";
+		pinctrl-names= "uart3_a", "uart3_r";
+		pinctrl-0= <&uart3_acquire>;
+		pinctrl-1= <&uart3_release>;
+	};
+
+	uart4-mux{
+		compatible = "bitmain,uart4-mux";
+		pinctrl-names= "uart4_a", "uart4_r";
+		pinctrl-0= <&uart4_acquire>;
+		pinctrl-1= <&uart4_release>;
+	};
+
+	uart5-mux{
+		compatible = "bitmain,uart5-mux";
+		pinctrl-names= "uart5_a", "uart5_r";
+		pinctrl-0= <&uart5_acquire>;
+		pinctrl-1= <&uart5_release>;
+	};
+
+	uart6-mux{
+		compatible = "bitmain,uart6-mux";
+		pinctrl-names= "uart6_a", "uart6_r";
+		pinctrl-0= <&uart6_acquire>;
+		pinctrl-1= <&uart6_release>;
+	};
+
+	uart7-mux{
+		compatible = "bitmain,uart7-mux";
+		pinctrl-names= "uart7_a", "uart7_r";
+		pinctrl-0= <&uart7_acquire>;
+		pinctrl-1= <&uart7_release>;
+	};
+
+	uart8-mux{
+		compatible = "bitmain,uart8-mux";
+		pinctrl-names= "uart8_a", "uart8_r";
+		pinctrl-0= <&uart8_acquire>;
+		pinctrl-1= <&uart8_release>;
+	};
+
+	uart9-mux{
+		compatible = "bitmain,uart9-mux";
+		pinctrl-names= "uart9_a", "uart9_r";
+		pinctrl-0= <&uart9_acquire>;
+		pinctrl-1= <&uart9_release>;
+	};
+
+	uart10-mux{
+		compatible = "bitmain,uart10-mux";
+		pinctrl-names= "uart10_a", "uart10_r";
+		pinctrl-0= <&uart10_acquire>;
+		pinctrl-1= <&uart10_release>;
+	};
+
+	uart11-mux{
+		compatible = "bitmain,uart11-mux";
+		pinctrl-names= "uart11_a", "uart11_r";
+		pinctrl-0= <&uart11_acquire>;
+		pinctrl-1= <&uart11_release>;
+	};
+
+
+	pwm0-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010050>; //the first MUX (from source), base, offset
+		mux_offset = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm0_acquire>;
+		pinctrl-1= <&pwm0_release>;
+	};
+	pwm1-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010050>; //the first MUX (from source), base, offset
+		mux_offset = <0x4>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm1_acquire>;
+		pinctrl-1= <&pwm1_release>;
+	};
+	pwm2-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010050>; //the first MUX (from source), base, offset
+		mux_offset = <0x8>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm2_acquire>;
+		pinctrl-1= <&pwm2_release>;
+	};
+	pwm3-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010050>; //the first MUX (from source), base, offset
+		mux_offset = <0xc>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm3_acquire>;
+		pinctrl-1= <&pwm3_release>;
+	};
+	pwm4-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010050>; //the first MUX (from source), base, offset
+		mux_offset = <0x10>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm4_acquire>;
+		pinctrl-1= <&pwm4_release>;
+	};
+	pwm5-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010050>; //the first MUX (from source), base, offset
+		mux_offset = <0x14>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm5_acquire>;
+		pinctrl-1= <&pwm5_release>;
+	};
+	pwm6-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010050>; //the first MUX (from source), base, offset
+		mux_offset = <0x18>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm6_acquire>;
+		pinctrl-1= <&pwm6_release>;
+	};
+	pwm7-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010050>; //the first MUX (from source), base, offset
+		mux_offset = <0x1c>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm7_acquire>;
+		pinctrl-1= <&pwm7_release>;
+	};
+	pwm8-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010054>; //the first MUX (from source), base, offset
+		mux_offset = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm8_acquire>;
+		pinctrl-1= <&pwm8_release>;
+	};
+	pwm9-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010054>; //the first MUX (from source), base, offset
+		mux_offset = <0x4>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm9_acquire>;
+		pinctrl-1= <&pwm9_release>;
+	};
+	pwm10-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010054>; //the first MUX (from source), base, offset
+		mux_offset = <0x8>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm10_acquire>;
+		pinctrl-1= <&pwm10_release>;
+	};
+	pwm11-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010054>; //the first MUX (from source), base, offset
+		mux_offset = <0xc>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm11_acquire>;
+		pinctrl-1= <&pwm11_release>;
+	};
+	pwm12-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010054>; //the first MUX (from source), base, offset
+		mux_offset = <0x10>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm12_acquire>;
+		pinctrl-1= <&pwm12_release>;
+	};
+	pwm13-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010054>; //the first MUX (from source), base, offset
+		mux_offset = <0x14>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm13_acquire>;
+		pinctrl-1= <&pwm13_release>;
+	};
+	pwm14-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010054>; //the first MUX (from source), base, offset
+		mux_offset = <0x18>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm14_acquire>;
+		pinctrl-1= <&pwm14_release>;
+	};
+	pwm15-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010054>; //the first MUX (from source), base, offset
+		mux_offset = <0x1c>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm15_acquire>;
+		pinctrl-1= <&pwm15_release>;
+	};
+	pwm16-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010058>; //the first MUX (from source), base, offset
+		mux_offset = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm16_acquire>;
+		pinctrl-1= <&pwm16_release>;
+	};
+	pwm17-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010058>; //the first MUX (from source), base, offset
+		mux_offset = <0x4>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm17_acquire>;
+		pinctrl-1= <&pwm17_release>;
+	};
+	pwm18-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010058>; //the first MUX (from source), base, offset
+		mux_offset = <0x8>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm18_acquire>;
+		pinctrl-1= <&pwm18_release>;
+	};
+	pwm19-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010058>; //the first MUX (from source), base, offset
+		mux_offset = <0xc>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm19_acquire>;
+		pinctrl-1= <&pwm19_release>;
+	};
+	pwm20-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010058>; //the first MUX (from source), base, offset
+		mux_offset = <0x10>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm20_acquire>;
+		pinctrl-1= <&pwm20_release>;
+	};
+	pwm21-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010058>; //the first MUX (from source), base, offset
+		mux_offset = <0x14>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm21_acquire>;
+		pinctrl-1= <&pwm21_release>;
+	};
+	pwm22-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010058>; //the first MUX (from source), base, offset
+		mux_offset = <0x18>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm22_acquire>;
+		pinctrl-1= <&pwm22_release>;
+	};
+	pwm23-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010058>; //the first MUX (from source), base, offset
+		mux_offset = <0x1c>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm23_acquire>;
+		pinctrl-1= <&pwm23_release>;
+	};
+	pwm24-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x5001005c>; //the first MUX (from source), base, offset
+		mux_offset = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm24_acquire>;
+		pinctrl-1= <&pwm24_release>;
+	};
+	pwm25-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x5001005c>; //the first MUX (from source), base, offset
+		mux_offset = <0x4>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm25_acquire>;
+		pinctrl-1= <&pwm25_release>;
+	};
+	pwm26-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x5001005c>; //the first MUX (from source), base, offset
+		mux_offset = <0x8>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm26_acquire>;
+		pinctrl-1= <&pwm26_release>;
+	};
+	pwm27-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x5001005c>; //the first MUX (from source), base, offset
+		mux_offset = <0xc>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm27_acquire>;
+		pinctrl-1= <&pwm27_release>;
+	};
+	pwm28-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x5001005c>; //the first MUX (from source), base, offset
+		mux_offset = <0x10>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm28_acquire>;
+		pinctrl-1= <&pwm28_release>;
+	};
+	pwm29-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x5001005c>; //the first MUX (from source), base, offset
+		mux_offset = <0x14>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm29_acquire>;
+		pinctrl-1= <&pwm29_release>;
+	};
+	pwm30-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x5001005c>; //the first MUX (from source), base, offset
+		mux_offset = <0x18>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm30_acquire>;
+		pinctrl-1= <&pwm30_release>;
+	};
+	pwm31-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x5001005c>; //the first MUX (from source), base, offset
+		mux_offset = <0x1c>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm31_acquire>;
+		pinctrl-1= <&pwm31_release>;
+	};
+	pwm32-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010060>; //the first MUX (from source), base, offset
+		mux_offset = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm32_acquire>;
+		pinctrl-1= <&pwm32_release>;
+	};
+	pwm33-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010060>; //the first MUX (from source), base, offset
+		mux_offset = <0x4>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm33_acquire>;
+		pinctrl-1= <&pwm33_release>;
+	};
+	pwm34-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010060>; //the first MUX (from source), base, offset
+		mux_offset = <0x8>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm34_acquire>;
+		pinctrl-1= <&pwm34_release>;
+	};
+	pwm35-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010060>; //the first MUX (from source), base, offset
+		mux_offset = <0xc>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm35_acquire>;
+		pinctrl-1= <&pwm35_release>;
+	};
+	pwm36-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010060>; //the first MUX (from source), base, offset
+		mux_offset = <0x10>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm36_acquire>;
+		pinctrl-1= <&pwm36_release>;
+	};
+	pwm37-mux{
+		compatible = "bitmain,pwm-mux";
+		source_mux = <0x50010060>; //the first MUX (from source), base, offset
+		mux_offset = <0x1c>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&pwm37_acquire>;
+		pinctrl-1= <&pwm37_release>;
+	};
+	i2c0-mux{
+		compatible = "bitmain,i2c-mux";
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&i2c0_acquire>;
+		pinctrl-1= <&i2c0_release>;
+	};
+	i2c1-mux{
+		compatible = "bitmain,i2c-mux";
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&i2c1_acquire>;
+		pinctrl-1= <&i2c1_release>;
+	};
+	i2c2-mux{
+		compatible = "bitmain,i2c-mux";
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&i2c2_acquire>;
+		pinctrl-1= <&i2c2_release>;
+	};
+	i2c3-mux{
+		compatible = "bitmain,i2c-mux";
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&i2c3_acquire>;
+		pinctrl-1= <&i2c3_release>;
+	};
+	i2c4-mux{
+		compatible = "bitmain,i2c-mux";
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&i2c4_acquire>;
+		pinctrl-1= <&i2c4_release>;
+	};
+
+	gpio0-mux{
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104e0>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio0_acquire>;
+		pinctrl-1= <&gpio0_release>;
+	};
+	gpio1-mux{
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104e4>;
+		mux_offset = <0x04>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio1_acquire>;
+		pinctrl-1= <&gpio1_release>;
+	};
+	gpio2-mux{
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104e4>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio2_acquire>;
+		pinctrl-1= <&gpio2_release>;
+	};
+	gpio3-mux{
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104e8>;
+		mux_offset = <0x04>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio3_acquire>;
+		pinctrl-1= <&gpio3_release>;
+	};
+	gpio4-mux{
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104e8>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio4_acquire>;
+		pinctrl-1= <&gpio4_release>;
+	};
+	gpio5-mux{
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104ec>;
+		mux_offset = <0x04>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio5_acquire>;
+		pinctrl-1= <&gpio5_release>;
+	};
+	gpio6-mux{
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104ec>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio6_acquire>;
+		pinctrl-1= <&gpio6_release>;
+	};
+	gpio7-mux{
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104f0>;
+		mux_offset = <0x04>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio7_acquire>;
+		pinctrl-1= <&gpio7_release>;
+	};
+	gpio8-mux{
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104f0>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio8_acquire>;
+		pinctrl-1= <&gpio8_release>;
+	};
+	gpio9-mux{
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104f4>;
+		mux_offset = <0x04>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio9_acquire>;
+		pinctrl-1= <&gpio9_release>;
+	};
+	gpio10-mux{
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104f4>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio10_acquire>;
+		pinctrl-1= <&gpio10_release>;
+	};
+	gpio11-mux{
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104f8>;
+		mux_offset = <0x04>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio11_acquire>;
+		pinctrl-1= <&gpio11_release>;
+	};
+	gpio12-mux{
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104f8>;
+		mux_offset = <0x14>;
+		mux_value  = <0x1>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio12_acquire>;
+		pinctrl-1= <&gpio12_release>;
+	};
+	gpio13-mux{
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104fc>;
+		mux_offset = <0x04>;
+		mux_value  = <0x1>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio13_acquire>;
+		pinctrl-1= <&gpio13_release>;
+	};
+	gpio14-mux{ // RGMII1_TXD0
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x50010474>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio14_acquire>;
+		pinctrl-1= <&gpio14_release>;
+	};
+	gpio15-mux{ // RGMII1_TXD1
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x50010478>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio15_acquire>;
+		pinctrl-1= <&gpio15_release>;
+	};
+	gpio16-mux{ // RGMII1_TXD2
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x50010478>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio16_acquire>;
+		pinctrl-1= <&gpio16_release>;
+	};
+	gpio17-mux{ // RGMII1_TXD3
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x5001047c>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio17_acquire>;
+		pinctrl-1= <&gpio17_release>;
+	};
+	gpio18-mux{ // RGMII1_TXCTRL
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x5001047c>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio18_acquire>;
+		pinctrl-1= <&gpio18_release>;
+	};
+	gpio19-mux{ // RGMII1_RXD0
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x50010480>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio19_acquire>;
+		pinctrl-1= <&gpio19_release>;
+	};
+	gpio20-mux{ // RGMII1_RXD1
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x50010480>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio20_acquire>;
+		pinctrl-1= <&gpio20_release>;
+	};
+	gpio21-mux{ // RGMII1_RXD2
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x50010484>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio21_acquire>;
+		pinctrl-1= <&gpio21_release>;
+	};
+	gpio22-mux{ // RGMII1_RXD3
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x50010484>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio22_acquire>;
+		pinctrl-1= <&gpio22_release>;
+	};
+	gpio23-mux{ // RGMII1_RXCTRL
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x50010488>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio23_acquire>;
+		pinctrl-1= <&gpio23_release>;
+	};
+	gpio24-mux{ // RGMII1_TXC
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x50010488>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio24_acquire>;
+		pinctrl-1= <&gpio24_release>;
+	};
+	gpio25-mux{ // RGMII1_RXC
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x5001048c>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio25_acquire>;
+		pinctrl-1= <&gpio25_release>;
+	};
+	gpio26-mux{ // RGMII1_REFCLKO
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x5001048c>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio26_acquire>;
+		pinctrl-1= <&gpio26_release>;
+	};
+	gpio27-mux{ // RGMII1_IRQ
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x50010490>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio27_acquire>;
+		pinctrl-1= <&gpio27_release>;
+	};
+	gpio28-mux{ // RGMII1_MDC
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x50010490>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio28_acquire>;
+		pinctrl-1= <&gpio28_release>;
+	};
+	gpio29-mux{ // RGMII1_MDIO
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x50010494>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio29_acquire>;
+		pinctrl-1= <&gpio29_release>;
+	};
+	gpio30-mux{ // PWM0
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x50010494>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio30_acquire>;
+		pinctrl-1= <&gpio30_release>;
+	};
+	gpio31-mux{ // PWM1
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x50010498>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio31_acquire>;
+		pinctrl-1= <&gpio31_release>;
+	};
+	gpio32-mux{ // PWM2
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x50010498>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio32_acquire>;
+		pinctrl-1= <&gpio32_release>;
+	};
+	gpio33-mux{ // PWM3
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x5001049c>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio33_acquire>;
+		pinctrl-1= <&gpio33_release>;
+	};
+	gpio34-mux{ // IIC0_SDA
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x5001049c>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio34_acquire>;
+		pinctrl-1= <&gpio34_release>;
+	};
+	gpio35-mux{ // IIC0_SCL
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104a0>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio35_acquire>;
+		pinctrl-1= <&gpio35_release>;
+	};
+	gpio36-mux{ // IIC1_SDA
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104a0>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio36_acquire>;
+		pinctrl-1= <&gpio36_release>;
+	};
+	gpio37-mux{ // IIC1_SCL
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104a4>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio37_acquire>;
+		pinctrl-1= <&gpio37_release>;
+	};
+	gpio38-mux{ // IIC2_SDA
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104a4>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio38_acquire>;
+		pinctrl-1= <&gpio38_release>;
+	};
+	gpio39-mux{ // IIC2_SCL
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104a8>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio39_acquire>;
+		pinctrl-1= <&gpio39_release>;
+	};
+	gpio40-mux{ // IIC3_SDA
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104a8>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio40_acquire>;
+		pinctrl-1= <&gpio40_release>;
+	};
+	gpio41-mux{ // IIC3_SCL
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104ac>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio41_acquire>;
+		pinctrl-1= <&gpio41_release>;
+	};
+	gpio42-mux{ // IIC4_SDA
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104ac>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio42_acquire>;
+		pinctrl-1= <&gpio42_release>;
+	};
+	gpio43-mux{ // IIC4_SCL
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104b0>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio43_acquire>;
+		pinctrl-1= <&gpio43_release>;
+	};
+	gpio44-mux{ // UART0_TX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104b0>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio44_acquire>;
+		pinctrl-1= <&gpio44_release>;
+	};
+	gpio45-mux{ // UART0_RX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104b4>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio45_acquire>;
+		pinctrl-1= <&gpio45_release>;
+	};
+	gpio46-mux{ // UART1_TX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104b4>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio46_acquire>;
+		pinctrl-1= <&gpio46_release>;
+	};
+	gpio47-mux{ // UART1_RX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104b8>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio47_acquire>;
+		pinctrl-1= <&gpio47_release>;
+	};
+	gpio48-mux{ // UART2_TX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104b8>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio48_acquire>;
+		pinctrl-1= <&gpio48_release>;
+	};
+	gpio49-mux{ // UART2_RX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104bc>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio49_acquire>;
+		pinctrl-1= <&gpio49_release>;
+	};
+	gpio50-mux{ // UART3_TX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104bc>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio50_acquire>;
+		pinctrl-1= <&gpio50_release>;
+	};
+	gpio51-mux{ // UART3_RX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104c0>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio51_acquire>;
+		pinctrl-1= <&gpio51_release>;
+	};
+	gpio52-mux{ // UART4_TX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104c0>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio52_acquire>;
+		pinctrl-1= <&gpio52_release>;
+	};
+	gpio53-mux{ // UART4_RX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104c4>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio53_acquire>;
+		pinctrl-1= <&gpio53_release>;
+	};
+	gpio54-mux{ // UART5_TX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104c4>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio54_acquire>;
+		pinctrl-1= <&gpio54_release>;
+	};
+	gpio55-mux{ // UART5_RX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104c8>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio55_acquire>;
+		pinctrl-1= <&gpio55_release>;
+	};
+	gpio56-mux{ // UART6_TX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104c8>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio56_acquire>;
+		pinctrl-1= <&gpio56_release>;
+	};
+	gpio57-mux{ // UART6_RX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104cc>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio57_acquire>;
+		pinctrl-1= <&gpio57_release>;
+	};
+	gpio58-mux{ // UART7_TX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104cc>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio58_acquire>;
+		pinctrl-1= <&gpio58_release>;
+	};
+	gpio59-mux{ // UART7_RX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104d0>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio59_acquire>;
+		pinctrl-1= <&gpio59_release>;
+	};
+	gpio60-mux{ // UART8_TX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104d0>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio60_acquire>;
+		pinctrl-1= <&gpio60_release>;
+	};
+	gpio61-mux{ // UART8_RX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104d4>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio61_acquire>;
+		pinctrl-1= <&gpio61_release>;
+	};
+	gpio62-mux{ // UART9_TX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104d4>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio62_acquire>;
+		pinctrl-1= <&gpio62_release>;
+	};
+	gpio63-mux{ // UART9_RX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104d8>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio63_acquire>;
+		pinctrl-1= <&gpio63_release>;
+	};
+	gpio64-mux{ // UART10_TX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104d8>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio64_acquire>;
+		pinctrl-1= <&gpio64_release>;
+	};
+	gpio65-mux{ // UART10_RX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104dc>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio65_acquire>;
+		pinctrl-1= <&gpio65_release>;
+	};
+	gpio66-mux{ // UART11_TX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104dc>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio66_acquire>;
+		pinctrl-1= <&gpio66_release>;
+	};
+	gpio67-mux{ // UART11_RX
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104e0>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio67_acquire>;
+		pinctrl-1= <&gpio67_release>;
+	};
+
+	chosen {
+		stdout-path = "serial0"; // "serial0:115200n8", no arguments means no re-initialization
+	};
+
+
+};

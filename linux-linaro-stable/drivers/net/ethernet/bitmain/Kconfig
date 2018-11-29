@@ -1,0 +1,60 @@
+#
+# Bitmain network device configuration
+#
+
+config NET_VENDOR_BITMAIN
+	bool "Bitmain devices"
+	default y
+	---help---
+	  If you have a network (Ethernet) device belonging to this class, say Y.
+
+	  Note that the answer to this question doesn't directly affect the
+	  kernel: saying N will just cause the configurator to skip all
+	  the questions about Synopsys devices. If you say Y, you will be asked
+	  for your specific device in the following questions.
+
+if NET_VENDOR_BITMAIN
+
+config DWC_ETH_QOS
+	tristate "Synopsys DWC Ethernet QOS v4.21a support"
+	select PHYLIB
+	select CRC32
+	select MII
+	select VLAN_8021Q
+	depends on OF && HAS_DMA
+	default ARCH_BITMAIN
+	---help---
+	  This driver supports the DWC Ethernet QoS from Synopsys
+
+if DWC_ETH_QOS
+
+config PGTEST_OBJ
+	boolean "PGTEST support for DWC_ETH_QOS drivers"
+
+config DEBUGFS_OBJ
+	boolean "DEBUGFS support for DWC_ETH_QOS drivers"
+
+config PTPSUPPORT_OBJ
+	boolean "PTP support for DWC_ETH_QOS drivers"
+
+config DWCEQOS_PCI
+	tristate "PCI bus DWC_ETH_QOS support"
+	depends on PCI && !DWCEQOS_BITMAIN
+	---help---
+	  This is to select the DWC_ETH_QOS available on PCI devices,
+	  if you have a controller with this interface, say Y or M here.
+
+	  If unsure, say N.
+
+config DWCEQOS_BITMAIN
+	tristate "Bitmain DWC_ETH_QOS support"
+	default ARCH_BITMAIN
+	---help---
+	  Support for DWC_ETH_QOS controller on Bitmain SOCs.
+
+	  This selects Bitmain SoC glue layer support for the DWC_ETH_QOS driver.
+	  This driver is used on for the Bitmain series SOCs ethernet controller.
+
+endif # DWC_ETH_QOS
+
+endif # NET_VENDOR_BITMAIN

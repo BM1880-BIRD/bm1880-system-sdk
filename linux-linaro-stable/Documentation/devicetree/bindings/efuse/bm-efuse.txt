@@ -1,0 +1,8 @@
+Bitmain efuse controller
+
+Required properties:
+- compatible: should be "bitmain,bm-efuse"
+- reg: physical base address and length of the controller's registers
+- num_address_bits:num_address_bits
+
+

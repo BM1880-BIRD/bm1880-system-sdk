@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: Pyste
+Version: 0.9.10
+Summary: Pyste - Python Semi-Automatic Exporter
+Home-page: http://www.boost.org/libs/python/pyste/index.html
+Author: Bruno da Silva de Oliveira
+Author-email: nicodemus@globalite.com.br
+License: Boost License
+Description: Pyste is a Boost.Python code generator
+Platform: Any

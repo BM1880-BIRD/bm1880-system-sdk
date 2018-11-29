@@ -1,0 +1,7 @@
+Bitmian reset controller
+
+Required properties:
+- compatible: "bitmain,reset", "bitmain,clk-reset"
+- reg: soft reset register in TOP
+- #reset-cells: Must be 1
+

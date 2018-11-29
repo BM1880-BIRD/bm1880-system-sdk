@@ -1,0 +1,7 @@
+Bitmain Fan Speed controller
+
+Required properties:
+- compatible: should be "bitmain,bm-fan-speed"
+- reg: physical base address and length of the controller's registers
+
+

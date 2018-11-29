@@ -1,0 +1,6 @@
+Bitmain jpu driver
+
+Required properties:
+- compatible: "bitmain,jpeg"
+- reg: jpu register regions
+- interrupts: jpu interrupt number
