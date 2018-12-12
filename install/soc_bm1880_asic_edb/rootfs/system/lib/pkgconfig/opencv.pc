@@ -1,6 +1,6 @@
 # Package Information for pkg-config
 
-prefix=/root/.jenkins/workspace/bm1880_edb/bmiva/install/soc_bm1880_asic/opencv
+prefix=/home/hinton/workspace/bm1880/bmiva/install/soc_bm1880_asic/opencv
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir_old=${prefix}/include/opencv
