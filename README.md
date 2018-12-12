@@ -1,9 +1,9 @@
-# bm1880-sdk-v1.0
+# bm1880-system-sdk
 sdk including bsp for bm1880  edge developer board
 
 get code:
 
-https://github.com/BM1880-BIRD/bm1880-sdk-v1.0.git
+https://github.com/BM1880-BIRD/bm1880-system-sdk.git
 
 get tool chains:
 
