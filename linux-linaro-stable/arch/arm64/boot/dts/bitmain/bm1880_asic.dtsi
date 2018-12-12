@@ -149,6 +149,7 @@
 		interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
 		bus-width = <4>;
 		non-removable;
+		max-frequency = <125000000>;
 		no-sdio;
 		no-sd;
 		resets = <&clk_rst CLK_RST_AXI_EMMC>,

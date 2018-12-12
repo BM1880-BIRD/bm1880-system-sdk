@@ -246,7 +246,7 @@ static unsigned int bm_sdhci_get_max_clock(struct sdhci_host *host)
 
 static unsigned int bm1880_sdhci_get_emmc_max_clock(struct sdhci_host *host)
 {
-	uint32_t clk = 187 * 1000 * 1000;
+	uint32_t clk = 125 * 1000 * 1000;
 
 	pr_debug(DRIVER_NAME ":%s : %d\n", __func__, clk);
 	return clk;

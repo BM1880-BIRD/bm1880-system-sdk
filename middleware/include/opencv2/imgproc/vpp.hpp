@@ -50,7 +50,7 @@ CV_EXPORTS void cvtColor1682(Mat& src, IplImage* img, int srcFmt, int dstFmt);
 
 /*maximum and minimum image resolution BM1880 supported*/
 #define MAX_RESOLUTION_W    (1920)
-#define MAX_RESOLUTION_H    (1080)
+#define MAX_RESOLUTION_H    (1440)
 
 #define MIN_RESOLUTION_W_LINEAR    (8)    /*linear mode to linear mode*/
 #define MIN_RESOLUTION_H_LINEAR    (8)    /*linear mode to linear mode*/
@@ -126,5 +126,6 @@ struct vpp_batch {
 #define VPP_UPDATE_BATCH_VIDEO _IOWR('v', 0x02, unsigned long)
 #define VPP_UPDATE_BATCH_SPLIT _IOWR('v', 0x03, unsigned long)
 #define VPP_UPDATE_BATCH_NON_CACHE _IOWR('v', 0x04, unsigned long)
+#define VPP_UPDATE_BATCH_CROP_TEST _IOWR('v', 0x05, unsigned long)
 
 #endif

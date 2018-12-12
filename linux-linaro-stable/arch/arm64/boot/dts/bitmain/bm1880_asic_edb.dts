@@ -45,4 +45,15 @@
 	aliases {
 		/delete-property/ ethernet1;
 	};
+
+	wifi-mux{
+		compatible = "bitmain,wifi-mux";
+		source_mux = <0x500104fc>;
+		mux_offset = <0x04>;
+		mux_value  = <0x1>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio13_acquire>;
+		pinctrl-1= <&gpio13_release>;
+	};
+
 };

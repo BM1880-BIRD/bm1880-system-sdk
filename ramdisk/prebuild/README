@@ -1,0 +1,14 @@
+Update package procedure:
+1. get arm64 deb package(on arm64 debian board):
+$ apt-get update
+$ apt-cache search libxxx
+$ apt-get download libxxx
+$ apt-get download libxxx-dev
+
+2.decompression deb package(on x86 host)
+$ dpkg -x libxxx_arm64.deb tmp
+$ dpkg -x libxxx_arm64.deb dev
+$ dpkg -x libxxx-dev_arm64.deb dev
+$ cp tmp/* target/ -rf
+$ cp dev/usr/* prebuild/ -rf
+

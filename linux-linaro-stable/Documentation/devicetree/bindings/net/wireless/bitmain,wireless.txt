@@ -1,0 +1,23 @@
+Bitmain wireless USB devices
+
+This node provides properties for controlling the Bitmain wireless device.
+It controls GPIO which is used for wifi chip enable
+
+Required properties:
+
+ - compatible : Should be "bitmain,wifi-mux".
+
+Optional properties:
+ - n/a
+
+Example:
+
+	wifi-mux{
+		compatible = "bitmain,wifi-mux";
+		source_mux = <0x500104fc>;
+		mux_offset = <0x04>;
+		mux_value  = <0x1>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio13_acquire>;
+		pinctrl-1= <&gpio13_release>;
+	};

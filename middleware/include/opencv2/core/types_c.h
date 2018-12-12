@@ -337,8 +337,10 @@ _IplImage
                                needed for correct deallocation */
 
     int step;
-    unsigned long addr0;
-    unsigned long addr1;
+    int srcFmt;        /**< src input image format, 0: yuv420P(I420), 1: yuv420SP(NV12)*/
+    unsigned long addr0;        /**< Y channel data pa.                     */
+    unsigned long addr1;        /**< UV or U channel data pa.                     */
+    unsigned long addr2;        /**< V channel data pa.                     */
 
 
 #ifdef __cplusplus

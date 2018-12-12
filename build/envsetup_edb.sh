@@ -176,6 +176,13 @@ function build_rootfs()
   fi
 }
 
+function clean_ramdisk()
+{
+  rm -rf $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER
+  rm -f $OUTPUT_DIR/*.cpio
+  rm -f $OUTPUT_DIR/*.itb
+}
+
 function clean_rootfs()
 {
   rm -f $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER/rootfs_files.txt
@@ -233,6 +240,7 @@ function build_all()
 function clean_all()
 {
   clean_kernel
+  clean_ramdisk
   clean_rootfs
 }
 

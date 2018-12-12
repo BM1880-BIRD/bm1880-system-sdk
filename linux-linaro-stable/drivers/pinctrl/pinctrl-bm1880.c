@@ -598,7 +598,7 @@ unsigned int pmux_val[F_ENDMARK] = {
 	[F_PWM0 ... F_PWM37] = 2,
 	[F_I2C0 ... F_I2C4] = 1,
 	[F_UART0 ... F_UART11] = 1,
-	[F_GPIO0 ... F_GPIO9] = 0, [F_ETH1] = 1,
+	[F_GPIO0 ... F_GPIO9] = 0, [F_GPIO13] = 1, [F_ETH1] = 1,
 	[F_I2S0] = 2, [F_I2S0_MCLKIN] = 1, [F_I2S1] = 2, [F_I2S1_MCLKIN] = 1,};
 
 
@@ -2295,6 +2295,67 @@ static int __init bm_i2s_mux_init(void)
 	return platform_driver_register(&bm_i2s_mux_driver);
 }
 arch_initcall(bm_i2s_mux_init);
+
+//wifi MUX
+static int bm_wifi_mux_probe(struct platform_device *pdev)
+{
+	int ret = 0;
+	struct pinctrl *pctrl = devm_pinctrl_get(&pdev->dev);
+
+	struct bm_dev_mux *dev_mux = devm_kzalloc(&pdev->dev, sizeof(struct bm_dev_mux), GFP_KERNEL);
+
+	if (!dev_mux)
+		return -ENOMEM;
+	dev_mux->dev = &pdev->dev;
+	// dev_info(&pdev->dev, "%s\n", __func__);
+	//gp_pinctrl_init(pdev);
+	// dev_info(&pdev->dev, "get pinctrl\n");
+	dev_set_drvdata(&pdev->dev, dev_mux);
+
+	if (IS_ERR(pctrl))
+		return PTR_ERR(pctrl);
+	// dev_info(&pdev->dev, "i2s\n");
+	dev_mux->acquire = pinctrl_lookup_state(pctrl, "acquire");
+	if (IS_ERR(dev_mux->acquire)) {
+		dev_err(&pdev->dev, "could not get pin status, acquire\n");
+		return PTR_ERR(dev_mux->acquire);
+	}
+	dev_mux->release = pinctrl_lookup_state(pctrl, "release");
+	if (IS_ERR(dev_mux->release)) {
+		dev_err(&pdev->dev, "could not get pin status, release\n");
+		return PTR_ERR(dev_mux->release);
+	}
+
+	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
+		dev_info(&pdev->dev, "Unable to createsysfs entry\n");
+
+//Set default pinmux to GPIO13
+	// dev_info(&pdev->dev, "Set GPIO13 pin MUX\n");
+	pinctrl_select_state(pctrl, dev_mux->acquire);
+//Set pinmux end
+
+	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	return ret;
+
+}
+
+static const struct of_device_id bm_wifi_mux_of_match[] = {
+	{ .compatible = "bitmain,wifi-mux" },
+	{ }
+};
+static struct platform_driver bm_wifi_mux_driver = {
+	.driver = {
+		.name = "bm-wifi-mux",
+		.of_match_table = bm_wifi_mux_of_match,
+	},
+	.probe = bm_wifi_mux_probe,
+};
+
+static int __init bm_wifi_mux_init(void)
+{
+	return platform_driver_register(&bm_wifi_mux_driver);
+}
+arch_initcall(bm_wifi_mux_init);
 
 static int bm_gpio_mux_probe(struct platform_device *pdev)
 {
