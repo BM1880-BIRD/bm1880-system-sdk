@@ -67,6 +67,13 @@ config PCI_IMX6
 	select PCIEPORTBUS
 	select PCIE_DW
 
+config PCIE_BM168X
+	bool "Bitmain bm168x PCIe controller"
+	depends on ARCH_BM1684
+	depends on PCI_MSI_IRQ_DOMAIN
+	select PCIEPORTBUS
+	select PCIE_DW
+
 config PCI_TEGRA
 	bool "NVIDIA Tegra PCIe controller"
 	depends on ARCH_TEGRA && !ARM64

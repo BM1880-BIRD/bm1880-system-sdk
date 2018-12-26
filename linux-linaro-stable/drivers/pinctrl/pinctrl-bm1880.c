@@ -282,6 +282,7 @@ static const unsigned int i2s0_pins[] = {87, 88, 89, 90, 91};
 static const unsigned int i2s0_mclkin_pins[] = {97};
 static const unsigned int i2s1_pins[] = {92, 93, 94, 95, 96};
 static const unsigned int i2s1_mclkin_pins[] = {98};
+static const unsigned int spi0_pins[] = {59, 60, 61, 62};
 static const unsigned int null_pins[] = {};
 
 static const struct bm_group bm_groups[] = {
@@ -418,6 +419,7 @@ static const struct bm_group bm_groups[] = {
 	{"i2s0_mclkin_grp", i2s0_mclkin_pins, ARRAY_SIZE(i2s0_mclkin_pins)},
 	{"i2s1_grp", i2s1_pins, ARRAY_SIZE(i2s1_pins)},
 	{"i2s1_mclkin_grp", i2s1_mclkin_pins, ARRAY_SIZE(i2s1_mclkin_pins)},
+	{"spi0_grp", spi0_pins, ARRAY_SIZE(spi0_pins)},
 	{"null_grp", null_pins, 0},
 };
 
@@ -560,6 +562,7 @@ static const char * const i2s0_group[] = {"i2s0_grp"};
 static const char * const i2s0_mclkin_group[] = {"i2s0_mclkin_grp"};
 static const char * const i2s1_group[] = {"i2s1_grp"};
 static const char * const i2s1_mclkin_group[] = {"i2s1_mclkin_grp"};
+static const char * const spi0_group[] = {"spi0_grp"};
 static const char * const null_group[] = {"null_grp"};
 
 
@@ -591,6 +594,7 @@ enum {F_NAND, F_SPI, F_EMMC, F_SDIO, F_ETH0,
 				F_GPIO65, F_GPIO66, F_GPIO67,
 				F_ETH1,
 				F_I2S0, F_I2S0_MCLKIN, F_I2S1, F_I2S1_MCLKIN,
+				F_SPI0,
 				F_ENDMARK} func_idx;
 
 unsigned int pmux_val[F_ENDMARK] = {
@@ -599,7 +603,8 @@ unsigned int pmux_val[F_ENDMARK] = {
 	[F_I2C0 ... F_I2C4] = 1,
 	[F_UART0 ... F_UART11] = 1,
 	[F_GPIO0 ... F_GPIO9] = 0, [F_GPIO13] = 1, [F_ETH1] = 1,
-	[F_I2S0] = 2, [F_I2S0_MCLKIN] = 1, [F_I2S1] = 2, [F_I2S1_MCLKIN] = 1,};
+	[F_I2S0] = 2, [F_I2S0_MCLKIN] = 1, [F_I2S1] = 2, [F_I2S1_MCLKIN] = 1,
+	[F_SPI0] = 1,};
 
 
 static const struct bm_pmx_func bm_funcs[] = {
@@ -736,6 +741,7 @@ static const struct bm_pmx_func bm_funcs[] = {
 	{"i2s0_mclkin_a", i2s0_mclkin_group, 1},
 	{"i2s1_a", i2s1_group, 1},
 	{"i2s1_mclkin_a", i2s1_mclkin_group, 1},
+	{"spi0_a", spi0_group, 1},
 	{"nand_r", null_group, 1},
 	{"spi_r", null_group, 1},
 	{"emmc_r", null_group, 1},
@@ -869,6 +875,7 @@ static const struct bm_pmx_func bm_funcs[] = {
 	{"i2s0_mclkin_r", null_group, 1},
 	{"i2s1_r", null_group, 1},
 	{"i2s1_mclkin_r", null_group, 1},
+	{"spi0_r", null_group, 1},
 };
 
 static struct pinctrl_state *nand_a, *nand_r, *spi_a, *spi_r, *emmc_a, *emmc_r,
@@ -2314,7 +2321,7 @@ static int bm_wifi_mux_probe(struct platform_device *pdev)
 
 	if (IS_ERR(pctrl))
 		return PTR_ERR(pctrl);
-	// dev_info(&pdev->dev, "i2s\n");
+	// dev_info(&pdev->dev, "wifi\n");
 	dev_mux->acquire = pinctrl_lookup_state(pctrl, "acquire");
 	if (IS_ERR(dev_mux->acquire)) {
 		dev_err(&pdev->dev, "could not get pin status, acquire\n");
@@ -2356,6 +2363,66 @@ static int __init bm_wifi_mux_init(void)
 	return platform_driver_register(&bm_wifi_mux_driver);
 }
 arch_initcall(bm_wifi_mux_init);
+
+//spi0 MUX
+static int bm_spi0_mux_probe(struct platform_device *pdev)
+{
+	int ret = 0;
+	struct pinctrl *pctrl = devm_pinctrl_get(&pdev->dev);
+
+	struct bm_dev_mux *dev_mux = devm_kzalloc(&pdev->dev, sizeof(struct bm_dev_mux), GFP_KERNEL);
+
+	if (!dev_mux)
+		return -ENOMEM;
+	dev_mux->dev = &pdev->dev;
+	// dev_info(&pdev->dev, "%s\n", __func__);
+	//gp_pinctrl_init(pdev);
+	// dev_info(&pdev->dev, "get pinctrl\n");
+	dev_set_drvdata(&pdev->dev, dev_mux);
+
+	if (IS_ERR(pctrl))
+		return PTR_ERR(pctrl);
+	// dev_info(&pdev->dev, "spi\n");
+	dev_mux->acquire = pinctrl_lookup_state(pctrl, "acquire");
+	if (IS_ERR(dev_mux->acquire)) {
+		dev_err(&pdev->dev, "could not get pin status, acquire\n");
+		return PTR_ERR(dev_mux->acquire);
+	}
+	dev_mux->release = pinctrl_lookup_state(pctrl, "release");
+	if (IS_ERR(dev_mux->release)) {
+		dev_err(&pdev->dev, "could not get pin status, release\n");
+		return PTR_ERR(dev_mux->release);
+	}
+
+	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
+		dev_info(&pdev->dev, "Unable to createsysfs entry\n");
+
+//Set default pinmux to spi0
+	pinctrl_select_state(pctrl, dev_mux->acquire);
+//Set pinmux end
+
+	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	return ret;
+
+}
+
+static const struct of_device_id bm_spi0_mux_of_match[] = {
+	{ .compatible = "bitmain,spi0-mux" },
+	{ }
+};
+static struct platform_driver bm_spi0_mux_driver = {
+	.driver = {
+		.name = "bm-spi0-mux",
+		.of_match_table = bm_spi0_mux_of_match,
+	},
+	.probe = bm_spi0_mux_probe,
+};
+
+static int __init bm_spi0_mux_init(void)
+{
+	return platform_driver_register(&bm_spi0_mux_driver);
+}
+arch_initcall(bm_spi0_mux_init);
 
 static int bm_gpio_mux_probe(struct platform_device *pdev)
 {

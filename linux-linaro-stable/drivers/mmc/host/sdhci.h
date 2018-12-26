@@ -425,6 +425,8 @@ struct sdhci_host {
 #define SDHCI_QUIRK2_ACMD23_BROKEN			(1<<14)
 /* Broken Clock divider zero in controller */
 #define SDHCI_QUIRK2_CLOCK_DIV_ZERO_BROKEN		(1<<15)
+/* The system physically doesn't support 3.3v, even if the host does */
+#define SDHCI_QUIRK2_NO_3_3_V				(1<<16)
 
 /* Support Disable when device is not present (EMMC only) */
 #define SDHCI_QUIRK2_SUPPORT_DISABLE_CLK		(1<<31)

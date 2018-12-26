@@ -88,6 +88,7 @@ static int rtl8723b_parse_firmware(struct hci_dev *hdev, u16 lmp_subver,
 		{ RTL_ROM_LMP_8821A, 2 },
 		{ RTL_ROM_LMP_8761A, 3 },
 		{ RTL_ROM_LMP_8822B, 8 },
+		{ RTL_ROM_LMP_8821A, 10 },
 	};
 
 	ret = rtl_read_rom_version(hdev, &rom_version);

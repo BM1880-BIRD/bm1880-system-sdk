@@ -570,7 +570,8 @@ static const struct sdhci_pltfm_data sdhci_bm_emmc_pdata = {
 	.ops = &sdhci_bm_ops,
 	.quirks = SDHCI_QUIRK_INVERTED_WRITE_PROTECT,
 #if defined(CONFIG_ARCH_BM1682_BOX) || defined(CONFIG_ARCH_BM1682_HDS)
-	.quirks2 = SDHCI_QUIRK2_PRESET_VALUE_BROKEN | SDHCI_QUIRK2_NO_1_8_V,
+	.quirks2 = SDHCI_QUIRK2_PRESET_VALUE_BROKEN | SDHCI_QUIRK2_BROKEN_HS200 |
+			SDHCI_QUIRK2_BROKEN_DDR50 | SDHCI_QUIRK2_NO_3_3_V,
 #else
 	.quirks2 = SDHCI_QUIRK2_PRESET_VALUE_BROKEN,
 #endif

@@ -231,6 +231,7 @@ realtek Realtek Semiconductor Corp.
 renesas	Renesas Electronics Corporation
 richtek	Richtek Technology Corporation
 ricoh	Ricoh Co. Ltd.
+rohm	ROHM Semiconductor Corp.
 rockchip	Fuzhou Rockchip Electronics Co., Ltd
 samsung	Samsung Semiconductor
 sandisk	Sandisk Corporation

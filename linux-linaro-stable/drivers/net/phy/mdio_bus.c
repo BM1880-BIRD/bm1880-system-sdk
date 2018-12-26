@@ -416,8 +416,9 @@ EXPORT_SYMBOL(mdiobus_free);
 struct phy_device *mdiobus_scan(struct mii_bus *bus, int addr)
 {
 	struct phy_device *phydev;
-	int err;
+	int err, tried = 0;
 
+retry:
 	phydev = get_phy_device(bus, addr, false);
 	if (IS_ERR(phydev))
 		return phydev;
@@ -432,6 +433,14 @@ struct phy_device *mdiobus_scan(struct mii_bus *bus, int addr)
 	if (err) {
 		phy_device_free(phydev);
 		return ERR_PTR(-ENODEV);
+	}
+
+	if (!phydev->drv && !tried) {
+		dev_err(&phydev->mdio.dev, "PHY 0x%x doesn't have a matched driver\n", phydev->phy_id);
+		phy_device_free(phydev);
+		// let's try one more
+		tried = 1;
+		goto retry;
 	}
 
 	return phydev;

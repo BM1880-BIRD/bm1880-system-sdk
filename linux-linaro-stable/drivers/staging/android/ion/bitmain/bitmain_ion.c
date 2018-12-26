@@ -29,8 +29,16 @@
 #include <asm/cacheflush.h>
 #include <linux/seq_file.h>
 #include <linux/debugfs.h>
+#include <linux/genalloc.h>
 
 #include "bitmain_ion.h"
+#include "../../uapi/ion_bitmain.h"
+
+struct ion_carveout_heap { // workaround to get private info of heap
+	struct ion_heap heap;
+	struct gen_pool *pool;
+	phys_addr_t base;
+};
 
 struct ion_of_heap {
 	const char *compat;
@@ -182,15 +190,39 @@ void ion_destroy_platform_data(struct ion_platform_data *data)
 				data->heaps[i].priv));
 }
 
-#if 0
-struct bitmain_cache_range {
-	void *start;
-	size_t size;
-};
+static int bitmain_get_heap_info(struct ion_device *dev, struct bitmain_heap_info *info)
+{
+	struct ion_heap *heap;
 
-#define ION_IOC_BITMAIN_FLUSH_RANGE		1
+	if (info->id >= dev->heap_cnt)
+		return -EFAULT;
 
-long bitmain_ion_ioctl(unsigned int cmd, unsigned long arg)
+	info->total_size = 0;
+	info->avail_size = 0;
+
+	plist_for_each_entry(heap, &dev->heaps, node) {
+		if (heap->id == info->id) {
+			switch (heap->type) {
+			case ION_HEAP_TYPE_CARVEOUT:
+			{
+				struct ion_carveout_heap *carveout_heap;
+
+				carveout_heap = container_of(heap, struct ion_carveout_heap, heap);
+				info->total_size = gen_pool_size(carveout_heap->pool);
+				info->avail_size = gen_pool_avail(carveout_heap->pool);
+				break;
+			}
+			default:
+				break;
+			}
+			return 0;
+		}
+	}
+
+	return -1;
+}
+
+long bitmain_ion_ioctl(struct ion_device *dev, unsigned int cmd, unsigned long arg)
 {
 	long ret = 0;
 
@@ -204,68 +236,79 @@ long bitmain_ion_ioctl(unsigned int cmd, unsigned long arg)
 
 		if (IS_ERR(data.start)) {
 			pr_err("flush fault addr %p, size %zu!\n",
-			       data.start, data.size);
+				data.start, data.size);
 			return -EFAULT;
 		}
 		pr_debug("flush addr %p, size %zu\n", data.start, data.size);
 
-#ifdef CONFIG_ARM64
 		__flush_dcache_area(data.start, data.size);
-#else
-		#error "not support yet!"
-#endif
+		break;
+	}
+	case ION_IOC_BITMAIN_GET_HEAP_INFO:
+	{
+		struct bitmain_heap_info data;
+
+		if (copy_from_user(&data, (void __user *)arg, sizeof(data)))
+			return -EFAULT;
+
+		if (bitmain_get_heap_info(dev, &data) == 0) {
+			if (copy_to_user((void __user *)arg, &data, sizeof(data)))
+				return -EFAULT;
+		} else {
+			return -EINVAL;
+		}
 		break;
 	}
 	default:
-		pr_err("unsupported cmd!\n");
 		return -ENOTTY;
 	}
 
 	return ret;
 }
-#endif
 
 static struct mutex debugfs_mutex;
 
 static int bm_ion_debug_heap_show(struct seq_file *s, void *unused)
 {
 	struct bm_ion_dev *ipdev = s->private;
-	struct ion_heap *heap = NULL;
-	struct ion_device *dev = NULL;
+	struct ion_device *dev = ipdev->idev;
+	struct ion_heap *heap;
 	struct rb_node *n;
-	size_t alloc_bufs_size = 0;
-	size_t heap_size;
-	int use_rate;
-	int i;
 
-	for (i = 0; i < ipdev->plat_data->nr; i++) {
-		if (ipdev->plat_data->heaps[i].type ==  ION_HEAP_TYPE_CARVEOUT) {
-			heap = ipdev->heaps[i];
-			dev = heap->dev;
+	mutex_lock(&debugfs_mutex);
+	seq_puts(s, "Summary:\n");
+	plist_for_each_entry(heap, &dev->heaps, node) {
+		switch (heap->type) {
+		case ION_HEAP_TYPE_CARVEOUT:
+		{
+			struct ion_carveout_heap *carveout_heap;
+			size_t total_size;
+			size_t alloc_size;
+			int usage_rate;
+
+			carveout_heap = container_of(heap, struct ion_carveout_heap, heap);
+			total_size = gen_pool_size(carveout_heap->pool);
+			alloc_size = total_size - gen_pool_avail(carveout_heap->pool);
+			usage_rate = alloc_size * 100 / total_size;
+			if ((alloc_size * 100) % total_size)
+				usage_rate += 1;
+			seq_printf(s, "[%d] %s heap size:%ld bytes, used:%ld bytes, usage rate:%d%%\n",
+				   heap->id, heap->name, total_size, alloc_size, usage_rate);
+			break;
+		}
+		default:
 			break;
 		}
 	}
 
-	if ((!dev) || (!heap))
-		return -1;
-
-	mutex_lock(&debugfs_mutex);
-
-	seq_printf(s, "%16s %16s %16s\n", "alloc_buf_size", "phy_addr", "kmap_cnt");
+	seq_printf(s, "\nDetails:\n%16s %16s %16s %16s\n", "heap_id", "alloc_buf_size", "phy_addr", "kmap_cnt");
 	for (n = rb_first(&dev->buffers); n; n = rb_next(n)) {
 		struct ion_buffer *buffer = rb_entry(n, struct ion_buffer, node);
 
-		seq_printf(s, "%16zu %16llx %16d\n", buffer->size, buffer->paddr, buffer->kmap_cnt);
-		alloc_bufs_size += buffer->size;
+		seq_printf(s, "%16d %16zu %16llx %16d\n",
+			   buffer->heap->id, buffer->size, buffer->paddr, buffer->kmap_cnt);
 	}
-
-	heap_size =  ipdev->plat_data->heaps[i].size;
-	use_rate = alloc_bufs_size * 100 / heap_size;
-	if ((alloc_bufs_size * 100) % heap_size)
-		use_rate += 1;
-
-	seq_printf(s, "Current %s heap size:%ld bytes, used:%ld bytes, use:%d%%\n",
-		   ipdev->plat_data->heaps[i].name, heap_size, alloc_bufs_size, use_rate);
+	seq_puts(s, "\n");
 	mutex_unlock(&debugfs_mutex);
 
 	return 0;
@@ -338,6 +381,11 @@ static int bitmain_ion_probe(struct platform_device *pdev)
 				ipdev->plat_data->heaps[i].base,
 				ipdev->plat_data->heaps[i].size);
 			ion_device_add_heap(ipdev->heaps[i]);
+
+			if (!ipdev->idev)
+				ipdev->idev = ipdev->heaps[i]->dev;
+			if (!ipdev->heaps[i]->dev->custom_ioctl)
+				ipdev->heaps[i]->dev->custom_ioctl = bitmain_ion_ioctl;
 
 			/* create debugfs to show heap/buffer info */
 			bm_ion_create_debug_info(ipdev, ipdev->heaps[i]);

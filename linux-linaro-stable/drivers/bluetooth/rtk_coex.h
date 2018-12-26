@@ -6,8 +6,11 @@
 ***********************************/
 #define BTRTL_HCIUSB    0
 #define BTRTL_HCIUART   1
-
+#ifdef CONFIG_ARCH_BM1880_ASIC
+#define BTRTL_HCI_IF    BTRTL_HCIUSB
+#else
 #define BTRTL_HCI_IF    BTRTL_HCIUART
+#endif
 
 #define TRUE                1
 #define FALSE               0

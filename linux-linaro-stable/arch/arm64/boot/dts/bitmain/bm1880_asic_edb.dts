@@ -56,4 +56,30 @@
 		pinctrl-1= <&gpio13_release>;
 	};
 
+	spi0-mux{
+		compatible = "bitmain,spi0-mux";
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&spi0_acquire>;
+		pinctrl-1= <&spi0_release>;
+	};
+
+	spi0:spi0@50030000 {
+		compatible = "snps,dw-apb-ssi";
+		reg = <0x0 0x50030000 0x0 0x1000>;
+		interrupts = <GIC_SPI 65 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&pclk>;
+		clock-frequency = <25000000>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		num-cs = <1>;
+		switch-gpios = <&port0a 7 0>;
+
+		spidev: spidev@0 {
+			compatible = "rohm,dh2228fv";
+			spi-max-frequency = <25000000>;
+			reg = <0>;
+		};
+	};
+
+
 };

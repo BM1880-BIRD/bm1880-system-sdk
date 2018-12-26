@@ -1211,6 +1211,18 @@
 				function = "i2s1_mclkin_r";
 			};
 		};
+		spi0_acquire: spi0_acquire {
+			mux {
+				groups = "spi0_grp";
+				function = "spi0_a";
+			};
+		};
+		spi0_release: spi0_release{
+			mux {
+				groups = "null_grp";
+				function = "spi0_r";
+			};
+		};
 		gpio0_acquire: gpio0_acquire {
 			mux {
 				groups = "gpio0_grp";

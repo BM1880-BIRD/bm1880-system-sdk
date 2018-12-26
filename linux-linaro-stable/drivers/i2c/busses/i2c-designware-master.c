@@ -91,6 +91,17 @@ static int i2c_dw_init_master(struct dw_i2c_dev *dev)
 		hcnt = dev->ss_hcnt;
 		lcnt = dev->ss_lcnt;
 	} else {
+#ifdef CONFIG_I2C_SUPPRESS_SCL_100KHZ
+		hcnt = i2c_dw_scl_hcnt(i2c_dw_clk_rate(dev),
+					4000,	/* tHD;STA = tHIGH = 4.0 us */
+					sda_falling_time,
+					0,	/* 0: DW default, 1: Ideal */
+					40);
+		lcnt = i2c_dw_scl_lcnt(i2c_dw_clk_rate(dev),
+					4700,	/* tLOW = 4.7 us */
+					scl_falling_time,
+					40);
+#else
 		hcnt = i2c_dw_scl_hcnt(i2c_dw_clk_rate(dev),
 					4000,	/* tHD;STA = tHIGH = 4.0 us */
 					sda_falling_time,
@@ -100,6 +111,7 @@ static int i2c_dw_init_master(struct dw_i2c_dev *dev)
 					4700,	/* tLOW = 4.7 us */
 					scl_falling_time,
 					0);	/* No offset */
+#endif
 	}
 	dw_writel(dev, hcnt, DW_IC_SS_SCL_HCNT);
 	dw_writel(dev, lcnt, DW_IC_SS_SCL_LCNT);

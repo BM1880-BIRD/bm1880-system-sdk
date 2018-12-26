@@ -1,6 +1,6 @@
 # Package Information for pkg-config
 
-prefix=/home/hinton/workspace/bm1880/bmiva/install/soc_bm1880_asic/opencv
+prefix=/home/ethanchen/Workspace_VB/bm1880_test/bmiva/install/soc_bm1880_asic/opencv
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir_old=${prefix}/include/opencv

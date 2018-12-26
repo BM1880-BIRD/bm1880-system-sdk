@@ -114,6 +114,19 @@ struct ion_heap_query {
 	__u32 reserved2;
 };
 
+/**
+ * struct ion_custom_data - metadata passed to/from userspace for a custom ioctl
+ * @cmd:	the custom ioctl function to call
+ * @arg:	additional data to pass to the custom ioctl, typically a user
+ *		pointer to a predefined structure
+ *
+ * This works just like the regular cmd and arg fields of an ioctl.
+ */
+struct ion_custom_data {
+	unsigned int cmd;
+	unsigned long arg;
+};
+
 #define ION_IOC_MAGIC		'I'
 
 /**
@@ -126,12 +139,20 @@ struct ion_heap_query {
 				      struct ion_allocation_data)
 
 /**
+ * DOC: ION_IOC_CUSTOM - call architecture specific ion ioctl
+ *
+ * Takes the argument of the architecture specific ioctl to call and
+ * passes appropriate userdata for that ioctl
+ */
+#define ION_IOC_CUSTOM		_IOWR(ION_IOC_MAGIC, 6, struct ion_custom_data)
+
+/**
  * DOC: ION_IOC_HEAP_QUERY - information about available heaps
  *
  * Takes an ion_heap_query structure and populates information about
  * available Ion heaps.
  */
 #define ION_IOC_HEAP_QUERY     _IOWR(ION_IOC_MAGIC, 8, \
-					struct ion_heap_query)
+				     struct ion_heap_query)
 
 #endif /* _UAPI_LINUX_ION_H */

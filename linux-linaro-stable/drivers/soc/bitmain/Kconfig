@@ -56,4 +56,11 @@ config BM_EFUSE_DRV
 	help
 	  enable bm efuse driver
 
+config I2C_SUPPRESS_SCL_100KHZ
+	bool "DW I2C master mode driver option"
+	default n
+	depends on I2C_DESIGNWARE_PLATFORM
+	help
+	  suppress DW I2C master mode 100KHz timing.
+
 endmenu

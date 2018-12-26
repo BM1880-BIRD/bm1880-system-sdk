@@ -118,6 +118,67 @@ function clean_kernel()
   rm -rf $RAMDISK_PATH/prebuild/include/linux
 }
 
+function build_recovery()
+{
+  if [ ! -d $OUTPUT_DIR ] ; then
+    mkdir -p $OUTPUT_DIR
+  fi
+  if [ ! -d $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER ] ; then
+    mkdir -p $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER
+  fi
+
+  pushd $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER
+  rm -f recovery_files.txt
+
+  cat $RAMDISK_PATH/scripts/recovery_fixed_files.txt > recovery_files.txt
+  $RAMDISK_PATH/scripts/gen_initramfs_list.sh $RAMDISK_PATH/target/etc | sed 's/\//\/etc\//' >> recovery_files.txt
+  $RAMDISK_PATH/scripts/gen_init_cpio recovery_files.txt > recovery.cpio
+
+  if [ -f $RAMDISK_PATH/scripts/${PROJECT_FULLNAME}_multi.its ]; then
+    cp $RAMDISK_PATH/scripts/${PROJECT_FULLNAME}_multi.its ./multi.its
+  else
+    cp $RAMDISK_PATH/scripts/multi.its ./multi.its
+  fi
+  sed -i "s/data = \/incbin\/(\".\/rootfs.cpio\");/data = \/incbin\/(\".\/recovery.cpio\");/g" multi.its
+  sed -i "s/data = \/incbin\/(\".\/bitmain.dtb\");/data = \/incbin\/(\".\/${PROJECT_FULLNAME}.dtb\");/g" multi.its
+
+  $TOP_DIR/build/mkimage -f multi.its -k $VBOOT_PATH recovery.itb
+  cp ./recovery.itb $OUTPUT_DIR/
+  popd
+}
+
+
+function build_emmcboot()
+{
+  if [ ! -d $OUTPUT_DIR ] ; then
+    mkdir -p $OUTPUT_DIR
+  fi
+  if [ ! -d $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER ] ; then
+    mkdir -p $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER
+  fi
+
+  pushd $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER
+  rm -f emmcboot_files.txt
+
+  cat $RAMDISK_PATH/scripts/emmcboot_fixed_files.txt >> emmcboot_files.txt
+  $RAMDISK_PATH/scripts/gen_init_cpio emmcboot_files.txt > emmcboot.cpio
+
+  if [ -f $RAMDISK_PATH/scripts/${PROJECT_FULLNAME}_multi.its ]; then
+    cp $RAMDISK_PATH/scripts/${PROJECT_FULLNAME}_multi.its ./multi.its
+  else
+    cp $RAMDISK_PATH/scripts/multi.its ./multi.its
+  fi
+
+  sed -i "s/data = \/incbin\/(\".\/rootfs.cpio\");/data = \/incbin\/(\".\/emmcboot.cpio\");/g" multi.its
+  
+  sed -i "s/data = \/incbin\/(\".\/bitmain.dtb\");/data = \/incbin\/(\".\/${PROJECT_FULLNAME}.dtb\");/g" multi.its
+
+  $TOP_DIR/build/mkimage -f multi.its -k $VBOOT_PATH emmcboot.itb
+  cp ./emmcboot.itb $OUTPUT_DIR/
+  popd
+}
+
+
 function build_sdboot()
 {
   if [ ! -d $OUTPUT_DIR ] ; then
@@ -176,11 +237,26 @@ function build_rootfs()
   fi
 }
 
+pack_emmc_image(){
+  build_emmcboot
+  build_recovery
+  cp $OUTPUT_DIR/recovery.itb $BUILD_PATH/image_tool/images/
+  cp $OUTPUT_DIR/emmcboot.itb $BUILD_PATH/image_tool/images/
+  cp $OUTPUT_DIR/fip.bin $BUILD_PATH/image_tool/images/
+  cp -r -f $ROOTFS_DIR $BUILD_PATH/image_tool/images/
+  pushd $BUILD_PATH/image_tool
+  ./creat_pack_for_release.sh auto
+  mv ./bm_update.img $OUTPUT_DIR/
+  popd
+
+}
+
 function clean_ramdisk()
 {
   rm -rf $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER
   rm -f $OUTPUT_DIR/*.cpio
   rm -f $OUTPUT_DIR/*.itb
+  rm -f $BUILD_PATH/image_tool/images/*.itb
 }
 
 function clean_rootfs()
@@ -190,6 +266,7 @@ function clean_rootfs()
   mv $ROOTFS_DIR/system $TOP_DIR/
   rm -rf $ROOTFS_DIR/*
   mv $TOP_DIR/system $ROOTFS_DIR/
+  rm -rf $BUILD_PATH/image_tool/images/rootfs
 }
 
 function enc_image()
@@ -235,6 +312,7 @@ function build_all()
   build_kernel
   build_sdboot
   build_rootfs
+  pack_emmc_image
 }
 
 function clean_all()

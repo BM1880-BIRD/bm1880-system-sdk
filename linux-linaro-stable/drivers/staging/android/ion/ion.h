@@ -104,6 +104,8 @@ struct ion_device {
 	struct plist_head heaps;
 	struct dentry *debug_root;
 	int heap_cnt;
+	long (*custom_ioctl)(struct ion_device *dev, unsigned int cmd,
+			     unsigned long arg);
 };
 
 /**

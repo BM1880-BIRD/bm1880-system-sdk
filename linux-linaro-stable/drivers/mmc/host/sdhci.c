@@ -3373,6 +3373,10 @@ int sdhci_setup_host(struct sdhci_host *host)
 		}
 	}
 
+	if (host->quirks2 & SDHCI_QUIRK2_NO_3_3_V) {
+		host->flags &= ~SDHCI_SIGNALING_330;
+	}
+
 	if (host->quirks2 & SDHCI_QUIRK2_NO_1_8_V) {
 		host->caps1 &= ~(SDHCI_SUPPORT_SDR104 | SDHCI_SUPPORT_SDR50 |
 				 SDHCI_SUPPORT_DDR50);
