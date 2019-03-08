@@ -1,0 +1,27 @@
+#!/bin/sh
+#
+# Start execute update cmd
+#
+
+#Create things under /dev
+busybox mdev -s
+i=0
+until [ -e "/dev/mmcblk0p5" ]; do
+	busybox mdev -s
+	i=$(($i+1))
+	if [ $i -ge 10 ];then
+		echo "WARN: mmcblk0p5 not created!"
+		exit $?
+	fi
+done
+
+exe_path=`head -n 1 /dev/mmcblk0p5 | cut -d ' ' -f2`
+mount /dev/mmcblk0p7 /data
+if [ ! -e "$exe_path" ]; then
+	echo "Please input executing path to run!!!"
+	exit $?
+fi
+
+$exe_path
+
+exit $?

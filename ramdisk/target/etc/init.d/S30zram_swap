@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# setup zram swap partition
+#
+
+file="/dev/zram0"
+
+if [ -b "$file" ]; then
+    echo "$file will be set swap partition"
+    echo 64M > /sys/block/zram0/disksize
+    mkswap /dev/zram0
+    swapon /dev/zram0
+else
+    echo "$file not found."
+fi

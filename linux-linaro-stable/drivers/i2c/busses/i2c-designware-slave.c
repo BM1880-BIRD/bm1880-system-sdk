@@ -214,6 +214,13 @@ static int i2c_dw_irq_handler_slave(struct dw_i2c_dev *dev)
 				stat = i2c_dw_read_clear_intrbits_slave(dev);
 			}
 		}
+	} else if (stat & DW_IC_INTR_RX_FULL) {
+		val = dw_readl(dev, DW_IC_DATA_CMD);
+		if (i2c_slave_event(dev->slave,
+					I2C_SLAVE_WRITE_RECEIVED,
+					&val)) {
+			stat = i2c_dw_read_clear_intrbits_slave(dev);
+		}
 	}
 
 	slave_activity = ((dw_readl(dev, DW_IC_STATUS) &

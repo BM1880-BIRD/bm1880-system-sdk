@@ -115,7 +115,8 @@ struct usb_request {
 	int req_map;
 };
 
-/* #define		CONFIG_BITMAIN_LIBUSB_PATH */
+
+int buffer_empty(struct usb_ep *ep);
 
 /*-------------------------------------------------------------------------*/
 

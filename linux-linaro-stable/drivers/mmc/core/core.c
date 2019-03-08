@@ -970,6 +970,16 @@ void mmc_set_data_timeout(struct mmc_data *data, const struct mmc_card *card)
 	}
 
 	/*
+	 * For Micron eMMC (MTFC4GACAJCN 8GB), when boot after power loss,
+	 * it might take very long time (longer than 500ms). Per Micron's
+	 * suggestion to extend the read data timeout velue.
+	 */
+	if (mmc_card_extra_long_read_time(card) && data->flags & MMC_DATA_READ) {
+		data->timeout_ns = 0x7fffffff;
+		data->timeout_clks = 0;
+	}
+
+	/*
 	 * Some cards need very high timeouts if driven in SPI mode.
 	 * The worst observed timeout was 900ms after writing a
 	 * continuous stream of data until the internal logic

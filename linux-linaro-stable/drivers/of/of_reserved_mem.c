@@ -24,6 +24,9 @@
 #include <linux/of_reserved_mem.h>
 #include <linux/sort.h>
 #include <linux/slab.h>
+#include <linux/memblock.h>
+#include <linux/initrd.h>
+#include <linux/libfdt.h>
 
 #define MAX_RESERVED_REGIONS	16
 static struct reserved_mem reserved_mem[MAX_RESERVED_REGIONS];
@@ -68,6 +71,47 @@ int __init __weak early_init_dt_alloc_reserved_memory_arch(phys_addr_t size,
 	return -ENOSYS;
 }
 #endif
+
+static void kermem_overlap_check(const char *name, phys_addr_t addr, phys_addr_t size)
+{
+	int n;
+	u64 base, length;
+
+	if (((u64)addr >= (u64)__pa(_text) && (u64)addr <= (u64)__pa(_end)) ||
+	    arch_is_kernel_text(addr)) {
+		__memblock_dump_all();
+		panic("OVERLAP DETECTED!\n"
+			"%s(0x%llx--0x%llx) overlaps with %s(0x%llx--0x%llx)\n",
+			name, addr, (addr + size), "kernel binary",
+			__pa(_text), __pa(_end));
+	}
+
+	if (IS_ENABLED(CONFIG_BLK_DEV_INITRD) && initrd_start) {
+		if (((u64)addr >= (u64)__pa(initrd_start)) &&
+			((u64)addr <= (u64)__pa(initrd_end))) {
+			__memblock_dump_all();
+			panic("OVERLAP DETECTED!\n"
+				"%s(0x%llx--0x%llx) overlaps with %s(0x%llx--0x%llx)\n",
+				name, addr, (addr + size), "kernel initrd",
+				__pa(initrd_start), __pa(initrd_end));
+		}
+	}
+
+	for (n = 0; ; n++) {
+		fdt_get_mem_rsv(initial_boot_params, n, &base, &length);
+		if (!length)
+			break;
+
+		if (((u64)addr >= base) &&
+			((u64)addr <= (base + length))) {
+			__memblock_dump_all();
+			panic("OVERLAP DETECTED!\n"
+				"%s(0x%llx--0x%llx) overlaps with %s (0x%llx--0x%llx)\n",
+				name, addr, (addr + size), "/memreserve/",
+				base, (base + length));
+		}
+	}
+}
 
 /**
  * res_mem_save_node() - save fdt node for second pass initialization
@@ -158,7 +202,7 @@ static int __init __reserved_mem_alloc_size(unsigned long node,
 			ret = early_init_dt_alloc_reserved_memory_arch(size,
 					align, start, end, nomap, &base);
 			if (ret == 0) {
-				pr_debug("allocated memory for '%s' node: base %pa, size %ld MiB\n",
+				pr_info("allocated memory for '%s' node: base %pa, size %ld MiB\n",
 					uname, &base,
 					(unsigned long)size / SZ_1M);
 				break;
@@ -170,7 +214,7 @@ static int __init __reserved_mem_alloc_size(unsigned long node,
 		ret = early_init_dt_alloc_reserved_memory_arch(size, align,
 							0, 0, nomap, &base);
 		if (ret == 0)
-			pr_debug("allocated memory for '%s' node: base %pa, size %ld MiB\n",
+			pr_info("allocated memory for '%s' node: base %pa, size %ld MiB\n",
 				uname, &base, (unsigned long)size / SZ_1M);
 	}
 
@@ -246,10 +290,11 @@ static void __init __rmem_check_for_overlap(void)
 
 			this_end = this->base + this->size;
 			next_end = next->base + next->size;
-			pr_err("OVERLAP DETECTED!\n%s (%pa--%pa) overlaps with %s (%pa--%pa)\n",
+			panic("OVERLAP DETECTED!\n%s (%pa--%pa) overlaps with %s (%pa--%pa)\n",
 			       this->name, &this->base, &this_end,
 			       next->name, &next->base, &next_end);
 		}
+		kermem_overlap_check(this->name, this->base, this->size);
 	}
 }
 
@@ -393,3 +438,29 @@ void of_reserved_mem_device_release(struct device *dev)
 	rmem->ops->device_release(rmem, dev);
 }
 EXPORT_SYMBOL_GPL(of_reserved_mem_device_release);
+
+/**
+ * of_reserved_mem_lookup() - acquire reserved_mem from a device node
+ * @np:		node pointer of the desired reserved-memory region
+ *
+ * This function allows drivers to acquire a reference to the reserved_mem
+ * struct based on a device node handle.
+ *
+ * Returns a reserved_mem reference, or NULL on error.
+ */
+struct reserved_mem *of_reserved_mem_lookup(struct device_node *np)
+{
+	const char *name;
+	int i;
+
+	if (!np->full_name)
+		return NULL;
+
+	name = kbasename(np->full_name);
+	for (i = 0; i < reserved_mem_count; i++)
+		if (!strcmp(reserved_mem[i].name, name))
+			return &reserved_mem[i];
+
+	return NULL;
+}
+EXPORT_SYMBOL_GPL(of_reserved_mem_lookup);

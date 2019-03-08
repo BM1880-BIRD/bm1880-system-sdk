@@ -105,19 +105,9 @@ config ARCH_BM1682_PALLADIUM
          This enables support for Bitmain's BM1682 SoC on Palladium platform
 
 config ARCH_BM1682_ASIC
-       bool "Bitmain BM1682 SoC- EVB"
+       bool "Bitmain BM1682 SoC- ASIC"
        help
-         This enables support for Bitmain's BM1682 SoC EVB
-
-config ARCH_BM1682_BOX
-       bool "Bitmain BM1682 SoC- Embedded box"
-       help
-         This enables support for Bitmain's BM1682 SoC embedded box
-
-config ARCH_BM1682_HDS
-       bool "Bitmain BM1682 SoC- High density server"
-       help
-         This enables support for Bitmain's BM1682 SoC high density server
+         This enables support for Bitmain's BM1682 SoC
 endchoice
 endif # end of ARCH_BM1682
 

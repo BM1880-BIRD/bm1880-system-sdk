@@ -336,7 +336,8 @@
 	usb0:bm-usb-dev@500A0000 {
 		compatible = "bitmain,usb-dev";
 		reg = <0x0 0x500A0000 0x0 0x1000>;
-		interrupts = <GIC_SPI 83 IRQ_TYPE_EDGE_RISING>;
+		interrupts = <GIC_SPI 83 IRQ_TYPE_EDGE_RISING>,
+			     <GIC_SPI 84 IRQ_TYPE_LEVEL_HIGH>;
 		clock-frequency = <25000000>;
 		otg-controller = <&otg0>;
 	};
@@ -613,6 +614,59 @@
 				function = "uart11_r";
 			};
 		};
+		//12
+		uart12_acquire: uart12_acquire {
+			mux {
+				groups = "uart12_grp";
+				function = "uart12_a";
+			};
+		};
+		uart12_release: uart12_release{
+			mux {
+				groups = "null_grp";
+				function = "uart12_r";
+			};
+		};
+		//13
+		uart13_acquire: uart13_acquire {
+			mux {
+				groups = "uart13_grp";
+				function = "uart13_a";
+			};
+		};
+		uart13_release: uart13_release{
+			mux {
+				groups = "null_grp";
+				function = "uart13_r";
+			};
+		};
+		//14
+		uart14_acquire: uart14_acquire {
+			mux {
+				groups = "uart14_grp";
+				function = "uart14_a";
+			};
+		};
+		uart14_release: uart14_release{
+			mux {
+				groups = "null_grp";
+				function = "uart14_r";
+			};
+		};
+		//15
+		uart15_acquire: uart15_acquire {
+			mux {
+				groups = "uart15_grp";
+				function = "uart15_a";
+			};
+		};
+		uart15_release: uart15_release{
+			mux {
+				groups = "null_grp";
+				function = "uart15_r";
+			};
+		};
+
 		uart10_sel: uart10_sel {
 			mux {
 				groups = "uart10_grp";
@@ -2181,6 +2235,33 @@
 		pinctrl-1= <&uart11_release>;
 	};
 
+	uart12-mux{
+		compatible = "bitmain,uart12-mux";
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&uart12_acquire>;
+		pinctrl-1= <&uart12_release>;
+	};
+
+	uart13-mux{
+		compatible = "bitmain,uart13-mux";
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&uart13_acquire>;
+		pinctrl-1= <&uart13_release>;
+	};
+
+	uart14-mux{
+		compatible = "bitmain,uart14-mux";
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&uart14_acquire>;
+		pinctrl-1= <&uart14_release>;
+	};
+
+	uart15-mux{
+		compatible = "bitmain,uart15-mux";
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&uart15_acquire>;
+		pinctrl-1= <&uart15_release>;
+	};
 
 	pwm0-mux{
 		compatible = "bitmain,pwm-mux";

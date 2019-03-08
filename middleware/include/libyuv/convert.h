@@ -42,6 +42,21 @@ int I444ToI420(const uint8_t* src_y,
                int width,
                int height);
 
+// Convert I444 to NV12.
+LIBYUV_API
+int I444ToNV12(const uint8_t* src_y,
+               int src_stride_y,
+               const uint8_t* src_u,
+               int src_stride_u,
+               const uint8_t* src_v,
+               int src_stride_v,
+               uint8_t* dst_y,
+               int dst_stride_y,
+               uint8_t* dst_uv,
+               int dst_stride_uv,
+               int width,
+               int height);
+
 // Convert I444 to NV21.
 LIBYUV_API
 int I444ToNV21(const uint8_t* src_y,
@@ -71,6 +86,21 @@ int I422ToI420(const uint8_t* src_y,
                int dst_stride_u,
                uint8_t* dst_v,
                int dst_stride_v,
+               int width,
+               int height);
+
+// Convert I422 to NV12.
+LIBYUV_API
+int I422ToNV12(const uint8_t* src_y,
+               int src_stride_y,
+               const uint8_t* src_u,
+               int src_stride_u,
+               const uint8_t* src_v,
+               int src_stride_v,
+               uint8_t* dst_y,
+               int dst_stride_y,
+               uint8_t* dst_uv,
+               int dst_stride_uv,
                int width,
                int height);
 
@@ -154,6 +184,17 @@ int I400ToI420(const uint8_t* src_y,
                int dst_stride_u,
                uint8_t* dst_v,
                int dst_stride_v,
+               int width,
+               int height);
+
+// Convert I400 (grey) to NV12.
+LIBYUV_API
+int I400ToNV12(const uint8_t* src_y,
+               int src_stride_y,
+               uint8_t* dst_y,
+               int dst_stride_y,
+               uint8_t* dst_uv,
+               int dst_stride_uv,
                int width,
                int height);
 
@@ -321,6 +362,32 @@ int RGB24ToI420(const uint8_t* src_rgb24,
                 int dst_stride_v,
                 int width,
                 int height);
+
+// RGB little endian (bgr in memory) to J420.
+LIBYUV_API
+int RGB24ToJ420(const uint8_t* src_rgb24,
+                int src_stride_rgb24,
+                uint8_t* dst_y,
+                int dst_stride_y,
+                uint8_t* dst_u,
+                int dst_stride_u,
+                uint8_t* dst_v,
+                int dst_stride_v,
+                int width,
+                int height);
+
+// RGB big endian (rgb in memory) to J420.
+LIBYUV_API
+int RAWToJ420(const uint8_t* src_raw,
+              int src_stride_raw,
+              uint8_t* dst_y,
+              int dst_stride_y,
+              uint8_t* dst_u,
+              int dst_stride_u,
+              uint8_t* dst_v,
+              int dst_stride_v,
+              int width,
+              int height);
 
 // RGB big endian (rgb in memory) to I420.
 LIBYUV_API

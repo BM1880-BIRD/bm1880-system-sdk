@@ -19,10 +19,39 @@
 #include <linux/phy.h>
 #include <linux/platform_device.h>
 #include <linux/of_net.h>
+#include <linux/of_gpio.h>
+#include <linux/io.h>
 
 #include "stmmac_platform.h"
 
 static u64 bm_dma_mask = DMA_BIT_MASK(40);
+
+static int bm_eth_reset_phy(struct platform_device *pdev)
+{
+	struct device_node *np = pdev->dev.of_node;
+	int phy_reset_gpio;
+
+	if (!np)
+		return 0;
+
+	phy_reset_gpio = of_get_named_gpio(np, "phy-reset-gpios", 0);
+
+	if (phy_reset_gpio < 0)
+		return 0;
+
+	if (gpio_request(phy_reset_gpio, "eth-phy-reset"))
+		return 0;
+
+	/* RESET_PU */
+	gpio_direction_output(phy_reset_gpio, 0);
+	mdelay(50);
+
+	gpio_direction_output(phy_reset_gpio, 1);
+	/* RC charging time */
+	mdelay(6);
+
+	return 0;
+}
 
 static int bm_dwmac_probe(struct platform_device *pdev)
 {
@@ -32,6 +61,8 @@ static int bm_dwmac_probe(struct platform_device *pdev)
 
 	pdev->dev.dma_mask = &bm_dma_mask;
 	pdev->dev.coherent_dma_mask = bm_dma_mask;
+
+	bm_eth_reset_phy(pdev);
 
 	ret = stmmac_get_platform_resources(pdev, &stmmac_res);
 	if (ret)

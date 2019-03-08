@@ -665,6 +665,37 @@ static int bmusb_req_ep0_set_isoch_delay(struct usb_ss_dev *usb_ss,
 	return 0;
 }
 
+static int bmusb_gadget_config(struct usb_ss_dev *usb_ss)
+{
+	int i;
+
+	for (i = 0; i < usb_ss->ep_nums; i++)
+		if (usb_ss->eps[i]->endpoint.enabled)
+			bmusb_ep_config(usb_ss->eps[i], i);
+#ifdef BM_THREADED_IRQ_HANDLING
+	usb_ss->ep_ien = gadget_readl(usb_ss, &usb_ss->regs->ep_ien)
+	| EP_IEN__EOUTEN0__MASK | EP_IEN__EINEN0__MASK;
+#endif
+	/* SET CONFIGURATION */
+	select_ep(usb_ss, 0x00);
+	gadget_writel(usb_ss, &usb_ss->regs->usb_conf,
+		USB_CONF__CFGSET__MASK);
+	gadget_writel(usb_ss, &usb_ss->regs->ep_cmd,
+		EP_CMD__ERDY__MASK |
+		EP_CMD__REQ_CMPL__MASK);
+	while (!(gadget_readl(usb_ss,
+		&usb_ss->regs->usb_sts)
+		& USB_STS__CFGSTS__MASK))
+		;
+	/* check whether the resource is enough. */
+	if ((gadget_readl(usb_ss,
+		&usb_ss->regs->usb_sts)
+		& USB_STS__MEMOV__MASK))
+		bmusb_err(usb_ss->dev, "resource overflow!\n");
+
+	return 0;
+}
+
 /**
  * bmusb_req_ep0_set_configuration - Handling of SET_CONFIG standard USB request
  * @usb_ss: extended gadget object
@@ -683,34 +714,14 @@ static int bmusb_req_ep0_set_configuration(struct usb_ss_dev *usb_ss,
 
 	case USB_STATE_ADDRESS:
 
-		if (config) {
-			bmusb_ep_config(usb_ss->eps[2], 2);
-			bmusb_ep_config(usb_ss->eps[1], 1);
-			bmusb_ep_config(usb_ss->eps[5], 5);
-		}
-#ifdef BM_THREADED_IRQ_HANDLING
-		usb_ss->ep_ien = gadget_readl(usb_ss, &usb_ss->regs->ep_ien)
-			| EP_IEN__EOUTEN0__MASK | EP_IEN__EINEN0__MASK;
-#endif
 		result = bmusb_get_setup_ret(usb_ss, ctrl_req);
 
 		if (result != 0)
 			return result;
 
 		if (config) {
-
 			if (!usb_ss->hw_configured_flag) {
-				/* SET CONFIGURATION */
-				gadget_writel(usb_ss, &usb_ss->regs->usb_conf,
-					USB_CONF__CFGSET__MASK);
-				gadget_writel(usb_ss, &usb_ss->regs->ep_cmd,
-					EP_CMD__ERDY__MASK |
-					EP_CMD__REQ_CMPL__MASK);
-				while (!(gadget_readl(usb_ss,
-					&usb_ss->regs->usb_sts)
-					& USB_STS__CFGSTS__MASK))
-					;
-					/* wait until configuration set */
+				bmusb_gadget_config(usb_ss);
 				usb_ss->hw_configured_flag = 1;
 			}
 		} else {
@@ -856,6 +867,8 @@ static int bmusb_check_ep_interrupt_proceed(struct usb_ss_endpoint *usb_ss_ep)
 
 		/* get just completed request */
 		request = next_request(&usb_ss_ep->request_list);
+		if (!request || request == NULL)
+			return 0;
 		usb_gadget_unmap_request(&usb_ss->gadget, request,
 			usb_ss_ep->endpoint.desc->bEndpointAddress
 			& ENDPOINT_DIR_MASK);
@@ -1258,20 +1271,12 @@ static int usb_ss_gadget_ep0_queue(struct usb_ep *ep,
 	/* send STATUS stage */
 	if (request->length == 0 && request->zero == 0) {
 		spin_lock_irqsave(&usb_ss->lock, flags);
-		select_ep(usb_ss, 0x00);
 		if (!usb_ss->hw_configured_flag) {
-
-			gadget_writel(usb_ss, &usb_ss->regs->usb_conf,
-			USB_CONF__CFGSET__MASK); /* SET CONFIGURATION */
-			gadget_writel(usb_ss, &usb_ss->regs->ep_cmd,
-			EP_CMD__ERDY__MASK | EP_CMD__REQ_CMPL__MASK);
-			while (!(gadget_readl(usb_ss, &usb_ss->regs->usb_sts)
-					& USB_STS__CFGSTS__MASK))
-				;
-				/* wait until configuration set */
-			erdy_sent = 1;
+			bmusb_gadget_config(usb_ss);
 			usb_ss->hw_configured_flag = 1;
+			erdy_sent = 1;
 		}
+		select_ep(usb_ss, 0x00);
 		if (!erdy_sent)
 			gadget_writel(usb_ss, &usb_ss->regs->ep_cmd,
 			EP_CMD__ERDY__MASK | EP_CMD__REQ_CMPL__MASK);
@@ -1359,7 +1364,7 @@ static void bmusb_ep_config(struct usb_ss_endpoint *usb_ss_ep, int index)
 		ep_cfg |= EP_CFG__MAXBURST__WRITE(0);
 	} else {
 #ifdef CONFIG_BITMAIN_LIBUSB_PATH
-	ep_cfg |= EP_CFG__BUFFERING__WRITE(8);
+	ep_cfg |= EP_CFG__BUFFERING__WRITE(3);
 #else
 	ep_cfg |= EP_CFG__BUFFERING__WRITE(3);
 #endif
@@ -1466,6 +1471,8 @@ static int usb_ss_gadget_ep_disable(struct usb_ep *ep)
 	while (!list_empty(&usb_ss_ep->request_list)) {
 
 		request = next_request(&usb_ss_ep->request_list);
+		if (!request || request == NULL)
+			return ret;
 		usb_gadget_unmap_request(&usb_ss->gadget, request,
 				ep->desc->bEndpointAddress & USB_DIR_IN);
 		request->status = -ESHUTDOWN;
@@ -1579,6 +1586,9 @@ static int usb_ss_gadget_ep_dequeue(struct usb_ep *ep,
 		to_usb_ss_ep(ep);
 	struct usb_ss_dev *usb_ss = usb_ss_ep->usb_ss;
 	unsigned long flags;
+
+	if (request == NULL || !request)
+		return 0;
 
 	spin_lock_irqsave(&usb_ss->lock, flags);
 	bmusb_dbg(usb_ss->dev, "DEQUEUE(%02X) %d\n",
@@ -1750,6 +1760,7 @@ static int usb_ss_gadget_udc_start(struct usb_gadget *gadget,
 	struct usb_ss_dev *usb_ss = gadget_to_usb_ss(gadget);
 	struct platform_device *pdev = to_platform_device(usb_ss->dev);
 	int irq = platform_get_irq(pdev, 0);
+	int irq1 = platform_get_irq(pdev, 1);
 	int ret;
 	unsigned long flags;
 
@@ -1764,6 +1775,20 @@ static int usb_ss_gadget_udc_start(struct usb_gadget *gadget,
 
 	if (ret != 0) {
 		bmusb_err(usb_ss->dev, "cannot request irq %d err %d\n", irq,
+				ret);
+		return -ENODEV;
+	}
+#ifdef BM_THREADED_IRQ_HANDLING
+	ret = devm_request_threaded_irq(usb_ss->dev, irq1, bmusb_irq_handler,
+		bmusb_irq_handler_thread, IRQF_SHARED, DRV_NAME, usb_ss);
+#else
+
+	ret = devm_request_irq(usb_ss->dev, irq1, bmusb_irq_handler_thread,
+		IRQF_SHARED, DRV_NAME, usb_ss);
+#endif
+
+	if (ret != 0) {
+		bmusb_err(usb_ss->dev, "cannot request irq1 %d err %d\n", irq1,
 				ret);
 		return -ENODEV;
 	}
@@ -1841,6 +1866,7 @@ static int usb_ss_gadget_udc_stop(struct usb_gadget *gadget)
 	return 0;
 }
 
+#if 0
 static struct usb_ep *usb_ss_match_ep(struct usb_gadget *gadget,
 		struct usb_endpoint_descriptor *desc,
 		struct usb_ss_ep_comp_descriptor *ep_comp)
@@ -1872,7 +1898,7 @@ static struct usb_ep *usb_ss_match_ep(struct usb_gadget *gadget,
 
 	return NULL;
 }
-
+#endif
 static const struct usb_gadget_ops usb_ss_gadget_ops = {
 	.get_frame = usb_ss_gadget_get_frame,
 	.wakeup = usb_ss_gadget_wakeup,
@@ -1880,7 +1906,7 @@ static const struct usb_gadget_ops usb_ss_gadget_ops = {
 	.pullup = usb_ss_gadget_pullup,
 	.udc_start = usb_ss_gadget_udc_start,
 	.udc_stop = usb_ss_gadget_udc_stop,
-	.match_ep	= usb_ss_match_ep,
+	/* .match_ep	= usb_ss_match_ep, */
 };
 
 /**
@@ -2150,6 +2176,18 @@ static void gadget_update_stb_state(struct usb_ss_dev *usb_ss)
 }
 #endif /* IS_ENABLED(CONFIG_USB_BM_MISC) */
 
+int buffer_empty(struct usb_ep *ep)
+{
+	struct usb_ss_endpoint *usb_ss_ep =
+		to_usb_ss_ep(ep);
+	struct usb_ss_dev *usb_ss = usb_ss_ep->usb_ss;
+
+	if (gadget_readl(usb_ss, &usb_ss->regs->ep_sts))
+		return 1;
+	else
+		return 0;
+}
+
 static int gadget_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -2200,9 +2238,9 @@ static int gadget_probe(struct platform_device *pdev)
 
 #if IS_ENABLED(CONFIG_USB_BM_DRD)
 	usb_ss->gadget.is_otg = 1;
-	usb_ss->ep_enabled_reg = 0x000F000F;
+	usb_ss->ep_enabled_reg = 0x001F001F;
 	usb_ss->iso_ep_reg = 0x00080008;
-	usb_ss->bulk_ep_reg = 0x00060006;
+	usb_ss->bulk_ep_reg = 0x001E001E;
 #endif
 
 	/* initialize endpoint container */

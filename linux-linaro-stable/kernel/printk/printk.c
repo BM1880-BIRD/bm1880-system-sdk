@@ -332,6 +332,8 @@ enum log_flags {
 
 struct printk_log {
 	u64 ts_nsec;		/* timestamp in nanoseconds */
+	u8 cpuid;		/* cpuid*/
+	u8 inirq;		/* inirq*/
 	u16 len;		/* length of entire record */
 	u16 text_len;		/* length of text buffer */
 	u16 dict_len;		/* length of dictionary buffer */
@@ -533,7 +535,8 @@ static u32 truncate_msg(u16 *text_len, u16 *trunc_msg_len,
 static int log_store(int facility, int level,
 		     enum log_flags flags, u64 ts_nsec,
 		     const char *dict, u16 dict_len,
-		     const char *text, u16 text_len)
+		     const char *text, u16 text_len,
+		     const u8 cpuid, const u8 inirq)
 {
 	struct printk_log *msg;
 	u32 size, pad_len;
@@ -580,6 +583,8 @@ static int log_store(int facility, int level,
 		msg->ts_nsec = local_clock();
 	memset(log_dict(msg) + dict_len, 0, pad_len);
 	msg->len = size;
+	msg->cpuid = cpuid;
+	msg->inirq = inirq;
 
 	/* insert message */
 	log_next_idx += msg->len;
@@ -658,8 +663,8 @@ static ssize_t msg_print_ext_header(char *buf, size_t size,
 	if (msg->flags & LOG_CONT)
 		cont = (prev_flags & LOG_CONT) ? '+' : 'c';
 
-	return scnprintf(buf, size, "%u,%llu,%llu,%c;",
-		       (msg->facility << 3) | msg->level, seq, ts_usec, cont);
+	return scnprintf(buf, size, "%u,%llu,%llu,%c;[%u]%c",
+		       (msg->facility << 3) | msg->level, seq, ts_usec, cont, msg->cpuid, msg->inirq ? '.' : ' ');
 }
 
 static ssize_t msg_print_ext_body(char *buf, size_t size,
@@ -1187,6 +1192,15 @@ static size_t print_time(u64 ts, char *buf)
 		       (unsigned long)ts, rem_nsec / 1000);
 }
 
+static size_t print_cpu_irq(u8 cpuid, u8 in_irq, char *buf)
+{
+	if (!buf)
+		return snprintf(NULL, 0, "[%u]%c", cpuid, in_irq ? '.' : ' ');
+
+	return sprintf(buf, "[%u]%c", cpuid, in_irq ? '.' : ' ');
+}
+
+
 static size_t print_prefix(const struct printk_log *msg, bool syslog, char *buf)
 {
 	size_t len = 0;
@@ -1207,6 +1221,7 @@ static size_t print_prefix(const struct printk_log *msg, bool syslog, char *buf)
 	}
 
 	len += print_time(msg->ts_nsec, buf ? buf + len : NULL);
+	len += print_cpu_irq(msg->cpuid, msg->inirq, buf ? buf + len : NULL);
 	return len;
 }
 
@@ -1636,6 +1651,8 @@ static struct cont {
 	u64 ts_nsec;			/* time of first print */
 	u8 level;			/* log level of first message */
 	u8 facility;			/* log facility of first message */
+	u8 cpuid;			/* cpuid*/
+	u8 inirq;			/* inirq*/
 	enum log_flags flags;		/* prefix, newline flags */
 	bool flushed:1;			/* buffer sealed and committed */
 } cont;
@@ -1653,7 +1670,7 @@ static void cont_flush(void)
 		 * line. LOG_NOCONS suppresses a duplicated output.
 		 */
 		log_store(cont.facility, cont.level, cont.flags | LOG_NOCONS,
-			  cont.ts_nsec, NULL, 0, cont.buf, cont.len);
+			  cont.ts_nsec, NULL, 0, cont.buf, cont.len, cont.cpuid, cont.inirq);
 		cont.flushed = true;
 	} else {
 		/*
@@ -1661,12 +1678,14 @@ static void cont_flush(void)
 		 * just submit it to the store and free the buffer.
 		 */
 		log_store(cont.facility, cont.level, cont.flags, 0,
-			  NULL, 0, cont.buf, cont.len);
+			  NULL, 0, cont.buf, cont.len, cont.cpuid, cont.inirq);
 		cont.len = 0;
 	}
 }
 
-static bool cont_add(int facility, int level, enum log_flags flags, const char *text, size_t len)
+static bool cont_add(int facility, int level, enum log_flags flags,
+				const char *text, size_t len,
+				const u8 cpuid, const u8 inirq)
 {
 	if (cont.len && cont.flushed)
 		return false;
@@ -1693,6 +1712,8 @@ static bool cont_add(int facility, int level, enum log_flags flags, const char *
 
 	memcpy(cont.buf + cont.len, text, len);
 	cont.len += len;
+	cont.cpuid = cpuid;
+	cont.inirq = inirq;
 
 	// The original flags come from the first line,
 	// but later continuations can add a newline.
@@ -1714,6 +1735,7 @@ static size_t cont_print_text(char *text, size_t size)
 
 	if (cont.cons == 0 && (console_prev & LOG_NEWLINE)) {
 		textlen += print_time(cont.ts_nsec, text);
+		textlen += print_cpu_irq(cont.cpuid, cont.inirq, text);
 		size -= textlen;
 	}
 
@@ -1735,7 +1757,9 @@ static size_t cont_print_text(char *text, size_t size)
 	return textlen;
 }
 
-static size_t log_output(int facility, int level, enum log_flags lflags, const char *dict, size_t dictlen, char *text, size_t text_len)
+static size_t log_output(int facility, int level, enum log_flags lflags,
+				const char *dict, size_t dictlen, char *text,
+				size_t text_len, const u8 cpuid, const u8 inirq)
 {
 	/*
 	 * If an earlier line was buffered, and we're a continuation
@@ -1743,7 +1767,7 @@ static size_t log_output(int facility, int level, enum log_flags lflags, const c
 	 */
 	if (cont.len) {
 		if (cont.owner == current && (lflags & LOG_CONT)) {
-			if (cont_add(facility, level, lflags, text, text_len))
+			if (cont_add(facility, level, lflags, text, text_len, cpuid, inirq))
 				return text_len;
 		}
 		/* Otherwise, make sure it's flushed */
@@ -1756,12 +1780,12 @@ static size_t log_output(int facility, int level, enum log_flags lflags, const c
 
 	/* If it doesn't end in a newline, try to buffer the current line */
 	if (!(lflags & LOG_NEWLINE)) {
-		if (cont_add(facility, level, lflags, text, text_len))
+		if (cont_add(facility, level, lflags, text, text_len, cpuid, inirq))
 			return text_len;
 	}
 
 	/* Store it in the record log */
-	return log_store(facility, level, lflags, 0, dict, dictlen, text, text_len);
+	return log_store(facility, level, lflags, 0, dict, dictlen, text, text_len, cpuid, inirq);
 }
 
 asmlinkage int vprintk_emit(int facility, int level,
@@ -1780,6 +1804,7 @@ asmlinkage int vprintk_emit(int facility, int level,
 	bool in_sched = false;
 	/* cpu currently holding logbuf_lock in this function */
 	static unsigned int logbuf_cpu = UINT_MAX;
+	u8  inirq;
 
 	if (level == LOGLEVEL_SCHED) {
 		level = LOGLEVEL_DEFAULT;
@@ -1815,7 +1840,7 @@ asmlinkage int vprintk_emit(int facility, int level,
 	/* This stops the holder of console_sem just where we want him */
 	raw_spin_lock(&logbuf_lock);
 	logbuf_cpu = this_cpu;
-
+	inirq = in_irq();
 	if (unlikely(recursion_bug)) {
 		static const char recursion_msg[] =
 			"BUG: recent printk recursion!";
@@ -1824,7 +1849,7 @@ asmlinkage int vprintk_emit(int facility, int level,
 		/* emit KERN_CRIT message */
 		printed_len += log_store(0, 2, LOG_PREFIX|LOG_NEWLINE, 0,
 					 NULL, 0, recursion_msg,
-					 strlen(recursion_msg));
+					 strlen(recursion_msg), logbuf_cpu, inirq);
 	}
 
 	nmi_message_lost = get_nmi_message_lost();
@@ -1833,7 +1858,7 @@ asmlinkage int vprintk_emit(int facility, int level,
 				     "BAD LUCK: lost %d message(s) from NMI context!",
 				     nmi_message_lost);
 		printed_len += log_store(0, 2, LOG_PREFIX|LOG_NEWLINE, 0,
-					 NULL, 0, textbuf, text_len);
+					 NULL, 0, textbuf, text_len, logbuf_cpu, inirq);
 	}
 
 	/*
@@ -1876,7 +1901,7 @@ asmlinkage int vprintk_emit(int facility, int level,
 	if (dict)
 		lflags |= LOG_PREFIX|LOG_NEWLINE;
 
-	printed_len += log_output(facility, level, lflags, dict, dictlen, text, text_len);
+	printed_len += log_output(facility, level, lflags, dict, dictlen, text, text_len, logbuf_cpu, inirq);
 
 	logbuf_cpu = UINT_MAX;
 	raw_spin_unlock(&logbuf_lock);

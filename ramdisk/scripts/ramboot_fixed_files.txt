@@ -53,3 +53,4 @@ file /etc/hostname ../../target/etc/hostname 644 0 0
 file /etc/issue ../../target/etc/issue 644 0 0
 file /etc/os-release ../../target/etc/os-release 644 0 0
 file /etc/init.d/rcS ../../target/etc/init.d/rcS 755 0 0
+file /etc/init.d/S30zram_swap ../../target/etc/init.d/S30zram_swap 755 0 0

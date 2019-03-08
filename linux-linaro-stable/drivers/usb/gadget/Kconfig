@@ -12,6 +12,7 @@
 # With help from a special transceiver and a "Mini-AB" jack, systems with
 # both kinds of controller can also support "USB On-the-Go" (CONFIG_USB_OTG).
 #
+#
 
 menuconfig USB_GADGET
 	tristate "USB Gadget Support"
@@ -149,10 +150,16 @@ config USB_LIBCOMPOSITE
 config USB_F_ACM
 	tristate
 
+config USB_F_BCM
+	tristate
+
 config USB_F_SS_LB
 	tristate
 
 config USB_U_SERIAL
+	tristate
+
+config USB_BM_SERIAL
 	tristate
 
 config USB_U_ETHER
@@ -253,6 +260,16 @@ config USB_CONFIGFS_ACM
 	help
 	  ACM serial link.  This function can be used to interoperate with
 	  MS-Windows hosts or with the Linux-USB "cdc-acm" driver.
+
+config USB_CONFIGFS_BCM
+	bool "BM Abstract Control Model (BM ACM)"
+	depends on USB_CONFIGFS
+	select USB_BM_SERIAL
+	select USB_F_BCM
+	help
+	  ACM serial link.  This function can be used to interoperate with
+	  MS-Windows hosts or with the Linux-USB "vendor-specific" driver.
+	  For image data transfer purpose.
 
 config USB_CONFIGFS_OBEX
 	bool "Object Exchange Model (CDC OBEX)"

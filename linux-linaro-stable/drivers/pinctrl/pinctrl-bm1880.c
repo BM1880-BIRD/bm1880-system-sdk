@@ -209,6 +209,10 @@ static const unsigned int uart8_pins[] = {89, 90};
 static const unsigned int uart9_pins[] = {91, 92};
 static const unsigned int uart10_pins[] = {93, 94};
 static const unsigned int uart11_pins[] = {95, 96};
+static const unsigned int uart12_pins[] = {73, 74, 75, 76};
+static const unsigned int uart13_pins[] = {77, 78, 83, 84};
+static const unsigned int uart14_pins[] = {79, 80, 85, 86};
+static const unsigned int uart15_pins[] = {81, 82, 87, 88};
 static const unsigned int gpio0_pins[] = {97};
 static const unsigned int gpio1_pins[] = {98};
 static const unsigned int gpio2_pins[] = {99};
@@ -346,6 +350,10 @@ static const struct bm_group bm_groups[] = {
 	{"uart9_grp", uart9_pins, ARRAY_SIZE(uart9_pins)},
 	{"uart10_grp", uart10_pins, ARRAY_SIZE(uart10_pins)},
 	{"uart11_grp", uart11_pins, ARRAY_SIZE(uart11_pins)},
+	{"uart12_grp", uart12_pins, ARRAY_SIZE(uart12_pins)},
+	{"uart13_grp", uart13_pins, ARRAY_SIZE(uart13_pins)},
+	{"uart14_grp", uart14_pins, ARRAY_SIZE(uart14_pins)},
+	{"uart15_grp", uart15_pins, ARRAY_SIZE(uart15_pins)},
 	{"gpio0_grp", gpio0_pins, ARRAY_SIZE(gpio0_pins)},
 	{"gpio1_grp", gpio1_pins, ARRAY_SIZE(gpio1_pins)},
 	{"gpio2_grp", gpio2_pins, ARRAY_SIZE(gpio2_pins)},
@@ -489,6 +497,10 @@ static const char * const uart8_group[] = {"uart8_grp"};
 static const char * const uart9_group[] = {"uart9_grp"};
 static const char * const uart10_group[] = {"uart10_grp"};
 static const char * const uart11_group[] = {"uart11_grp"};
+static const char * const uart12_group[] = {"uart12_grp"};
+static const char * const uart13_group[] = {"uart13_grp"};
+static const char * const uart14_group[] = {"uart14_grp"};
+static const char * const uart15_group[] = {"uart15_grp"};
 static const char * const gpio0_group[] = {"gpio0_grp"};
 static const char * const gpio1_group[] = {"gpio1_grp"};
 static const char * const gpio2_group[] = {"gpio2_grp"};
@@ -578,6 +590,7 @@ enum {F_NAND, F_SPI, F_EMMC, F_SDIO, F_ETH0,
 				F_UART0, F_UART1, F_UART2, F_UART3, F_UART4,
 				F_UART5, F_UART6, F_UART7, F_UART8, F_UART9,
 				F_UART10, F_UART11,
+				F_UART12, F_UART13, F_UART14, F_UART15,
 				F_GPIO0, F_GPIO1, F_GPIO2, F_GPIO3, F_GPIO4,
 				F_GPIO5, F_GPIO6, F_GPIO7, F_GPIO8, F_GPIO9,
 				F_GPIO10, F_GPIO11, F_GPIO12, F_GPIO13, F_GPIO14,
@@ -602,6 +615,7 @@ unsigned int pmux_val[F_ENDMARK] = {
 	[F_PWM0 ... F_PWM37] = 2,
 	[F_I2C0 ... F_I2C4] = 1,
 	[F_UART0 ... F_UART11] = 1,
+	[F_UART12 ... F_UART15] = 3,
 	[F_GPIO0 ... F_GPIO9] = 0, [F_GPIO13] = 1, [F_ETH1] = 1,
 	[F_I2S0] = 2, [F_I2S0_MCLKIN] = 1, [F_I2S1] = 2, [F_I2S1_MCLKIN] = 1,
 	[F_SPI0] = 1,};
@@ -668,6 +682,10 @@ static const struct bm_pmx_func bm_funcs[] = {
 	{"uart9_a", uart9_group, 1},
 	{"uart10_a", uart10_group, 1},
 	{"uart11_a", uart11_group, 1},
+	{"uart12_a", uart12_group, 1},
+	{"uart13_a", uart13_group, 1},
+	{"uart14_a", uart14_group, 1},
+	{"uart15_a", uart15_group, 1},
 	{"gpio0_a", gpio0_group, 1},
 	{"gpio1_a", gpio1_group, 1},
 	{"gpio2_a", gpio2_group, 1},
@@ -802,6 +820,10 @@ static const struct bm_pmx_func bm_funcs[] = {
 	{"uart9_r", null_group, 1},
 	{"uart10_r", null_group, 1},
 	{"uart11_r", null_group, 1},
+	{"uart12_r", null_group, 1},
+	{"uart13_r", null_group, 1},
+	{"uart14_r", null_group, 1},
+	{"uart15_r", null_group, 1},
 	{"gpio0_r", null_group, 1},
 	{"gpio1_r", null_group, 1},
 	{"gpio2_r", null_group, 1},
@@ -920,14 +942,14 @@ static int bm_set_mux(struct pinctrl_dev *pctldev, unsigned int selector,
 			u32 offset = ((pidx>>1)<<2);
 			u32 regval = readl(ctrl->virtbase + offset);
 			u32 mux_offset = ((!((pidx+1) & 1) << 4) + 4);
-			dev_info(ctrl->dev, "ctrl->virtbase:%p pin:%d oldreg val=0x%X offset:0x%x mux_offset:%u pmux_val:%x\n",
-			ctrl->virtbase, pidx, regval, offset, mux_offset, pmux_val[selector]);
+			dev_dbg(ctrl->dev, "ctrl->virtbase:%p pin:%d oldreg val=0x%X offset:0x%x mux_offset:%u pmux_val:%x\n",
+			ctrl->virtbase, pidx, regval, offset+0x20, mux_offset, pmux_val[selector]);
 			regval = regval & ~(3 << mux_offset);
 			regval |= pmux_val[selector] << mux_offset;
 			//printk("new reg val=0x%X\n", regval);
 			writel(regval, ctrl->virtbase + offset);
 			regval = readl(ctrl->virtbase + offset);
-			dev_info(ctrl->dev, "check new reg val=0x%X\n", regval);
+			dev_info(ctrl->dev, "check new reg val on offset 0x%x = 0x%X\n", offset+0x20, regval);
 		}
   //  }
 	return 0;//0:ok 1:error
@@ -1242,7 +1264,7 @@ static int bm_pinctrl_probe(struct platform_device *pdev)
 
 	bmpctrl->pctl = devm_pinctrl_register(&pdev->dev, &bm_desc, bmpctrl);
 	if (IS_ERR(bmpctrl->pctl)) {
-		dev_err(&pdev->dev, "could not register Bitman pin ctrl driver\n");
+		dev_err(&pdev->dev, "could not register Bitmain pin ctrl driver\n");
 		return PTR_ERR(bmpctrl->pctl);
 	}
 
@@ -1259,7 +1281,7 @@ static int bm_pinctrl_probe(struct platform_device *pdev)
 		return PTR_ERR(pctrl);
 
 	// dev_info(&pdev->dev, "get pinstatus\n");
-	dev_info(&pdev->dev, "initialized Bitman pin control driver\n");
+	dev_info(&pdev->dev, "initialized Bitmain pin control driver\n");
 	return 0;
 }
 
@@ -1323,7 +1345,7 @@ static int bm_nand_mux_probe(struct platform_device *pdev)
 	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
 		dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
-	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
 
 }
@@ -1379,7 +1401,7 @@ static int bm_spi_mux_probe(struct platform_device *pdev)
 	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
 	dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
-	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
 
 }
@@ -1434,7 +1456,7 @@ static int bm_emmc_mux_probe(struct platform_device *pdev)
 	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
 		dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
-	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
 
 }
@@ -1489,7 +1511,7 @@ static int bm_uart1_mux_probe(struct platform_device *pdev)
 	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
 	dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
-	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
 
 }
@@ -1543,7 +1565,7 @@ static int bm_uart2_mux_probe(struct platform_device *pdev)
 	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
 	dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
-	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
 
 }
@@ -1598,7 +1620,7 @@ static int bm_uart3_mux_probe(struct platform_device *pdev)
 	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
 	dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
-	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
 
 }
@@ -1653,7 +1675,7 @@ static int bm_uart4_mux_probe(struct platform_device *pdev)
 	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
 	dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
-	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
 
 }
@@ -1709,7 +1731,7 @@ static int bm_uart5_mux_probe(struct platform_device *pdev)
 	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
 	dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
-	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
 
 }
@@ -1765,7 +1787,7 @@ static int bm_uart6_mux_probe(struct platform_device *pdev)
 	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
 	dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
-	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
 
 }
@@ -1820,7 +1842,7 @@ static int bm_uart7_mux_probe(struct platform_device *pdev)
 	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
 	dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
-	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
 
 }
@@ -1874,7 +1896,7 @@ static int bm_uart8_mux_probe(struct platform_device *pdev)
 	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
 	dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
-	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
 
 }
@@ -1928,7 +1950,7 @@ static int bm_uart9_mux_probe(struct platform_device *pdev)
 	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
 	dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
-	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
 
 }
@@ -1983,7 +2005,7 @@ static int bm_uart10_mux_probe(struct platform_device *pdev)
 	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
 	dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
-	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
 
 }
@@ -2037,7 +2059,7 @@ static int bm_uart11_mux_probe(struct platform_device *pdev)
 	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
 	dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
-	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
 
 }
@@ -2060,6 +2082,235 @@ static int __init bm_uart11_mux_init(void)
 	return platform_driver_register(&bm_uart11_mux_driver);
 }
 arch_initcall(bm_uart11_mux_init);
+
+// UART12
+static int bm_uart12_mux_probe(struct platform_device *pdev)
+{
+	int ret = 0;
+	struct pinctrl *pctrl = devm_pinctrl_get(&pdev->dev);
+
+	struct bm_dev_mux *dev_mux = devm_kzalloc(&pdev->dev, sizeof(struct bm_dev_mux), GFP_KERNEL);
+
+	if (!dev_mux)
+		return -ENOMEM;
+	dev_mux->dev = &pdev->dev;
+	// dev_info(&pdev->dev, "%s\n", __func__);
+	//gp_pinctrl_init(pdev);
+	// dev_info(&pdev->dev, "get pinctrl\n");
+	dev_set_drvdata(&pdev->dev, dev_mux);
+
+	if (IS_ERR(pctrl))
+		return PTR_ERR(pctrl);
+
+	dev_mux->acquire = pinctrl_lookup_state(pctrl, "acquire");
+	if (IS_ERR(dev_mux->acquire)) {
+		dev_err(&pdev->dev, "could not get pin status, acquire\n");
+		return PTR_ERR(dev_mux->acquire);
+	}
+	dev_mux->release = pinctrl_lookup_state(pctrl, "release");
+	if (IS_ERR(dev_mux->release)) {
+		dev_err(&pdev->dev, "could not get pin status, release\n");
+		return PTR_ERR(dev_mux->release);
+	}
+
+	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
+		dev_info(&pdev->dev, "Unable to createsysfs entry\n");
+
+	dev_dbg(&pdev->dev, "initialized Bitmian pin MUX driver\n");
+	return ret;
+
+}
+
+static const struct of_device_id bm_uart12_mux_of_match[] = {
+	{ .compatible = "bitmain,uart12-mux" },
+	{ }
+};
+static struct platform_driver bm_uart12_mux_driver = {
+	.driver = {
+		.name = "bm-uart12-mux",
+		.of_match_table = bm_uart12_mux_of_match,
+	},
+	.probe = bm_uart12_mux_probe,
+};
+
+static int __init bm_uart12_mux_init(void)
+{
+	return platform_driver_register(&bm_uart12_mux_driver);
+}
+arch_initcall(bm_uart12_mux_init);
+// UART12 end
+
+// UART13
+static int bm_uart13_mux_probe(struct platform_device *pdev)
+{
+	int ret = 0;
+	struct pinctrl *pctrl = devm_pinctrl_get(&pdev->dev);
+
+	struct bm_dev_mux *dev_mux = devm_kzalloc(&pdev->dev, sizeof(struct bm_dev_mux), GFP_KERNEL);
+
+	if (!dev_mux)
+		return -ENOMEM;
+	dev_mux->dev = &pdev->dev;
+	// dev_info(&pdev->dev, "%s\n", __func__);
+	//gp_pinctrl_init(pdev);
+	// dev_info(&pdev->dev, "get pinctrl\n");
+	dev_set_drvdata(&pdev->dev, dev_mux);
+
+	if (IS_ERR(pctrl))
+		return PTR_ERR(pctrl);
+
+	dev_mux->acquire = pinctrl_lookup_state(pctrl, "acquire");
+	if (IS_ERR(dev_mux->acquire)) {
+		dev_err(&pdev->dev, "could not get pin status, acquire\n");
+		return PTR_ERR(dev_mux->acquire);
+	}
+	dev_mux->release = pinctrl_lookup_state(pctrl, "release");
+	if (IS_ERR(dev_mux->release)) {
+		dev_err(&pdev->dev, "could not get pin status, release\n");
+		return PTR_ERR(dev_mux->release);
+	}
+
+	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
+		dev_info(&pdev->dev, "Unable to createsysfs entry\n");
+
+	dev_dbg(&pdev->dev, "initialized Bitmian pin MUX driver\n");
+	return ret;
+
+}
+
+static const struct of_device_id bm_uart13_mux_of_match[] = {
+	{ .compatible = "bitmain,uart13-mux" },
+	{ }
+};
+static struct platform_driver bm_uart13_mux_driver = {
+	.driver = {
+		.name = "bm-uart13-mux",
+		.of_match_table = bm_uart13_mux_of_match,
+	},
+	.probe = bm_uart13_mux_probe,
+};
+
+static int __init bm_uart13_mux_init(void)
+{
+	return platform_driver_register(&bm_uart13_mux_driver);
+}
+arch_initcall(bm_uart13_mux_init);
+// UART13 end
+
+// UART14
+static int bm_uart14_mux_probe(struct platform_device *pdev)
+{
+	int ret = 0;
+	struct pinctrl *pctrl = devm_pinctrl_get(&pdev->dev);
+
+	struct bm_dev_mux *dev_mux = devm_kzalloc(&pdev->dev, sizeof(struct bm_dev_mux), GFP_KERNEL);
+
+	if (!dev_mux)
+		return -ENOMEM;
+	dev_mux->dev = &pdev->dev;
+	// dev_info(&pdev->dev, "%s\n", __func__);
+	//gp_pinctrl_init(pdev);
+	// dev_info(&pdev->dev, "get pinctrl\n");
+	dev_set_drvdata(&pdev->dev, dev_mux);
+
+	if (IS_ERR(pctrl))
+		return PTR_ERR(pctrl);
+
+	dev_mux->acquire = pinctrl_lookup_state(pctrl, "acquire");
+	if (IS_ERR(dev_mux->acquire)) {
+		dev_err(&pdev->dev, "could not get pin status, acquire\n");
+		return PTR_ERR(dev_mux->acquire);
+	}
+	dev_mux->release = pinctrl_lookup_state(pctrl, "release");
+	if (IS_ERR(dev_mux->release)) {
+		dev_err(&pdev->dev, "could not get pin status, release\n");
+		return PTR_ERR(dev_mux->release);
+	}
+
+	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
+		dev_info(&pdev->dev, "Unable to createsysfs entry\n");
+
+	dev_dbg(&pdev->dev, "initialized Bitmian pin MUX driver\n");
+	return ret;
+
+}
+
+static const struct of_device_id bm_uart14_mux_of_match[] = {
+	{ .compatible = "bitmain,uart14-mux" },
+	{ }
+};
+static struct platform_driver bm_uart14_mux_driver = {
+	.driver = {
+		.name = "bm-uart14-mux",
+		.of_match_table = bm_uart14_mux_of_match,
+	},
+	.probe = bm_uart14_mux_probe,
+};
+
+static int __init bm_uart14_mux_init(void)
+{
+	return platform_driver_register(&bm_uart14_mux_driver);
+}
+arch_initcall(bm_uart14_mux_init);
+// UART14 end
+
+// UART15
+static int bm_uart15_mux_probe(struct platform_device *pdev)
+{
+	int ret = 0;
+	struct pinctrl *pctrl = devm_pinctrl_get(&pdev->dev);
+
+	struct bm_dev_mux *dev_mux = devm_kzalloc(&pdev->dev, sizeof(struct bm_dev_mux), GFP_KERNEL);
+
+	if (!dev_mux)
+		return -ENOMEM;
+	dev_mux->dev = &pdev->dev;
+	// dev_info(&pdev->dev, "%s\n", __func__);
+	//gp_pinctrl_init(pdev);
+	// dev_info(&pdev->dev, "get pinctrl\n");
+	dev_set_drvdata(&pdev->dev, dev_mux);
+
+	if (IS_ERR(pctrl))
+		return PTR_ERR(pctrl);
+
+	dev_mux->acquire = pinctrl_lookup_state(pctrl, "acquire");
+	if (IS_ERR(dev_mux->acquire)) {
+		dev_err(&pdev->dev, "could not get pin status, acquire\n");
+		return PTR_ERR(dev_mux->acquire);
+	}
+	dev_mux->release = pinctrl_lookup_state(pctrl, "release");
+	if (IS_ERR(dev_mux->release)) {
+		dev_err(&pdev->dev, "could not get pin status, release\n");
+		return PTR_ERR(dev_mux->release);
+	}
+
+	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
+		dev_info(&pdev->dev, "Unable to createsysfs entry\n");
+
+	dev_dbg(&pdev->dev, "initialized Bitmian pin MUX driver\n");
+	return ret;
+
+}
+
+static const struct of_device_id bm_uart15_mux_of_match[] = {
+	{ .compatible = "bitmain,uart15-mux" },
+	{ }
+};
+static struct platform_driver bm_uart15_mux_driver = {
+	.driver = {
+		.name = "bm-uart15-mux",
+		.of_match_table = bm_uart15_mux_of_match,
+	},
+	.probe = bm_uart15_mux_probe,
+};
+
+static int __init bm_uart15_mux_init(void)
+{
+	return platform_driver_register(&bm_uart15_mux_driver);
+}
+arch_initcall(bm_uart15_mux_init);
+// UART15 end
+
 
 //PWM
 
@@ -2098,7 +2349,7 @@ static int bm_pwm_mux_probe(struct platform_device *pdev)
 
 	//u32 *first_mux_addr = of_get_property(dev_mux->dev->of_node, "source_mux", NULL);
 	//printk("first_mux_addr:%p %x\n",first_mux_addr, be32_to_cpup(first_mux_addr));
-	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
 
 }
@@ -2157,11 +2408,11 @@ static int bm_i2c_mux_probe(struct platform_device *pdev)
 
 
 //Set default pinmux to I2C
-	// dev_info(&pdev->dev, "Set I2C pin MUX\n");
+	dev_info(&pdev->dev, "set pin MUX\n");
 	pinctrl_select_state(pctrl, dev_mux->acquire);
 //Set pinmux end
 
-	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
 
 }
@@ -2218,7 +2469,12 @@ static int bm_eth_mux_probe(struct platform_device *pdev)
 	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
 		dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
-	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+//Set default pinmux to eth0 and eth1
+	dev_info(&pdev->dev, "set pin MUX\n");
+	pinctrl_select_state(pctrl, dev_mux->acquire);
+//Set pinmux end
+
+	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
 
 }
@@ -2276,11 +2532,11 @@ static int bm_i2s_mux_probe(struct platform_device *pdev)
 		dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
 //Set default pinmux to I2S
-	// dev_info(&pdev->dev, "Set I2S pin MUX\n");
+	dev_info(&pdev->dev, "set pin MUX\n");
 	pinctrl_select_state(pctrl, dev_mux->acquire);
 //Set pinmux end
 
-	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
 
 }
@@ -2337,11 +2593,11 @@ static int bm_wifi_mux_probe(struct platform_device *pdev)
 		dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
 //Set default pinmux to GPIO13
-	// dev_info(&pdev->dev, "Set GPIO13 pin MUX\n");
+	dev_info(&pdev->dev, "set GPIO13 pin MUX\n");
 	pinctrl_select_state(pctrl, dev_mux->acquire);
 //Set pinmux end
 
-	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
 
 }
@@ -2398,10 +2654,11 @@ static int bm_spi0_mux_probe(struct platform_device *pdev)
 		dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
 //Set default pinmux to spi0
+	dev_info(&pdev->dev, "set pin MUX\n");
 	pinctrl_select_state(pctrl, dev_mux->acquire);
 //Set pinmux end
 
-	dev_info(&pdev->dev, "initialized Bitman pin MUX driver\n");
+	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
 
 }
@@ -2443,7 +2700,7 @@ static int bm_gpio_mux_probe(struct platform_device *pdev)
 		dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
 	pinctrl_select_state(pctrl, dev_mux->acquire);
-	dev_info(&pdev->dev, "initialized Bitmain gpio MUX driver\n");
+	dev_dbg(&pdev->dev, "initialized Bitmain gpio MUX driver\n");
 
 	return ret;
 }

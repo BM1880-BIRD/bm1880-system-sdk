@@ -1,0 +1,40 @@
+if TARGET_BITMAIN_BM1880
+
+choice
+	prompt "Bitmain BM1880 verification platform type select"
+
+config TARGET_BITMAIN_BM1880_ASIC
+	bool "ASIC"
+
+config TARGET_BITMAIN_BM1880_ASIC_MINER
+	bool "ASIC"
+
+config TARGET_BITMAIN_BM1880_PALLADIUM
+	bool "Palladium"
+
+config TARGET_BITMAIN_BM1880_FPGA
+	bool "FPGA"
+
+config TARGET_BITMAIN_BM1880_FPGA_MINER
+	bool "FPGA"
+
+config TARGET_BITMAIN_BM1880_QEMU
+	bool "QEMU"
+
+endchoice
+
+config SYS_BOARD
+	default "bm1880"
+
+config SYS_VENDOR
+	default "bitmain"
+
+config SYS_CONFIG_NAME
+	default "bm1880-asic" if TARGET_BITMAIN_BM1880_ASIC
+	default "bm1880-asic-miner" if TARGET_BITMAIN_BM1880_ASIC_MINER
+	default "bm1880-palladium" if TARGET_BITMAIN_BM1880_PALLADIUM
+	default "bm1880-fpga" if TARGET_BITMAIN_BM1880_FPGA
+	default "bm1880-fpga-miner" if TARGET_BITMAIN_BM1880_FPGA_MINER
+	default "bm1880-qemu" if TARGET_BITMAIN_BM1880_QEMU
+
+endif

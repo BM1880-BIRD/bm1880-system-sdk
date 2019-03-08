@@ -28,6 +28,7 @@
 
 /* macros for field CFGSTS */
 #define USB_STS__CFGSTS__MASK                                       0x00000001U
+#define USB_STS__MEMOV__MASK                                        0x00000002U
 #define USB_STS__USBSPEED__READ(src)     (((uint32_t)(src) & 0x00000070U) >> 4)
 
 /* macros for field ENDIAN_MIRROR */

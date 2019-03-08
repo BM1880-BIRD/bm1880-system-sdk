@@ -1,0 +1,32 @@
+/*
+ * Dummy package used for mkimage padding public keys to dtb
+ */
+
+/dts-v1/;
+
+/ {
+	description = "Dummy package used for mkimage padding public keys to dtb";
+	images {
+		blob {
+			description = "Dummy blob to be signed";
+			data = /incbin/("./vboot.bin");
+			hash {
+				algo = "sha1";
+			};
+		};
+	};
+
+	configurations {
+		default = "config";
+
+		config {
+			description = "Dummy configurations";
+			kernel = "blob";
+			signature {
+				algo = "sha1,rsa2048";
+				key-name-hint = "vboot";
+				sign-images = "kernel";
+			};
+		};
+	};
+};

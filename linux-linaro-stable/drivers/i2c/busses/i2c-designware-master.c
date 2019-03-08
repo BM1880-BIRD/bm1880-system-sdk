@@ -82,7 +82,6 @@ static int i2c_dw_init_master(struct dw_i2c_dev *dev)
 	__i2c_dw_enable_and_wait(dev, false);
 
 	/* Set standard and fast speed deviders for high/low periods */
-
 	sda_falling_time = dev->sda_falling_time ?: 300; /* ns */
 	scl_falling_time = dev->scl_falling_time ?: 300; /* ns */
 
@@ -91,6 +90,13 @@ static int i2c_dw_init_master(struct dw_i2c_dev *dev)
 		hcnt = dev->ss_hcnt;
 		lcnt = dev->ss_lcnt;
 	} else {
+		// I2C 1KHz frequency support (standard mode)
+		if( dev->clk_freq == 1000 )
+		{
+			hcnt = 45000; // 450 us
+			lcnt = 55000; // 550 us
+		// I2C 100K frequency support (standard mode)
+		} else {
 #ifdef CONFIG_I2C_SUPPRESS_SCL_100KHZ
 		hcnt = i2c_dw_scl_hcnt(i2c_dw_clk_rate(dev),
 					4000,	/* tHD;STA = tHIGH = 4.0 us */
@@ -112,6 +118,7 @@ static int i2c_dw_init_master(struct dw_i2c_dev *dev)
 					scl_falling_time,
 					0);	/* No offset */
 #endif
+		}
 	}
 	dw_writel(dev, hcnt, DW_IC_SS_SCL_HCNT);
 	dw_writel(dev, lcnt, DW_IC_SS_SCL_LCNT);
@@ -170,6 +177,16 @@ static int i2c_dw_init_master(struct dw_i2c_dev *dev)
 		 * extends incoming SDA low to high transition while SCL is
 		 * high but it apprears to help also above issue.
 		 */
+#if defined(CONFIG_ARCH_BM1880_ASIC_MINER)
+		// Set holding time according to dev->clk_freq,
+		// The unit of DW_IC_SDA_HOLD is ic_clk(100MHz, 1 clk = 10ns)
+		// The formula (1000*30000/dev->clk_freq) is the heuristic rule.
+		//  - standard mode : 1KHz => 300us, 100KHz => 3us
+		//  - fast mode : 400KHz => 750ns
+		//  - fast plus mode : 1MHz => 300ns
+		//  - high speed mode : 3.4MHz => 88ns
+		dev->sda_hold_time = ((1000 * 30000) / dev->clk_freq);
+#endif
 		if (!(dev->sda_hold_time & DW_IC_SDA_HOLD_RX_MASK))
 			dev->sda_hold_time |= 1 << DW_IC_SDA_HOLD_RX_SHIFT;
 		dw_writel(dev, dev->sda_hold_time, DW_IC_SDA_HOLD);

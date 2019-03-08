@@ -27,7 +27,8 @@ typedef enum {
 typedef enum {
   BMIVA_FD_TINYSSH = 0,
   BMIVA_FD_MTCNN   = 1,
-  BMIVA_FR_BMFACE  = 2,
+  BMIVA_FD_MTCNN_TRANS = 2,
+  BMIVA_FR_BMFACE  = 3,
   BMIVA_FACE_ALGO_INVALID
 } bmiva_face_algorithm_t;
 
@@ -81,7 +82,7 @@ typedef void* bmiva_handle_t;
 
 typedef struct {
     bmiva_handle_t pHnd;
-    bmiva_face_algorithm_t algo;   
+    bmiva_face_algorithm_t algo;
 } bmiva_face_handle;
 
 typedef bmiva_face_handle* bmiva_face_handle_t;

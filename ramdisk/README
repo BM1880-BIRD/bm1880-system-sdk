@@ -1,0 +1,20 @@
+basic idea:
+  All files which are essential to system booting is categorized as "fixed files",
+  they are listed explicitly in scripts/xxx_fixed_files.txt.
+  Among these essesntial files, common ones for all chips are located in "target"
+  folder, and platform/target dependent ones are located in "extra" folder.
+
+  Other files for advanced features will be included using gen_initramfs_list, here
+  we assume they are all platform independent and all located in "target" folder.
+
+When packing a cpio file, following procedure will be done:
+  1. use corresponding scripts/xxx_fixed_files.txt as base list of fixed files.
+  2. append files in "extra" fodler to previous base list.
+  3. generate list of files from "target" folder, if a file already existed in base
+     list, skip it. i.e base list has higher priority.
+  4. integrate both lists from step 2 and 3, use this list to create cpio archive.
+
+When packing an itb file, following precdure will be done:
+  1. check if %project_name.its file exists in "scripts" folder, if so, use it
+  2. check if %chip_name.txt file exists in "scripts" folder, if so, use it
+  3. use multi.its as fallthough option

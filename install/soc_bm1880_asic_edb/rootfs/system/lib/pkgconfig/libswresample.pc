@@ -5,9 +5,9 @@ includedir=/usr/local/include
 
 Name: libswresample
 Description: FFmpeg audio resampling library
-Version: 3.0.101
+Version: 3.3.100
 Requires: 
-Requires.private: libavutil >= 56.8.100
+Requires.private: libavutil >= 56.22.100
 Conflicts:
 Libs: -L${libdir}  -lswresample 
 Libs.private: -lm

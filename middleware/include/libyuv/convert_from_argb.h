@@ -201,6 +201,42 @@ int ARGBToJ422(const uint8_t* src_argb,
                int width,
                int height);
 
+// only for neon64
+// RGB24 little endian (bgr in memory) to J422. (JPeg full range I422)
+LIBYUV_API
+int RGB24ToJ422(const uint8_t* src_rgb24, int src_stride_rgb24,
+                uint8_t* dst_yj, int dst_stride_yj,
+                uint8_t* dst_u, int dst_stride_u,
+                uint8_t* dst_v, int dst_stride_v,
+                int width, int height);
+
+// only for neon64
+// RAW big endian (rgb in memory) to J422. (JPeg full range I422)
+LIBYUV_API
+int RAWToJ422(const uint8_t* src_raw, int src_stride_raw,
+              uint8_t* dst_yj, int dst_stride_yj,
+              uint8_t* dst_u, int dst_stride_u,
+              uint8_t* dst_v, int dst_stride_v,
+              int width, int height);
+
+// only for neon64
+// RGB24 little endian (bgr in memory) to J444. (JPeg full range I444)
+LIBYUV_API
+int RGB24ToJ444(const uint8_t* src_rgb24, int src_stride_rgb24,
+                uint8_t* dst_y, int dst_stride_y,
+                uint8_t* dst_u, int dst_stride_u,
+                uint8_t* dst_v, int dst_stride_v,
+                int width, int height);
+
+// only for neon64
+// RAW big endian (rgb in memory) to J444. (JPeg full range I444)
+LIBYUV_API
+int RAWToJ444(const uint8_t* src_raw, int src_stride_raw,
+              uint8_t* dst_y, int dst_stride_y,
+              uint8_t* dst_u, int dst_stride_u,
+              uint8_t* dst_v, int dst_stride_v,
+              int width, int height);
+
 // Convert ARGB to J400. (JPeg full range).
 LIBYUV_API
 int ARGBToJ400(const uint8_t* src_argb,
@@ -218,6 +254,42 @@ int ARGBToI400(const uint8_t* src_argb,
                int dst_stride_y,
                int width,
                int height);
+
+// Convert RGB24 to J400. (JPeg full range).
+LIBYUV_API
+int RGB24ToJ400(const uint8_t* src_rgb24,
+               int src_stride_rgb24,
+               uint8_t* dst_yj,
+               int dst_stride_yj,
+               int width,
+               int height);
+
+// Convert RGB24 to I400.
+LIBYUV_API
+int RGB24ToI400(const uint8_t* src_rgb24,
+               int src_stride_rgb24,
+               uint8_t* dst_y,
+               int dst_stride_y,
+               int width,
+               int height);
+
+// Convert RAW to J400. (JPeg full range).
+LIBYUV_API
+int RAWToJ400(const uint8_t* src_raw,
+              int src_stride_raw,
+              uint8_t* dst_yj,
+              int dst_stride_yj,
+              int width,
+              int height);
+
+// Convert RAW to I400.
+LIBYUV_API
+int RAWToI400(const uint8_t* src_raw,
+              int src_stride_raw,
+              uint8_t* dst_y,
+              int dst_stride_y,
+              int width,
+              int height);
 
 // Convert ARGB to G. (Reverse of J400toARGB, which replicates G back to ARGB)
 LIBYUV_API

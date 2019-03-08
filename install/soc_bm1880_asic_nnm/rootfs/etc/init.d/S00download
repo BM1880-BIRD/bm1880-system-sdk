@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# Start execute eMMC download cmd
+#
+
+#Create things under /dev
+busybox mdev -s
+flag=`devmem 0x04000384`
+if [ $flag == 0x626D7262 ]; then
+  #Clear bmrb flag
+  devmem 0x04000384 32 0x0
+  /etc/step1.sh
+  /usr/bin/image_client
+  /etc/step3.sh
+  sync
+  echo "rebooting"
+  reboot -f
+fi

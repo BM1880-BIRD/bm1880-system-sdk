@@ -173,7 +173,6 @@ static int pwm_bm_probe(struct platform_device *pdev)
 	struct bm_pwm_chip *chip;
 	struct resource *res;
 	int ret;
-	int tmp;
 
 	pr_info("%s\n", __func__);
 

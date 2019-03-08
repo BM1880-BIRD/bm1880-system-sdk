@@ -11,6 +11,8 @@ Required properties:
         "bitmain,bm-pldm-sdcard"
         "bitmain,bm1880-emmc"
         "bitmain,bm1880-sd"
+        "bitmain,bm1684-emmc"
+        "bitmain,bm1684-sd"
 - reg: Base address and length of the register in the following order:
 	- Host controller register map (required)
 	- SD Core register map (required)

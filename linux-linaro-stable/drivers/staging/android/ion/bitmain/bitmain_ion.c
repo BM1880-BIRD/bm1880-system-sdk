@@ -273,7 +273,7 @@ static int bm_ion_debug_heap_show(struct seq_file *s, void *unused)
 	struct bm_ion_dev *ipdev = s->private;
 	struct ion_device *dev = ipdev->idev;
 	struct ion_heap *heap;
-	struct rb_node *n;
+	struct ion_buffer *pos, *n;
 
 	mutex_lock(&debugfs_mutex);
 	seq_puts(s, "Summary:\n");
@@ -302,12 +302,12 @@ static int bm_ion_debug_heap_show(struct seq_file *s, void *unused)
 	}
 
 	seq_printf(s, "\nDetails:\n%16s %16s %16s %16s\n", "heap_id", "alloc_buf_size", "phy_addr", "kmap_cnt");
-	for (n = rb_first(&dev->buffers); n; n = rb_next(n)) {
-		struct ion_buffer *buffer = rb_entry(n, struct ion_buffer, node);
-
+	mutex_lock(&dev->buffer_lock);
+	rbtree_postorder_for_each_entry_safe(pos, n, &dev->buffers, node) {
 		seq_printf(s, "%16d %16zu %16llx %16d\n",
-			   buffer->heap->id, buffer->size, buffer->paddr, buffer->kmap_cnt);
+			   pos->heap->id, pos->size, pos->paddr, pos->kmap_cnt);
 	}
+	mutex_unlock(&dev->buffer_lock);
 	seq_puts(s, "\n");
 	mutex_unlock(&debugfs_mutex);
 

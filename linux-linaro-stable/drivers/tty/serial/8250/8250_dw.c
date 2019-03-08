@@ -501,7 +501,11 @@ static int dw8250_probe(struct platform_device *pdev)
 	if (p->fifosize) {
 		data->dma.rxconf.src_maxburst = p->fifosize / 4;
 		data->dma.txconf.dst_maxburst = p->fifosize / 4;
+#if !defined(CONFIG_SERIAL_8250_DMA) && defined(CONFIG_ARCH_BM1880)
+		uart.dma = NULL;
+#else
 		uart.dma = &data->dma;
+#endif
 	}
 
 	data->line = serial8250_register_8250_port(&uart);

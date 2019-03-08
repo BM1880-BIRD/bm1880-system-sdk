@@ -5,7 +5,7 @@ includedir=/usr/local/include
 
 Name: libavutil
 Description: FFmpeg utility library
-Version: 56.8.100
+Version: 56.22.100
 Requires: 
 Requires.private: 
 Conflicts:

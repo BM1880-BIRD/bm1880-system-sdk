@@ -465,8 +465,6 @@ typedef struct {
   tensor_lmem *ifmap;
   tensor_lmem *weight;
   tensor_lmem *bias;
-  u8 ins_h, ins_last_h;
-  u8 ins_w, ins_last_w;
   u8 pad_top, pad_bottom;
   u8 pad_left, pad_right;
   bool relu_enable;

@@ -281,6 +281,7 @@ struct mmc_card {
 #define MMC_QUIRK_BROKEN_IRQ_POLLING	(1<<11)	/* Polling SDIO_CCCR_INTx could create a fake interrupt */
 #define MMC_QUIRK_TRIM_BROKEN	(1<<12)		/* Skip trim */
 #define MMC_QUIRK_BROKEN_HPI	(1<<13)		/* Disable broken HPI support */
+#define MMC_QUIRK_EXTRA_LONG_READ_TIME (1<<14)	/* For Micron eMMC need very long read time after power loss boot */
 
 
 	unsigned int		erase_size;	/* erase size in sectors */
@@ -526,6 +527,11 @@ static inline int mmc_card_broken_byte_mode_512(const struct mmc_card *c)
 static inline int mmc_card_long_read_time(const struct mmc_card *c)
 {
 	return c->quirks & MMC_QUIRK_LONG_READ_TIME;
+}
+
+static inline int mmc_card_extra_long_read_time(const struct mmc_card *c)
+{
+	return c->quirks & MMC_QUIRK_EXTRA_LONG_READ_TIME;
 }
 
 static inline int mmc_card_broken_irq_polling(const struct mmc_card *c)

@@ -115,6 +115,7 @@ static int dw_i2c_acpi_configure(struct platform_device *pdev)
 	dw_i2c_acpi_params(pdev, "FMCN", &dev->fs_hcnt, &dev->fs_lcnt, &fs_ht);
 
 	switch (dev->clk_freq) {
+	case 1000:
 	case 100000:
 		dev->sda_hold_time = ss_ht;
 		break;
@@ -182,6 +183,7 @@ static void i2c_dw_configure_master(struct dw_i2c_dev *dev)
 	dev->mode = DW_IC_MASTER;
 
 	switch (dev->clk_freq) {
+	case 1000:
 	case 100000:
 		dev->master_cfg |= DW_IC_CON_SPEED_STD;
 		break;
@@ -203,6 +205,7 @@ static void i2c_dw_configure_slave(struct dw_i2c_dev *dev)
 	dev->mode = DW_IC_SLAVE;
 
 	switch (dev->clk_freq) {
+	case 1000:
 	case 100000:
 		dev->slave_cfg |= DW_IC_CON_SPEED_STD;
 		break;
@@ -257,7 +260,7 @@ static int dw_i2c_plat_probe(struct platform_device *pdev)
 	u32 acpi_speed, ht = 0;
 	struct resource *mem;
 	int i, irq, ret;
-	const int supported_speeds[] = { 0, 100000, 400000, 1000000, 3400000 };
+	const int supported_speeds[] = { 0, 1000, 100000, 400000, 1000000, 3400000 };
 
 	irq = platform_get_irq(pdev, 0);
 	if (irq < 0)
@@ -328,8 +331,9 @@ static int dw_i2c_plat_probe(struct platform_device *pdev)
 	/*
 	 * Only standard mode at 100kHz, fast mode at 400kHz,
 	 * fast mode plus at 1MHz and high speed mode at 3.4MHz are supported.
+	 * PS. add 1kHz support to standard mode for miner board.
 	 */
-	if (dev->clk_freq != 100000 && dev->clk_freq != 400000
+	if (dev->clk_freq != 1000 && dev->clk_freq != 100000 && dev->clk_freq != 400000
 	    && dev->clk_freq != 1000000 && dev->clk_freq != 3400000) {
 		dev_err(&pdev->dev,
 			"%d Hz is unsupported, only 100kHz, 400kHz, 1MHz and 3.4MHz are supported\n",
@@ -341,7 +345,7 @@ static int dw_i2c_plat_probe(struct platform_device *pdev)
 	ret = i2c_dw_probe_lock_support(dev);
 	if (ret)
 		goto exit_reset;
-#ifdef CONFIG_BM1682_I2C_SLAVE_DRV
+#ifdef CONFIG_I2C_SLAVE
 	if (i2c_detect_slave_mode(&pdev->dev))
 		i2c_dw_configure_slave(dev);
 	else
@@ -375,12 +379,14 @@ static int dw_i2c_plat_probe(struct platform_device *pdev)
 		pm_runtime_set_active(&pdev->dev);
 		pm_runtime_enable(&pdev->dev);
 	}
-
+#ifdef CONFIG_I2C_SLAVE
 	if (dev->mode == DW_IC_SLAVE)
 		ret = i2c_dw_probe_slave(dev);
 	else
 		ret = i2c_dw_probe(dev);
-
+#else
+	ret = i2c_dw_probe(dev);
+#endif
 	if (ret)
 		goto exit_probe;
 

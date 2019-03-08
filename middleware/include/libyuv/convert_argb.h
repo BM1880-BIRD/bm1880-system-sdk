@@ -233,6 +233,35 @@ int J400ToARGB(const uint8_t* src_y,
 // Alias.
 #define YToARGB I400ToARGB
 
+// Convert I400 (grey) to RGB24.  Reverse of RGB24ToI400.
+LIBYUV_API
+int I400ToRGB24(const uint8_t* src_y,
+                int src_stride_y,
+                uint8_t* dst_rgb24,
+                int dst_stride_rgb24,
+                int width,
+                int height);
+
+#define J400ToRAW J400ToRGB24
+
+// Convert J400 (jpeg grey) to RGB24.  Reverse of RGB24ToJ400.
+LIBYUV_API
+int J400ToRGB24(const uint8_t* src_y,
+                int src_stride_y,
+                uint8_t* dst_rgb24,
+                int dst_stride_rgb24,
+                int width,
+                int height);
+
+// Convert I400 (grey) to RAW.  Reverse of RAWToI400.
+LIBYUV_API
+int I400ToRAW(const uint8_t* src_y,
+              int src_stride_y,
+              uint8_t* dst_raw,
+              int dst_stride_raw,
+              int width,
+              int height);
+
 // Convert NV12 to ARGB.
 LIBYUV_API
 int NV12ToARGB(const uint8_t* src_y,

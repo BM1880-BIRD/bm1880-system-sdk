@@ -47,6 +47,7 @@ busybox touch /etc/mtab
 e2fsck -p /dev/mmcblk0p3
 e2fsck -p /dev/mmcblk0p4
 e2fsck -p /dev/mmcblk0p6
+e2fsck -p /dev/mmcblk0p7
 
 #mount the rootfs
 mount -t ext4 -o rw /dev/mmcblk0p3 /mnt

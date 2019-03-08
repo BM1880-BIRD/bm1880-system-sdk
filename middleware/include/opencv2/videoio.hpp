@@ -819,7 +819,7 @@ public:
      @return 'true' if the get resampler successfully, or return 'false' if not
 
      */
-    CV_WRAP virtual bool get_resampler(int *den, int *num);
+    CV_WRAP virtual bool get_resampler(CV_OUT int *den, CV_OUT int *num);
 
 protected:
     Ptr<CvCapture> cap;

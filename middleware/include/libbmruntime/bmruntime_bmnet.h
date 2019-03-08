@@ -195,6 +195,7 @@ bmerr_t bmnet_set_input_shape2(bmnet_t net, shape_t *shape, int num);
  * @retval others      Error code.
  */
 bmerr_t bmnet_get_output_info(bmnet_t net, bmnet_output_info_t *output_info);
+bmerr_t bmnet_get_input_shape(bmnet_t net, shape_t *input_shape, int num);
 
 /**
  * @name    bmnet_cleanup
@@ -484,7 +485,7 @@ int bmnet_data_copy_u8(
     int   stride_h,
     u64   gaddr_d);
 
-float bmmet_get_input_threshold(bmnet_t net);
+float bmnet_get_input_threshold(bmnet_t net);
 
 #ifdef __cplusplus
 }

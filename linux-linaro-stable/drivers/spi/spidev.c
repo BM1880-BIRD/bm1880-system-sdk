@@ -30,11 +30,13 @@
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/acpi.h>
-
+#include <linux/fb.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/spidev.h>
-
+#include <linux/of_reserved_mem.h>
 #include <linux/uaccess.h>
+#include <linux/gpio.h>
+#include <linux/delay.h>
 
 
 /*
@@ -89,6 +91,10 @@ struct spidev_data {
 
 static LIST_HEAD(device_list);
 static DEFINE_MUTEX(device_list_lock);
+
+#ifdef CONFIG_FB
+static struct spidev_data	*spidev;
+#endif
 
 static unsigned bufsiz = 4096;
 module_param(bufsiz, uint, S_IRUGO);
@@ -740,11 +746,193 @@ static inline void spidev_probe_acpi(struct spi_device *spi) {}
 
 /*-------------------------------------------------------------------------*/
 
+#ifdef CONFIG_FB
+//GPIO7
+#define BM1880_LCD_RD_GPIO (487)
+//GPIO51
+#define BM1880_LCD_RESET_GPIO (467)
+#define TFT_COL  320
+#define TFT_ROW  240
+
+static int spi_fb_write_1byte(unsigned char data)
+{
+	struct spi_transfer	t = {
+			.tx_buf		= &data,
+			.len		= 1,
+			.speed_hz	= 25000000,
+			.bits_per_word = 8,
+	};
+	struct spi_message	m;
+
+	spi_message_init(&m);
+	spi_message_add_tail(&t, &m);
+	return spidev_sync(spidev, &m);
+}
+
+static void LcdSt7789vWritecomm(unsigned char u1Cmd)
+{
+	gpio_direction_output(BM1880_LCD_RD_GPIO, 0); //RD=0
+	spi_fb_write_1byte(u1Cmd);
+}
+static void LcdSt7789vWritedata(unsigned char u1Data)
+{
+	gpio_direction_output(BM1880_LCD_RD_GPIO, 1); //RD=1
+	spi_fb_write_1byte(u1Data);
+}
+static void LcdSt7789vInit(void)
+{
+	int err;
+
+	//printk(KERN_INFO, "%s : ", __FUNCTION__);
+
+	err = gpio_request(BM1880_LCD_RD_GPIO, "lcd_chip_rd");
+	if (err < 0) {
+		//printk(KERN_WARNING, "request gpio for lcd failed!\n");
+		return;
+	}
+	err = gpio_request(BM1880_LCD_RESET_GPIO, "lcd_chip_reset");
+	if (err < 0) {
+		//printk(KERN_WARNING, "request gpio for lcd failed!\n");
+		return;
+	}
+
+	gpio_direction_output(BM1880_LCD_RESET_GPIO, 1); //RESET=1
+	mdelay(1);  //delay 1ms
+	gpio_direction_output(BM1880_LCD_RESET_GPIO, 0); //RESET=0
+	mdelay(10);  //delay 10ms
+	gpio_direction_output(BM1880_LCD_RESET_GPIO, 1); //RESET=1
+	mdelay(120);  //delay 120ms
+
+	//Display Setting
+	LcdSt7789vWritecomm(0x36);
+	LcdSt7789vWritedata(0xE0);
+
+	LcdSt7789vWritecomm(0x3a);
+	LcdSt7789vWritedata(0x55);
+	//ST7789V Frame rate setting
+	LcdSt7789vWritecomm(0xb2);
+	LcdSt7789vWritedata(0x0c);
+	LcdSt7789vWritedata(0x0c);
+	LcdSt7789vWritedata(0x00);
+	LcdSt7789vWritedata(0x33);
+	LcdSt7789vWritedata(0x33);
+	LcdSt7789vWritecomm(0xb7);
+	LcdSt7789vWritedata(0x35); //VGH=13V, VGL=-10.4V
+	//--------------------------
+	LcdSt7789vWritecomm(0xbb);
+	LcdSt7789vWritedata(0x19);
+	LcdSt7789vWritecomm(0xc0);
+	LcdSt7789vWritedata(0x2c);
+	LcdSt7789vWritecomm(0xc2);
+	LcdSt7789vWritedata(0x01);
+	LcdSt7789vWritecomm(0xc3);
+	LcdSt7789vWritedata(0x12);
+	LcdSt7789vWritecomm(0xc4);
+	LcdSt7789vWritedata(0x20);
+	LcdSt7789vWritecomm(0xc6);
+	LcdSt7789vWritedata(0x0f);
+	LcdSt7789vWritecomm(0xd0);
+	LcdSt7789vWritedata(0xa4);
+	LcdSt7789vWritedata(0xa1);
+	//--------------------------
+	LcdSt7789vWritecomm(0xe0); //gamma setting
+	LcdSt7789vWritedata(0xd0);
+	LcdSt7789vWritedata(0x04);
+	LcdSt7789vWritedata(0x0d);
+	LcdSt7789vWritedata(0x11);
+	LcdSt7789vWritedata(0x13);
+	LcdSt7789vWritedata(0x2b);
+	LcdSt7789vWritedata(0x3f);
+	LcdSt7789vWritedata(0x54);
+	LcdSt7789vWritedata(0x4c);
+	LcdSt7789vWritedata(0x18);
+	LcdSt7789vWritedata(0x0d);
+	LcdSt7789vWritedata(0x0b);
+	LcdSt7789vWritedata(0x1f);
+	LcdSt7789vWritedata(0x23);
+	LcdSt7789vWritecomm(0xe1);
+	LcdSt7789vWritedata(0xd0);
+	LcdSt7789vWritedata(0x04);
+	LcdSt7789vWritedata(0x0c);
+	LcdSt7789vWritedata(0x11);
+	LcdSt7789vWritedata(0x13);
+	LcdSt7789vWritedata(0x2c);
+	LcdSt7789vWritedata(0x3f);
+	LcdSt7789vWritedata(0x44);
+	LcdSt7789vWritedata(0x51);
+	LcdSt7789vWritedata(0x2f);
+	LcdSt7789vWritedata(0x1f);
+	LcdSt7789vWritedata(0x1f);
+	LcdSt7789vWritedata(0x20);
+	LcdSt7789vWritedata(0x23);
+	LcdSt7789vWritecomm(0x11);
+	mdelay(120);
+	LcdSt7789vWritecomm(0x29); //display on
+}
+
+static void LcdSt7789vBlockWrite(unsigned int Xstart, unsigned int Xend, unsigned int Ystart, unsigned int Yend)
+{
+	LcdSt7789vWritecomm(0x2A);
+	LcdSt7789vWritedata(Xstart>>8);
+	LcdSt7789vWritedata(Xstart);
+	LcdSt7789vWritedata(Xend>>8);
+	LcdSt7789vWritedata(Xend);
+
+	LcdSt7789vWritecomm(0x2B);
+	LcdSt7789vWritedata(Ystart>>8);
+	LcdSt7789vWritedata(Ystart);
+	LcdSt7789vWritedata(Yend>>8);
+	LcdSt7789vWritedata(Yend);
+
+	LcdSt7789vWritecomm(0x2C);
+}
+
+static int spi_fb_pan_display(struct fb_var_screeninfo *var, struct fb_info *info)
+{
+	struct spi_transfer	t = {
+			.tx_buf		= info->screen_base,
+			.len		= 320*240*2,
+			.speed_hz	= 25000000,
+			//.speed_hz	= spidev->speed_hz,
+			.bits_per_word = 16,
+	};
+	struct spi_message m;
+
+	//printk("%s : ",__FUNCTION__);
+	LcdSt7789vBlockWrite(0, TFT_COL-1, 0, TFT_ROW-1);
+	gpio_direction_output(BM1880_LCD_RD_GPIO, 1); //RD=1
+
+	spi_message_init(&m);
+	spi_message_add_tail(&t, &m);
+	return spidev_sync(spidev, &m);
+}
+
+static struct fb_ops spi_fbops = {
+	.owner		= THIS_MODULE,
+	.fb_check_var	= NULL,
+	.fb_set_par	= NULL,
+	.fb_setcolreg	= NULL,
+	.fb_blank	= NULL,
+	.fb_pan_display	= spi_fb_pan_display,
+	.fb_fillrect	= NULL,
+	.fb_copyarea	= NULL,
+	.fb_imageblit	= NULL,
+};
+#endif
+
 static int spidev_probe(struct spi_device *spi)
 {
+	#ifndef CONFIG_FB
 	struct spidev_data	*spidev;
+	#endif
 	int			status;
 	unsigned long		minor;
+#ifdef CONFIG_FB
+	struct device_node *target = NULL;
+	struct reserved_mem *prmem = NULL;
+	struct fb_info *fb_info;
+	int err;
+#endif
 
 	/*
 	 * spidev should never be referenced in DT without a specific
@@ -756,6 +944,39 @@ static int spidev_probe(struct spi_device *spi)
 		WARN_ON(spi->dev.of_node &&
 			!of_match_device(spidev_dt_ids, &spi->dev));
 	}
+
+#ifdef CONFIG_FB
+	if (spi->dev.of_node)
+		target = of_parse_phandle(spi->dev.of_node, "memory-region", 0);
+
+	if (target) {
+		prmem = of_reserved_mem_lookup(target);
+		of_node_put(target);
+
+		if (!prmem) {
+			dev_err(&spi->dev, "[SPIDRV]: cannot acquire memory-region\n");
+			return -1;
+		}
+	} else {
+		dev_err(&spi->dev, "[SPIDRV]: cannot find the node, memory-region\n");
+		return -1;
+	}
+
+	fb_info = framebuffer_alloc(0, NULL);
+	if (!fb_info)
+		return -1;
+
+	fb_info->var.width = 320;
+	fb_info->var.height = 240;
+	fb_info->fbops = &spi_fbops;
+	fb_info->fix.smem_start = prmem->base;
+	fb_info->fix.smem_len = prmem->size;
+	fb_info->screen_base = ioremap(fb_info->fix.smem_start, fb_info->fix.smem_len);
+
+	err = register_framebuffer(fb_info);
+	if (err != 0)
+		return -1;
+#endif
 
 	spidev_probe_acpi(spi);
 
@@ -841,11 +1062,14 @@ static struct spi_driver spidev_spi_driver = {
 	 */
 };
 
-/*-------------------------------------------------------------------------*/
-
 static int __init spidev_init(void)
 {
 	int status;
+
+	#ifdef CONFIG_FB
+	struct fb_info *fb_info;
+	int err;
+	#endif
 
 	/* Claim our 256 reserved device numbers.  Then register a class
 	 * that will key udev/mdev to add/remove /dev nodes.  Last, register
@@ -867,9 +1091,25 @@ static int __init spidev_init(void)
 		class_destroy(spidev_class);
 		unregister_chrdev(SPIDEV_MAJOR, spidev_spi_driver.driver.name);
 	}
+
+#ifdef CONFIG_FB
+	spidev->spi->mode = SPI_MODE_0;
+	spidev->spi->max_speed_hz = 25000000;
+	spidev->spi->bits_per_word = 8;
+	spi_setup(spidev->spi);
+
+	//printk(KERN_INFO, "wangliang mark !\n");
+	LcdSt7789vInit();
+#endif
+
 	return status;
 }
+
+#ifdef CONFIG_FB
+late_initcall(spidev_init);
+#else
 module_init(spidev_init);
+#endif
 
 static void __exit spidev_exit(void)
 {

@@ -1,0 +1,8 @@
+config UT_BM
+	bool "Enable bitmain unit tests"
+	depends on UNIT_TEST
+	help
+	  This enables the 'ut bm' command which runs a series of unit
+	  tests on the bitmain code.
+	  If all is well then all tests pass although there will be a few
+	  messages printed along the way.

@@ -75,6 +75,9 @@ void Convert8To16Plane(const uint8_t* src_y,
                        int width,
                        int height);
 
+// Use CopyPlane to implement a fast version of memcpy().
+void* fast_memcpy(void *dst, const void *src, size_t n);
+
 // Set a plane of data to a 32 bit value.
 LIBYUV_API
 void SetPlane(uint8_t* dst_y,

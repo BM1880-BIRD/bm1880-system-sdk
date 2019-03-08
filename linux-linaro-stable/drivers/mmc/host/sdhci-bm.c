@@ -257,6 +257,11 @@ static unsigned int bm1880_sdhci_get_sd_max_clock(struct sdhci_host *host)
 	return 100 * 1000 * 1000;
 }
 
+static unsigned int bm1684_sdhci_get_sd_max_clock(struct sdhci_host *host)
+{
+	return 50 * 1000 * 1000;
+}
+
 static void bm_sdhci_hw_reset(struct sdhci_host *host)
 {
 	struct sdhci_pltfm_host *pltfm_host;
@@ -272,7 +277,15 @@ static void bm_sdhci_hw_reset(struct sdhci_host *host)
 
 void bm_sdhci_reset(struct sdhci_host *host, u8 mask)
 {
+#ifdef CONFIG_ARCH_BM1682
+	if (!strncmp("mmc0", mmc_hostname(host->mmc), 4) && (mask & SDHCI_RESET_ALL))
+		bm_sdhci_hw_reset(host);
+	else
+		sdhci_reset(host, mask);
+#else
 	sdhci_reset(host, mask);
+#endif
+
 	if (mask & SDHCI_RESET_ALL)
 		bm_sdhci_phy_init(host);
 }
@@ -569,7 +582,7 @@ static const struct sdhci_ops sdhci_bm_ops= {
 static const struct sdhci_pltfm_data sdhci_bm_emmc_pdata = {
 	.ops = &sdhci_bm_ops,
 	.quirks = SDHCI_QUIRK_INVERTED_WRITE_PROTECT,
-#if defined(CONFIG_ARCH_BM1682_BOX) || defined(CONFIG_ARCH_BM1682_HDS)
+#ifdef CONFIG_ARCH_BM1682
 	.quirks2 = SDHCI_QUIRK2_PRESET_VALUE_BROKEN | SDHCI_QUIRK2_BROKEN_HS200 |
 			SDHCI_QUIRK2_BROKEN_DDR50 | SDHCI_QUIRK2_NO_3_3_V,
 #else
@@ -617,6 +630,39 @@ static const struct sdhci_pltfm_data sdhci_bm1880_sd_pdata = {
 	.quirks2 = SDHCI_QUIRK2_PRESET_VALUE_BROKEN | SDHCI_QUIRK2_NO_1_8_V,
 };
 
+static const struct sdhci_ops sdhci_bm1684_sd_ops = {
+	.reset = bm_sdhci_reset,//bm1684_sdhci_reset,
+	.set_clock = sdhci_set_clock,
+	.set_bus_width = sdhci_set_bus_width,
+	.get_max_clock = bm1684_sdhci_get_sd_max_clock,
+	.set_uhs_signaling = sdhci_bm_set_uhs_signaling,
+	.platform_execute_tuning = sdhci_bm_execute_software_tuning,
+	.select_drive_strength = sdhci_bm_select_drive_strength,
+};
+
+static const struct sdhci_ops sdhci_bm1684_emmc_ops = {
+	.reset = bm_sdhci_reset,//bm1684_sdhci_reset,
+	.set_clock = sdhci_set_clock,
+	.set_bus_width = sdhci_set_bus_width,
+//	.get_max_clock = bm1684_sdhci_get_emmc_max_clock,
+	.set_uhs_signaling = sdhci_bm_set_uhs_signaling,
+	.platform_execute_tuning = sdhci_bm_execute_software_tuning,
+	.select_drive_strength = sdhci_bm_select_drive_strength,
+};
+
+static const struct sdhci_pltfm_data sdhci_bm1684_sd_pdata = {
+	.ops = &sdhci_bm1684_sd_ops,
+	.quirks = SDHCI_QUIRK_INVERTED_WRITE_PROTECT |
+	SDHCI_QUIRK_CAP_CLOCK_BASE_BROKEN | SDHCI_QUIRK_BROKEN_TIMEOUT_VAL,
+	.quirks2 = SDHCI_QUIRK2_PRESET_VALUE_BROKEN | SDHCI_QUIRK2_NO_1_8_V,
+};
+
+static const struct sdhci_pltfm_data sdhci_bm1684_emmc_pdata = {
+	.ops = &sdhci_bm1684_emmc_ops,
+	.quirks = SDHCI_QUIRK_INVERTED_WRITE_PROTECT | SDHCI_QUIRK_BROKEN_TIMEOUT_VAL,
+	.quirks2 = SDHCI_QUIRK2_PRESET_VALUE_BROKEN,
+};
+
 static const struct of_device_id sdhci_bm_dt_match[] = {
 	{.compatible = "bitmain,bm-pldm-sdcard", .data = &sdhci_bm_pldm_sd_pdata},
 	{.compatible = "bitmain,bm-pldm-emmc", .data = &sdhci_bm_pldm_emmc_pdata},
@@ -624,6 +670,8 @@ static const struct of_device_id sdhci_bm_dt_match[] = {
 	{.compatible = "bitmain,bm-sd", .data = &sdhci_bm_sd_pdata},
 	{.compatible = "bitmain,bm1880-emmc", .data = &sdhci_bm1880_emmc_pdata},
 	{.compatible = "bitmain,bm1880-sd", .data = &sdhci_bm1880_sd_pdata},
+	{.compatible = "bitmain,bm1684-sd", .data = &sdhci_bm1684_sd_pdata},
+	{.compatible = "bitmain,bm1684-emmc", .data = &sdhci_bm1684_emmc_pdata},
 	{ /* sentinel */ }
 };
 
@@ -744,6 +792,15 @@ static int sdhci_bm_probe(struct platform_device *pdev)
 		}
 	}
 
+#ifdef CONFIG_ARCH_BM1682
+	if (!strncmp("mmc0", mmc_hostname(host->mmc), 4)) {
+		bm_host->reset = devm_reset_control_get(&pdev->dev, "emmc");
+		if (IS_ERR(bm_host->reset)) {
+			ret = PTR_ERR(bm_host->reset);
+			goto pltfm_free;
+		}
+	}
+#endif
 
 	ret = sdhci_add_host(host);
 	if (ret)

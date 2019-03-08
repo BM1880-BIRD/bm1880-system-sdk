@@ -33,6 +33,7 @@ file /usr/local/bin/ssh ../../target/usr/local/bin/ssh 755 0 0
 file /usr/local/bin/sshd ../../target/usr/local/bin/sshd 755 0 0
 file /usr/local/bin/sftp ../../target/usr/local/bin/sftp 755 0 0
 file /usr/local/bin/ntpdate ../../target/usr/local/bin/ntpdate 755 0 0
+file /usr/local/bin/daemon_ip ../../target/usr/local/bin/daemon_ip 755 0 0
 file /usr/bin/expand.sh ../../target/usr/bin/expand.sh 755 0 0
 
 file /usr/local/etc/ssh_host_ed25519_key.pub ../../target/usr/local/etc/ssh_host_ed25519_key.pub 600 1000 1000
@@ -84,7 +85,6 @@ dir /etc/network/if-up.d 755 1000 1000
 dir /etc/network/if-down.d 755 1000 1000
 dir /etc/network/if-post-down.d 755 1000 1000
 file /etc/inittab ../../target/etc/inittab 644 0 0
-file /etc/fstab ../../target/etc/fstab_box 644 0 0
 file /etc/group ../../target/etc/group 644 0 0
 file /etc/passwd ../../target/etc/passwd 644 0 0
 file /etc/shadow ../../target/etc/shadow 644 0 0
@@ -92,9 +92,11 @@ file /etc/hostname ../../target/etc/hostname 644 0 0
 file /etc/issue ../../target/etc/issue 644 0 0
 file /etc/os-release ../../target/etc/os-release 644 0 0
 file /etc/init.d/rcS ../../target/etc/init.d/rcS 755 0 0
-file /etc/init.d/S00update ../../target/etc/init.d/S00update 755 0 0
+file /etc/init.d/S00update ../../extra/recovery/etc/init.d/S00update 755 0 0
 file /etc/init.d/S50sshd ../../target/etc/init.d/S50sshd 755 0 0
 file /etc/init.d/S40network ../../target/etc/init.d/S40network 755 0 0
+file /etc/init.d/S51daemonip ../../target/etc/init.d/S51daemonip 755 0 0
+
 
 file /lib/ld-linux-aarch64.so.1 ../../target/lib/ld-linux-aarch64.so.1 775 0 0
 file /lib/libpthread.so.0 ../../target/lib/libpthread.so.0 775 0 0

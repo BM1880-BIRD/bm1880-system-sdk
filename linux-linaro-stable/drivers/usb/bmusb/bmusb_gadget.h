@@ -121,7 +121,7 @@
  * Remember that endpoint container doesn't contain default endpoint
  */
 #define CAST_EP_ADDR_TO_INDEX(ep_addr) \
-	(((ep_addr & 0x7F) - 1) + ((ep_addr & 0x80) ? 1 : 0))
+	((((ep_addr & 0x7F) - 1)<<1) + ((ep_addr & 0x80) ? 1 : 0))
 
 /**
  * CAST_EP_ADDR_TO_BIT_POS - Macro converts endpoint address to

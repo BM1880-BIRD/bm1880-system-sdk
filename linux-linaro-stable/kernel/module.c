@@ -3583,6 +3583,10 @@ static int load_module(struct load_info *info, const char __user *uargs,
 	struct module *mod;
 	long err;
 	char *after_dashes;
+#ifdef CONFIG_ARCH_BM1880_ASIC
+	flags |= (MODULE_INIT_IGNORE_MODVERSIONS
+				  |MODULE_INIT_IGNORE_VERMAGIC);
+#endif
 
 	err = module_sig_check(info, flags);
 	if (err)

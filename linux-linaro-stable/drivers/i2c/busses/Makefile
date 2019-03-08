@@ -41,7 +41,7 @@ obj-$(CONFIG_I2C_CPM)		+= i2c-cpm.o
 obj-$(CONFIG_I2C_DAVINCI)	+= i2c-davinci.o
 obj-$(CONFIG_I2C_DESIGNWARE_CORE)	+= i2c-designware-core.o
 i2c-designware-core-objs := i2c-designware-common.o i2c-designware-master.o
-ifeq ($(CONFIG_I2C_DESIGNWARE_SLAVE),y)
+ifeq ($(CONFIG_I2C_SLAVE),y)
 i2c-designware-core-objs += i2c-designware-slave.o
 endif
 obj-$(CONFIG_I2C_DESIGNWARE_PLATFORM)	+= i2c-designware-platform.o

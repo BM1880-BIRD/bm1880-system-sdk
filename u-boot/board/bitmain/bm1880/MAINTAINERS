@@ -1,0 +1,4 @@
+BM1880 BOARD
+M:	Wang Xiao <xiao.wang@bitmain.com>
+S:	Maintained
+F:	board/armltd/vexpress64/

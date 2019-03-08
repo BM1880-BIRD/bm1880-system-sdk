@@ -141,6 +141,31 @@ enum AVFrameSideDataType {
      * metadata key entry "name".
      */
     AV_FRAME_DATA_ICC_PROFILE,
+
+#if FF_API_FRAME_QP
+    /**
+     * Implementation-specific description of the format of AV_FRAME_QP_TABLE_DATA.
+     * The contents of this side data are undocumented and internal; use
+     * av_frame_set_qp_table() and av_frame_get_qp_table() to access this in a
+     * meaningful way instead.
+     */
+    AV_FRAME_DATA_QP_TABLE_PROPERTIES,
+
+    /**
+     * Raw QP table data. Its format is described by
+     * AV_FRAME_DATA_QP_TABLE_PROPERTIES. Use av_frame_set_qp_table() and
+     * av_frame_get_qp_table() to access this instead.
+     */
+    AV_FRAME_DATA_QP_TABLE_DATA,
+#endif
+
+    /**
+     * Timecode which conforms to SMPTE ST 12-1. The data is an array of 4 uint32_t
+     * where the first uint32_t describes how many (1-3) of the other timecodes are used.
+     * The timecode format is described in the av_timecode_get_smpte_from_framenum()
+     * function in libavutil/timecode.c.
+     */
+    AV_FRAME_DATA_S12M_TIMECODE,
 };
 
 enum AVActiveFormatDescription {
@@ -529,6 +554,7 @@ typedef struct AVFrame {
     attribute_deprecated
     int qscale_type;
 
+    attribute_deprecated
     AVBufferRef *qp_table_buf;
 #endif
     /**

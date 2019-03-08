@@ -1,0 +1,2 @@
+kernel/drivers/video/backlight/lcd.ko
+kernel/drivers/media/usb/gspca/gspca_main.ko

@@ -11,7 +11,10 @@ chown root:root /var/empty
 case "$1" in
   start)
 	printf "Starting sshd: "
-	su - bitmain -c /usr/local/bin/sshd
+	chmod 0600 /usr/local/etc/*_key
+	chmod 0600 /usr/local/etc/*.pub
+	date "2018-10-10"
+	/usr/local/bin/sshd
 	[ $? = 0 ] && echo "OK" || echo "FAIL"
 	;;
   stop)

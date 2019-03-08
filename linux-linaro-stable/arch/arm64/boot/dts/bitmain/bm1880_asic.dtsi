@@ -104,7 +104,8 @@
 		interrupts = <GIC_SPI 57 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "macirq";
 		clock-names = "stmmaceth", "ptp_ref";
-		clocks = <&eth_csrclk>, <&eth_ptpclk> ;
+		clocks = <&eth_csrclk>, <&eth_ptpclk>;
+		phy-reset-gpios = <&port0a 2 0>;
 
 		/* no hash filter and perfect filter support */
 		snps,multicast-filter-bins = <0>;
@@ -117,7 +118,6 @@
 		snps,axi-config = <&stmmac_axi_setup>;
 		snps,mtl-rx-config = <&mtl_rx_setup>;
 		snps,mtl-tx-config = <&mtl_tx_setup>;
-
 	};
 
 	ethernet1: ethernet@58028000 {
@@ -126,7 +126,8 @@
 		interrupts = <GIC_SPI 56 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "macirq";
 		clock-names = "stmmaceth", "ptp_ref";
-		clocks = <&eth_csrclk>, <&eth_ptpclk> ;
+		clocks = <&eth_csrclk>, <&eth_ptpclk>;
+		phy-reset-gpios = <&port0a 3 0>;
 
 		/* no hash filter and perfect filter support */
 		snps,multicast-filter-bins = <0>;
@@ -139,7 +140,6 @@
 		snps,axi-config = <&stmmac_axi_setup>;
 		snps,mtl-rx-config = <&mtl_rx_setup>;
 		snps,mtl-tx-config = <&mtl_tx_setup>;
-
 	};
 
 	emmc:bm-emmc@50100000 {

@@ -1,0 +1,7 @@
+config COMMON_CLK_BM1684
+	bool "bm1684 Clock Tree Driver"
+	depends on ARCH_BITMAIN
+	depends on COMMON_CLK
+	default n
+	help
+	  Build the clock driver for bitmain bm1684 SOC.

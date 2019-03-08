@@ -36,8 +36,8 @@ USB_GADGET_COMPOSITE_OPTIONS();
 * Instead:  allocate your own, using normal USB-IF procedures.
 */
 #define GS_VENDOR_ID			0x30B1	/* NetChip */
-#define GS_PRODUCT_ID			0x1002	/* Linux-USB Serial Gadget */
-#define GS_CDC_PRODUCT_ID		0x1002	/* ... as CDC-ACM */
+#define GS_PRODUCT_ID			0x1003	/* Linux-USB Serial Gadget */
+#define GS_CDC_PRODUCT_ID		0x1003	/* ... as CDC-ACM */
 #define GS_CDC_OBEX_PRODUCT_ID		0xa4a9	/* ... as CDC-OBEX */
 
 /* string IDs are assigned dynamically */
@@ -67,8 +67,9 @@ static struct usb_device_descriptor device_desc = {
 	.bDescriptorType =	USB_DT_DEVICE,
 	/* .bcdUSB = DYNAMIC */
 	/* .bDeviceClass = f(use_acm) */
-	.bDeviceSubClass =	0,
-	.bDeviceProtocol =	0,
+	.bDeviceClass = 0xEF,
+	.bDeviceSubClass =	0x02,
+	.bDeviceProtocol =	0x01,
 	/* .bMaxPacketSize0 = f(hardware) */
 	.idVendor =		cpu_to_le16(GS_VENDOR_ID),
 	/* .idProduct =	f(use_acm) */
@@ -88,9 +89,13 @@ MODULE_AUTHOR("Al Borchers");
 MODULE_AUTHOR("David Brownell");
 MODULE_LICENSE("GPL");
 
-static bool use_acm = true;
+static bool use_composite = true;
+module_param(use_composite, bool, 0);
+MODULE_PARM_DESC(use_composite, "Use composite, default=yes");
+
+static bool use_acm = false;
 module_param(use_acm, bool, 0);
-MODULE_PARM_DESC(use_acm, "Use CDC ACM, default=yes");
+MODULE_PARM_DESC(use_acm, "Use CDC ACM, default=no");
 
 static bool use_obex = false;
 module_param(use_obex, bool, 0);
@@ -109,38 +114,101 @@ static struct usb_configuration serial_config_driver = {
 	.bmAttributes	= USB_CONFIG_ATT_SELFPOWER,
 };
 
+static struct usb_configuration acm_bcm_config_driver = {
+	.label			= "CDC COMPOSITE config",
+	.bConfigurationValue	= 2,
+	/* .iConfiguration = DYNAMIC */
+	.bmAttributes		= USB_CONFIG_ATT_SELFPOWER,
+};
+
 static struct usb_function_instance *fi_serial[MAX_U_SERIAL_PORTS];
 static struct usb_function *f_serial[MAX_U_SERIAL_PORTS];
 
-static int serial_register_ports(struct usb_composite_dev *cdev,
-		struct usb_configuration *c, const char *f_name)
+static struct usb_function_instance *fi_serial_bcm[MAX_U_SERIAL_PORTS];
+static struct usb_function *f_serial_bcm[MAX_U_SERIAL_PORTS];
+
+static int acm_bcm_do_config(struct usb_configuration *c)
 {
-	int i;
-	int ret;
+	int	status;
 
-	ret = usb_add_config_only(cdev, c);
-	if (ret)
-		goto out;
 
-	for (i = 0; i < n_ports; i++) {
-
-		fi_serial[i] = usb_get_function_instance(f_name);
-		if (IS_ERR(fi_serial[i])) {
-			ret = PTR_ERR(fi_serial[i]);
-			goto fail;
-		}
-
-		f_serial[i] = usb_get_function(fi_serial[i]);
-		if (IS_ERR(f_serial[i])) {
-			ret = PTR_ERR(f_serial[i]);
-			goto err_get_func;
-		}
-
-		ret = usb_add_function(c, f_serial[i]);
-		if (ret)
-			goto err_add_func;
+	if (gadget_is_otg(c->cdev->gadget)) {
+		c->descriptors = otg_desc;
+		c->bmAttributes |= USB_CONFIG_ATT_WAKEUP;
 	}
 
+	f_serial[0] = usb_get_function(fi_serial[0]);
+
+	if (IS_ERR(f_serial[0])) {
+		status = PTR_ERR(f_serial[0]);
+		goto put_acm;
+	}
+
+	f_serial_bcm[0] = usb_get_function(fi_serial_bcm[0]);
+
+	if (IS_ERR(f_serial_bcm[0])) {
+		status = PTR_ERR(f_serial_bcm[0]);
+		goto put_bcm;
+	}
+
+	status = usb_add_function(c, f_serial_bcm[0]);
+	if (status < 0)
+		goto put_bcm;
+
+	status = usb_add_function(c, f_serial[0]);
+	if (status < 0)
+		goto put_acm;
+
+	return 0;
+
+put_bcm:
+	usb_put_function(f_serial_bcm[0]);
+put_acm:
+	usb_put_function(f_serial[0]);
+
+	return status;
+}
+
+static int serial_register_ports(struct usb_composite_dev *cdev,
+		struct usb_configuration *c, const char *f_name, int composite_set)
+{
+	int i = 0;
+	int ret;
+	char *f_name1, *f_name2;
+
+	if (composite_set == 1) {
+		f_name1 = "acm";
+		f_name2 = "bcm";
+
+		fi_serial[i] = usb_get_function_instance(f_name1);
+		fi_serial_bcm[i] = usb_get_function_instance(f_name2);
+
+		ret = usb_add_config(cdev, &acm_bcm_config_driver, acm_bcm_do_config);
+	} else
+		ret = usb_add_config_only(cdev, c);
+	if (!ret)
+		goto out;
+
+	if (composite_set != 1) {
+		for (i = 0; i < n_ports; i++) {
+
+			fi_serial[i] = usb_get_function_instance(f_name);
+			if (IS_ERR(fi_serial[i])) {
+				ret = PTR_ERR(fi_serial[i]);
+				goto fail;
+			}
+
+			f_serial[i] = usb_get_function(fi_serial[i]);
+			if (IS_ERR(f_serial[i])) {
+				ret = PTR_ERR(f_serial[i]);
+				goto err_get_func;
+			}
+
+			ret = usb_add_function(c, f_serial[i]);
+			if (ret)
+				goto err_add_func;
+		}
+}
 	return 0;
 
 err_add_func:
@@ -196,15 +264,20 @@ static int gs_bind(struct usb_composite_dev *cdev)
 	/* register our configuration */
 	if (use_acm) {
 		status  = serial_register_ports(cdev, &serial_config_driver,
-				"acm");
+				"acm", 0);
 		usb_ep_autoconfig_reset(cdev->gadget);
-	} else if (use_obex)
+	} else if (use_obex) {
 		status = serial_register_ports(cdev, &serial_config_driver,
-				"obex");
-	else {
+				"obex", 0);
+	} else if (use_composite) {
+		status  = serial_register_ports(cdev, &serial_config_driver,
+				"acm_bcm", 1);
+		usb_ep_autoconfig_reset(cdev->gadget);
+	} else {
 		status = serial_register_ports(cdev, &serial_config_driver,
-				"gser");
+				"gser", 0);
 	}
+
 	if (status < 0)
 		goto fail1;
 
@@ -260,6 +333,12 @@ static int __init init(void)
 		device_desc.bDeviceClass = USB_CLASS_COMM;
 		device_desc.idProduct =
 			cpu_to_le16(GS_CDC_OBEX_PRODUCT_ID);
+	} else if (use_composite) {
+		serial_config_driver.label = "CDC COMPOSITE config";
+		serial_config_driver.bConfigurationValue = 4;
+		device_desc.bDeviceClass = USB_CLASS_MISC;
+		device_desc.idProduct =
+			cpu_to_le16(GS_CDC_PRODUCT_ID);
 	} else {
 		serial_config_driver.label = "Generic Serial config";
 		serial_config_driver.bConfigurationValue = 1;

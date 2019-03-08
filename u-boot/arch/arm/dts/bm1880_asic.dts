@@ -1,0 +1,329 @@
+/dts-v1/;
+
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/gpio/gpio.h>
+
+/memreserve/	0x0000000100000000 0x0000000000020000; // ATF BL31
+
+/ {
+	compatible = "linux,dummy-virt";
+	#size-cells = <0x2>;
+	#address-cells = <0x2>;
+	interrupt-parent = <&gic>;
+
+	gic: interrupt-controller {
+		compatible = "arm,cortex-a15-gic";
+		ranges;
+		#size-cells = <0x2>;
+		#address-cells = <0x2>;
+		interrupt-controller;
+		#interrupt-cells = <0x3>;
+		reg = <0x0 0x50001000 0x0 0x1000>,
+		      <0x0 0x50002000 0x0 0x2000>;
+	};
+
+	psci {
+		migrate = <0xc4000005>;
+		cpu_on = <0xc4000003>;
+		cpu_off = <0x84000002>;
+		cpu_suspend = <0xc4000001>;
+		sys_poweroff = <0x84000008>;
+		sys_reset = <0x84000009>;
+		method = "smc";
+		compatible = "arm,psci-0.2", "arm,psci";
+	};
+
+	cpus {
+		#size-cells = <0x0>;
+		#address-cells = <0x1>;
+
+		cpu@0 {
+			reg = <0x0>;
+			enable-method = "psci";
+			compatible = "arm,cortex-a53";
+			device_type = "cpu";
+		};
+
+		cpu@1 {
+			reg = <0x1>;
+			enable-method = "psci";
+			compatible = "arm,cortex-a53";
+			device_type = "cpu";
+		};
+	};
+
+	timer {
+		interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_LOW)>,
+			<GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_LOW)>,
+			<GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_LOW)>,
+			<GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(2) | IRQ_TYPE_LEVEL_LOW)>;
+		always-on;
+		clock-frequency = <50000000>;
+		compatible = "arm,armv8-timer";
+	};
+
+	rst: reset-controller {
+		compatible = "bitmain,bm-reset";
+		reg = <0x0 0x50010c00 0x0 0x1>;
+		#reset-cells = <1>;
+	 };
+
+	i2c_srcclk: clk100mhz {
+		clock-output-names = "clk25mhz";
+		clock-frequency = <100000000>;
+		#clock-cells = <0x0>;
+		compatible = "fixed-clock";
+	};
+
+	gpio0: gpio@50027000 {
+		compatible = "snps,dw-apb-gpio";
+		reg = <0x0 0x50027000 0x0 0x400>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port0a: gpio-controller@0 {
+			compatible = "snps,dw-apb-gpio-port";
+			bank-name = "port0a";
+			gpio-controller;
+			#gpio-cells = <2>;
+			snps,nr-gpios = <32>;
+			reg = <0>;
+			interrupt-controller;
+			interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>;
+		};
+	};
+	gpio1: gpio@50027400 {
+		compatible = "snps,dw-apb-gpio";
+		reg = <0x0 0x50027400 0x0 0x400>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port1a: gpio-controller@1 {
+			compatible = "snps,dw-apb-gpio-port";
+			bank-name = "port1a";
+			gpio-controller;
+			#gpio-cells = <2>;
+			snps,nr-gpios = <32>;
+			reg = <0>;
+			interrupt-controller;
+			interrupts = <GIC_SPI 67 IRQ_TYPE_LEVEL_HIGH>;
+		};
+	};
+	gpio2: gpio@50027800 {
+		compatible = "snps,dw-apb-gpio";
+		reg = <0x0 0x50027800 0x0 0x400>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port2a: gpio-controller@2 {
+			compatible = "snps,dw-apb-gpio-port";
+			bank-name = "port2a";
+			gpio-controller;
+			#gpio-cells = <2>;
+			snps,nr-gpios = <3>;
+			reg = <0>;
+			interrupt-controller;
+			interrupts = <GIC_SPI 66 IRQ_TYPE_LEVEL_HIGH>;
+		};
+	};
+
+	uart0: serial@58018000 {
+		compatible = "snps,dw-apb-uart";
+		reg = <0x0 0x58018000 0x0 0x1000>;
+		clock-frequency = <500000000>;
+		interrupts = <GIC_SPI 9 IRQ_TYPE_LEVEL_HIGH>;
+		reg-shift = <2>;
+		reg-io-width = <4>;
+	};
+
+	uart1: serial@5801A000 {
+		compatible = "snps,dw-apb-uart";
+		reg = <0x0 0x5801A000 0x0 0x1000>;
+		clock-frequency = <500000000>;
+		interrupts = <GIC_SPI 12 IRQ_TYPE_LEVEL_HIGH>;
+		reg-shift = <2>;
+		reg-io-width = <4>;
+	};
+
+	uart2: serial@5801C000 {
+		compatible = "snps,dw-apb-uart";
+		reg = <0x0 0x5801C000 0x0 0x1000>;
+		clock-frequency = <500000000>;
+		interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
+		reg-shift = <2>;
+		reg-io-width = <4>;
+	};
+
+	uart3: serial@5801E000 {
+		compatible = "snps,dw-apb-uart";
+		reg = <0x0 0x5801E000 0x0 0x1000>;
+		clock-frequency = <500000000>;
+		interrupts = <GIC_SPI 18 IRQ_TYPE_LEVEL_HIGH>;
+		reg-shift = <2>;
+		reg-io-width = <4>;
+	};
+
+	i2c0: i2c@5001A000 {
+		compatible = "snps,designware-i2c";
+		clocks = <&i2c_srcclk>;
+		reg = <0x0 0x5001A000 0x0 0x1000>;
+		interrupts = <GIC_SPI 74 IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000>;
+	};
+
+	i2c1: i2c@5001C000 {
+		compatible = "snps,designware-i2c";
+		clocks = <&i2c_srcclk>;
+		reg = <0x0 0x5001C000 0x0 0x1000>;
+		interrupts = <GIC_SPI 73 IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000>;
+	};
+
+	i2c2: i2c@5001E000 {
+		compatible = "snps,designware-i2c";
+		clocks = <&i2c_srcclk>;
+		reg = <0x0 0x5001E000 0x0 0x1000>;
+		interrupts = <GIC_SPI 72 IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000>;
+	};
+
+	i2c3: i2c@50020000 {
+		compatible = "snps,designware-i2c";
+		clocks = <&i2c_srcclk>;
+		reg = <0x0 0x50020000 0x0 0x1000>;
+		interrupts = <GIC_SPI 71 IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000>;
+	};
+
+	i2c4: i2c@50032000 {
+		compatible = "snps,designware-i2c";
+		clocks = <&i2c_srcclk>;
+		reg = <0x0 0x50032000 0x0 0x1000>;
+		interrupts = <GIC_SPI 70 IRQ_TYPE_LEVEL_HIGH>;
+		clock-frequency = <100000>;
+	};
+
+	/* only support one ethernet in uboot */
+#if 1
+	ethernet0: ethernet@58008000 {
+		compatible = "nvidia,tegra186-eqos", "snps,dwc-qos-ethernet-4.10";
+		reg = <0x0 0x58008000  0x0 0x4000>;
+		reg-names = "mac";
+		phy-mode = "rgmii";
+		phy-reset-gpios = <&port0a 2 GPIO_ACTIVE_HIGH>;
+	};
+#else
+	ethernet1: ethernet@58028000 {
+		compatible = "nvidia,tegra186-eqos", "snps,dwc-qos-ethernet-4.10";
+		reg = <0x0 0x58028000  0x0 0x4000>;
+		reg-names = "mac";
+		phy-mode = "rmii";
+		phy-reset-gpios = <&port0a 3 GPIO_ACTIVE_HIGH>;
+	};
+#endif
+
+/*
+	vpp: vpp@58007000 {
+		compatible = "bitmain, bitmain-vpp";
+		reg = <0x0 0x58007000 0x0 0x1000>;
+		interrupts = <GIC_SPI 77 IRQ_TYPE_LEVEL_HIGH>;
+	};
+
+	npu {
+		compatible = "bitmain,npu";
+		reg = <0x0 0x58000000 0x0 0x3000>;
+		interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH>;
+		resets = <&rst RST_NPS_NPS>, <&rst RST_NPS_GDMA>;
+		reset-names = "nps", "gdma";
+	};
+*/
+
+	emmc: sdhc@50100000 {
+		compatible = "bitmain,synopsys-sdhc";
+		bus-width = <4>;
+		reg = <0x0 0x50100000 0x0 0x1000>;
+		max-frequency = <187000000>;
+		mmc_init_freq = <200000>;
+		mmc_trans_freq = <25000000>;
+		64_addressing;
+		index = <0x0>;
+		has_phy;
+		status = "okay";
+	};
+
+	sd: sdhc@50101000 {
+		compatible = "bitmain,synopsys-sdhc";
+		bus-width = <4>;
+		reg = <0x0 0x50101000 0x0 0x1000>;
+		max-frequency = <187000000>;
+		mmc_init_freq = <200000>;
+		mmc_trans_freq = <25000000>;
+		64_addressing;
+		index = <0x1>;
+		resets = <&rst 14>;
+		reset-names = "sdhci";
+		has_phy;
+		status = "okay";
+	};
+
+    hpnfc0: hpnfc@500C0000{
+            compatible = "cdns,hpnfc-dt";
+            #address-cells = <1>;
+            #size-cells = <0>;
+            reg = <0x0 0x500C0000 0x0 0x3000>, <0x0 0x500C3000 0x0 0x1000>;
+            interrupts = <GIC_SPI 81 IRQ_TYPE_LEVEL_HIGH>;
+            dma-mask = <0xFFFFFFFF>;
+            ecc-sec-size = <1024>;
+            ecc-corr-cap = <8>;
+            nand-ecc-mode = "hw";
+    };
+
+	memory {
+		reg = <0x1 0x00000000 0x0 0x40000000>;
+		device_type = "memory";
+	};
+
+	reserved-memory {
+		#address-cells = <0x2>;
+		#size-cells = <0x2>;
+		ranges;
+
+		cma_reserved: linux,cma {
+			compatible = "shared-dma-pool";
+			reusable;
+			size = <0x0 0x1000000>; // 16MB
+			alignment = <0x0 0x2000>; // 8KB
+			linux,cma-default;
+		};
+
+		ion_reserved: ion@120000000 {
+			compatible = "ion-region";
+			reg = <0x1 0x20000000 0x0 0x10000000>; // 256MB
+		};
+	};
+
+	bitmain-ion {
+		compatible = "bitmain,bitmain-ion";
+		heap_sys_user@0 {
+			compatible = "bitmain,sys_user";
+		};
+		heap_sys_contig@0 {
+			compatible = "bitmain,sys_contig";
+		};
+		heap_carveout@0 {
+			compatible = "bitmain,carveout";
+			memory-region = <&ion_reserved>;
+		};
+		heap_dma@0 {
+			compatible = "bitmain,dma";
+		};
+	};
+
+	aliases {
+		serial0 = &uart0;
+	};
+
+	chosen {
+		stdout-path = "serial0"; // "serial0:115200n8", no arguments means no re-initialization
+    };
+};

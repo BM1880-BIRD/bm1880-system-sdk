@@ -423,20 +423,6 @@ static int bmusb_drd_start_host(struct otg_fsm *fsm, int on)
 
 	/* switch OTG core */
 	if (on) {
-#ifdef CONFIG_ARCH_BM1880_ASIC
-		// open VBUS_5V
-		// GPIO0 out 1
-		// pinmux
-		iowrite32((ioread32((void *)ioremap(0x500104E0, 0x4)) &
-			   ~0x300000), (void *)ioremap(0x500104E0, 0x4));
-		// out
-		iowrite32((ioread32((void *)ioremap(0x50027004, 0x4)) | 0x1),
-			  (void *)ioremap(0x50027004, 0x4));
-		// 1
-		iowrite32((ioread32((void *)ioremap(0x50027000, 0x4)) | 0x1),
-			  (void *)ioremap(0x50027000, 0x4));
-		mdelay(100);
-#endif
 #if 0
 
 		reset_control_assert(bmusb->usb_reset);
@@ -469,21 +455,6 @@ static int bmusb_drd_start_host(struct otg_fsm *fsm, int on)
 		/* start the HCD */
 		usb_otg_start_host(fsm, true);
 	} else {
-#ifdef CONFIG_ARCH_BM1880_ASIC
-		// open VBUS_5V
-		// GPIO0 out 0
-		// pinmux
-		iowrite32((ioread32((void *)ioremap(0x500104E0, 0x4)) &
-			   ~0x300000), (void *)ioremap(0x500104E0, 0x4));
-		// in
-		iowrite32((ioread32((void *)ioremap(0x50027004, 0x4)) & ~0x1),
-			  (void *)ioremap(0x50027004, 0x4));
-		// 0
-		iowrite32((ioread32((void *)ioremap(0x50027000, 0x4)) & ~0x1),
-			  (void *)ioremap(0x50027000, 0x4));
-		mdelay(100);
-#endif
-
 		/* stop the HCD */
 		usb_otg_start_host(fsm, false);
 
@@ -824,6 +795,9 @@ static irqreturn_t vbus_irq_thread(int irq, void *devid)
 	struct bmusb_dev *bmusb = devid;
 	struct usb_gadget *gadget = bmusb->fsm->otg->gadget;
 	int vbus;
+
+	if (!gadget)
+		return IRQ_HANDLED;
 
 	/* debounce */
 	udelay(10);

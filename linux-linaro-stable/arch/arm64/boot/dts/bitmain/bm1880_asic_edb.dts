@@ -27,16 +27,29 @@
 
 		ion_reserved: ion@110000000 {
 			compatible = "ion-region";
-			reg = <0x1 0x10000000 0x0 0x20000000>; // 512MB
+			size = <0x0 0x20000000>; // 512MB
 		};
 
-		jpu_reserved: jpu_id@130000000 {
-			reg = <0x1 0x30000000 0x0 0x08000000>; // 128M
+		jpu_reserved: jpu {
+			/* <start, length> pair
+			 * and restrict to 4G address range
+			 */
+			alloc-ranges = <0x1 0x00000000 0 0xFFFFFFFF>;
+			size = <0x0 0x07f00000>; // 128M
 			no-map;
 		};
 
-		vpu_reserved: vpu_id@138000000 {
-			reg = <0x1 0x38000000 0x0 0x08000000>; // 128M
+		spi_lcd_reserved: spi_lcd {
+			size = <0x0 0x0100000>; // 1M
+			no-map;
+		};
+
+		vpu_reserved: vpu {
+			/* <start, length> pair
+			 * and restrict to 4G address range
+			 */
+			alloc-ranges = <0x1 0x00000000 0 0xFFFFFFFF>;
+			size = <0x0 0x08000000>; // 128M
 			no-map;
 		};
 	};
@@ -76,6 +89,7 @@
 
 		spidev: spidev@0 {
 			compatible = "rohm,dh2228fv";
+			memory-region = <&spi_lcd_reserved>;
 			spi-max-frequency = <25000000>;
 			reg = <0>;
 		};
