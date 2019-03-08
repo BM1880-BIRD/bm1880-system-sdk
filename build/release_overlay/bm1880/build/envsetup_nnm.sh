@@ -24,7 +24,7 @@ IMG_ENC_KPATH=
 
 function gettop
 {
-  local TOPFILE=build/envsetup_edb.sh
+  local TOPFILE=build/envsetup_nnm.sh
   if [ -n "$TOP" -a -f "$TOP/$TOPFILE" ] ; then
     # The following circumlocution ensures we remove symlinks from TOP.
     (cd $TOP; PWD= /bin/pwd)
@@ -389,14 +389,14 @@ function build_fip()
 
 function copy_emmc_img()
 {
-  cp -f $OUTPUT_DIR/fip.bin $TOP_DIR/bm1880_emmc_dl_tool/
-  mv $OUTPUT_DIR/emmc.tar.gz $TOP_DIR/bm1880_emmc_dl_tool/
+  cp -f $OUTPUT_DIR/fip.bin $OUTPUT_DIR/bm1880_emmc_dl_v1p1/
+  mv $OUTPUT_DIR/emmc.tar.gz $OUTPUT_DIR/bm1880_emmc_dl_v1p1/
 }
 
 function clean_emmc_img()
 {
-  rm -f $TOP_DIR/bm1880_emmc_dl_tool/fip.bin
-  rm -f $TOP_DIR/bm1880_emmc_dl_tool/emmc.tar.gz
+  rm -f $OUTPUT_DIR/bm1880_emmc_dl_v1p1/fip.bin
+  rm -f $OUTPUT_DIR/bm1880_emmc_dl_v1p1/emmc.tar.gz
 }
 
 function build_all()

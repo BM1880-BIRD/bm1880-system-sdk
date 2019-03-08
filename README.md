@@ -4,25 +4,25 @@
 #### Get code:
 
 ```bash
-mkdir bm1880 && cd bm1880
-git clone https://github.com/BM1880-BIRD/bm1880-system-sdk.git
+$ mkdir bm1880 && cd bm1880
+$ git clone https://github.com/BM1880-BIRD/bm1880-system-sdk.git
 ```
 
 #### Get cross-compile toolchains:
 
 ```bash
-mkdir -p ./bm1880-system-sdk/host-tools/gcc && cd ./bm1880-system-sdk/host-tools/gcc
-wget https://sophon-file.bitmain.com.cn/sophon-prod/drive/18/11/08/11/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu.tar.xz.zip
-unzip gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu.tar.xz.zip && xz -d gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu.tar.xz
-tar -xvf gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu.tar
+$ mkdir -p ./bm1880-system-sdk/host-tools/gcc && cd ./bm1880-system-sdk/host-tools/gcc
+$ wget https://sophon-file.bitmain.com.cn/sophon-prod/drive/18/11/08/11/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu.tar.xz.zip
+$ unzip gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu.tar.xz.zip && xz -d gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu.tar.xz
+$ tar -xvf gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu.tar
 ```
 
 ### Build SDK, you can build sdk for EDB **OR** NNM
 #### Build SDK for EDB:
 ```bash
-cd ../../bm1880-system-sdk
-source build/envsetup_edb.sh
-build_all
+$ cd ../../
+$ source build/envsetup_edb.sh
+$ build_all
 ```
 
 #### Build SDK for NNM:
@@ -34,7 +34,7 @@ build_all
 
 #### Build output:
 ```bash
-tree -L 2 install/soc_bm1880_asic_edb/
+$ tree -L 2 install/soc_bm1880_asic_edb/
 install/soc_bm1880_asic_edb/
 
 //Images for eMMC boot
