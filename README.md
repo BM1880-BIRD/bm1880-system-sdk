@@ -27,9 +27,9 @@ $ build_all
 
 #### Build SDK for NNM:
 ```bash
-cd ../../
-source build/envsetup_nnm.sh
-build_all
+$ cd ../../
+$ source build/envsetup_nnm.sh
+$ build_all
 ```
 
 #### Build output:
