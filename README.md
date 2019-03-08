@@ -1,27 +1,43 @@
 # bm1880-system-sdk
-sdk including bsp for bm1880  edge developer board
+## SDK for bm1880 Edge Developement Board(EDB) and Neural Network Module(NNM)
 
-get code:
+#### Get code:
 
-https://github.com/BM1880-BIRD/bm1880-system-sdk.git
+```bash
+mkdir bm1880 && cd bm1880
+git clone https://github.com/BM1880-BIRD/bm1880-system-sdk.git
+```
 
-get tool chains:
+#### Get cross-compile toolchains:
 
-https://sophon-file.bitmain.com.cn/sophon-prod/drive/18/11/08/11/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu.tar.xz.zip
+```bash
+mkdir -p ./bm1880-system-sdk/host-tools/gcc && cd ./bm1880-system-sdk/host-tools/gcc
+wget https://sophon-file.bitmain.com.cn/sophon-prod/drive/18/11/08/11/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu.tar.xz.zip
+unzip gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu.tar.xz.zip && xz -d gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu.tar.xz
+tar -xvf gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu.tar
+```
 
-build guide:
-
-config toolchain in build/envsetup_edb.sh
+### Build SDK, you can build sdk for EDB **OR** NNM
+#### Build SDK for EDB:
+```bash
+cd ../../bm1880-system-sdk
 source build/envsetup_edb.sh
+build_all
+```
 
-total build:
-clean_all,build_all
+#### Build SDK for NNM:
+```bash
+cd ../../
+source build/envsetup_nnm.sh
+build_all
+```
 
-component build:
-clean_rootfs,build_rootfs
-clean_kernel,build_kernel
+**Make SD boot image in SD-Card for EDB**:
+   https://sophon-edge.gitbook.io/project/overview/edge-tpu-developer-board#sd-boot
 
+**Download eMMC boot Image for EDB**:
+    https://sophon-edge.gitbook.io/project/overview/edge-tpu-developer-board#emmc-boot
 
-make SD boot image in SD-Card:
-https://sophon-edge.gitbook.io/project/overview/edge-tpu-developer-board#setup-edbs-linux-env
+**Download eMMC boot Image for NNM**:
+    https://sophon-edge.gitbook.io/project/overview/edge-tpu-developer-board#emmc-boot
 
