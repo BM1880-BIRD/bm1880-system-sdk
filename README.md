@@ -33,9 +33,10 @@ $ build_all
 ```
 
 #### Build output:
+###### For EDB:
 ```bash
-$ tree -L 2 install/soc_bm1880_asic_edb/
-install/soc_bm1880_asic_edb/
+$ tree -L 2 install/soc_bm1880_asic_**edb**/
+install/soc_bm1880_asic_**edb**/
 
 //Images for eMMC boot
 ├── bm1880_emmc_dl_v1p1
@@ -52,16 +53,32 @@ install/soc_bm1880_asic_edb/
 ├── rootfs
 ├── sdboot.itb
 ```
+###### For NNM:
+```bash
+$ tree -L 2 install/soc_bm1880_asic_**nnm**/
+install/soc_bm1880_asic_**nnm**/
+
+//Images for eMMC boot
+├── bm1880_emmc_dl_v1p1
+│   ├── bm1880_emmc_download.py
+│   ├── bm_dl_magic.bin
+│   ├── bm_usb_util
+│   ├── emmc.tar.gz
+│   ├── fip.bin
+│   ├── prg.bin
+│   ├── ramboot_mini.itb
+
+```
 
 ##### Make SD boot image in SD-Card for EDB:
 
-    https://sophon-edge.gitbook.io/project/overview/edge-tpu-developer-board#sd-boot
+https://sophon-edge.gitbook.io/project/overview/edge-tpu-developer-board#sd-boot
 
 ##### Download eMMC boot Image for EDB:
 
-    https://sophon-edge.gitbook.io/project/overview/edge-tpu-developer-board#emmc-boot
+https://sophon-edge.gitbook.io/project/overview/edge-tpu-developer-board#emmc-boot
 
 ##### Download eMMC boot Image for NNM:
 
-    https://sophon-edge.gitbook.io/project/overview/edge-tpu-developer-board#emmc-boot
+https://sophon-edge.gitbook.io/project/overview/edge-tpu-developer-board#emmc-boot
 
