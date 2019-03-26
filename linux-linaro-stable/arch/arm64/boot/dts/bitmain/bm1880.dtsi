@@ -186,7 +186,7 @@
 			bank-name = "port2a";
 			gpio-controller;
 			#gpio-cells = <2>;
-			snps,nr-gpios = <3>;
+			snps,nr-gpios = <4>;
 			reg = <0>;
 			interrupt-controller;
 			interrupts = <GIC_SPI 66 IRQ_TYPE_LEVEL_HIGH>;

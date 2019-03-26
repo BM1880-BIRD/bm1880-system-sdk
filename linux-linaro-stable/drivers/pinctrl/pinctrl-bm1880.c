@@ -12,6 +12,7 @@
 #include <linux/device.h>
 #include <linux/of.h>
 #include "pinctrl-utils.h"
+#include "core.h"
 
 struct bm_pinctrl {
 	struct device *dev;
@@ -211,7 +212,11 @@ static const unsigned int uart10_pins[] = {93, 94};
 static const unsigned int uart11_pins[] = {95, 96};
 static const unsigned int uart12_pins[] = {73, 74, 75, 76};
 static const unsigned int uart13_pins[] = {77, 78, 83, 84};
+#if defined(CONFIG_BM1880_PRODUCT_EDB)
+static const unsigned int uart14_pins[] = {79, 80};
+#else
 static const unsigned int uart14_pins[] = {79, 80, 85, 86};
+#endif
 static const unsigned int uart15_pins[] = {81, 82, 87, 88};
 static const unsigned int gpio0_pins[] = {97};
 static const unsigned int gpio1_pins[] = {98};
@@ -578,47 +583,52 @@ static const char * const spi0_group[] = {"spi0_grp"};
 static const char * const null_group[] = {"null_grp"};
 
 
-enum {F_NAND, F_SPI, F_EMMC, F_SDIO, F_ETH0,
-				F_PWM0, F_PWM1, F_PWM2, F_PWM3, F_PWM4, F_PWM5,
-				F_PWM6, F_PWM7, F_PWM8, F_PWM9, F_PWM10, F_PWM11,
-				F_PWM12, F_PWM13, F_PWM14, F_PWM15, F_PWM16, F_PWM17,
-				F_PWM18, F_PWM19, F_PWM20, F_PWM21, F_PWM22, F_PWM23,
-				F_PWM24, F_PWM25, F_PWM26, F_PWM27, F_PWM28, F_PWM29,
-				F_PWM30, F_PWM31, F_PWM32, F_PWM33, F_PWM34, F_PWM35,
-				F_PWM36, F_PWM37,
-				F_I2C0, F_I2C1, F_I2C2, F_I2C3, F_I2C4,
-				F_UART0, F_UART1, F_UART2, F_UART3, F_UART4,
-				F_UART5, F_UART6, F_UART7, F_UART8, F_UART9,
-				F_UART10, F_UART11,
-				F_UART12, F_UART13, F_UART14, F_UART15,
-				F_GPIO0, F_GPIO1, F_GPIO2, F_GPIO3, F_GPIO4,
-				F_GPIO5, F_GPIO6, F_GPIO7, F_GPIO8, F_GPIO9,
-				F_GPIO10, F_GPIO11, F_GPIO12, F_GPIO13, F_GPIO14,
-				F_GPIO15, F_GPIO16, F_GPIO17, F_GPIO18, F_GPIO19,
-				F_GPIO20, F_GPIO21, F_GPIO22, F_GPIO23, F_GPIO24,
-				F_GPIO25, F_GPIO26, F_GPIO27, F_GPIO28, F_GPIO29,
-				F_GPIO30, F_GPIO31, F_GPIO32, F_GPIO33, F_GPIO34,
-				F_GPIO35, F_GPIO36, F_GPIO37, F_GPIO38, F_GPIO39,
-				F_GPIO40, F_GPIO41, F_GPIO42, F_GPIO43, F_GPIO44,
-				F_GPIO45, F_GPIO46, F_GPIO47, F_GPIO48, F_GPIO49,
-				F_GPIO50, F_GPIO51, F_GPIO52, F_GPIO53, F_GPIO54,
-				F_GPIO55, F_GPIO56, F_GPIO57, F_GPIO58, F_GPIO59,
-				F_GPIO60, F_GPIO61, F_GPIO62, F_GPIO63, F_GPIO64,
-				F_GPIO65, F_GPIO66, F_GPIO67,
-				F_ETH1,
-				F_I2S0, F_I2S0_MCLKIN, F_I2S1, F_I2S1_MCLKIN,
-				F_SPI0,
-				F_ENDMARK} func_idx;
+enum {
+	F_NAND,
+	F_SPI,
+	F_EMMC,
+	F_SDIO,
+	F_ETH0,
+	F_PWM0, F_PWM1, F_PWM2, F_PWM3, F_PWM4, F_PWM5,	F_PWM6, F_PWM7, F_PWM8, F_PWM9,
+	F_PWM10, F_PWM11, F_PWM12, F_PWM13, F_PWM14, F_PWM15, F_PWM16, F_PWM17,	F_PWM18, F_PWM19,
+	F_PWM20, F_PWM21, F_PWM22, F_PWM23,	F_PWM24, F_PWM25, F_PWM26, F_PWM27, F_PWM28, F_PWM29,
+	F_PWM30, F_PWM31, F_PWM32, F_PWM33, F_PWM34, F_PWM35, F_PWM36, F_PWM37,
+	F_I2C0, F_I2C1, F_I2C2, F_I2C3, F_I2C4,
+	F_UART0, F_UART1, F_UART2, F_UART3, F_UART4, F_UART5, F_UART6, F_UART7, F_UART8, F_UART9,
+	F_UART10, F_UART11, F_UART12, F_UART13, F_UART14, F_UART15,
+	F_GPIO0, F_GPIO1, F_GPIO2, F_GPIO3, F_GPIO4, F_GPIO5, F_GPIO6, F_GPIO7, F_GPIO8, F_GPIO9,
+	F_GPIO10, F_GPIO11, F_GPIO12, F_GPIO13, F_GPIO14, F_GPIO15, F_GPIO16, F_GPIO17, F_GPIO18, F_GPIO19,
+	F_GPIO20, F_GPIO21, F_GPIO22, F_GPIO23, F_GPIO24, F_GPIO25, F_GPIO26, F_GPIO27, F_GPIO28, F_GPIO29,
+	F_GPIO30, F_GPIO31, F_GPIO32, F_GPIO33, F_GPIO34, F_GPIO35, F_GPIO36, F_GPIO37, F_GPIO38, F_GPIO39,
+	F_GPIO40, F_GPIO41, F_GPIO42, F_GPIO43, F_GPIO44, F_GPIO45, F_GPIO46, F_GPIO47, F_GPIO48, F_GPIO49,
+	F_GPIO50, F_GPIO51, F_GPIO52, F_GPIO53, F_GPIO54, F_GPIO55, F_GPIO56, F_GPIO57, F_GPIO58, F_GPIO59,
+	F_GPIO60, F_GPIO61, F_GPIO62, F_GPIO63, F_GPIO64, F_GPIO65, F_GPIO66, F_GPIO67,
+	F_ETH1,
+	F_I2S0, F_I2S0_MCLKIN, F_I2S1, F_I2S1_MCLKIN,
+	F_SPI0,
+	F_ENDMARK
+} func_idx;
 
 unsigned int pmux_val[F_ENDMARK] = {
-	[F_NAND] = 2, [F_SPI] = 0, [F_EMMC] = 1, [F_SDIO] = 0, [F_ETH0] = 0,
+	[F_NAND] = 2,
+	[F_SPI] = 0,
+	[F_EMMC] = 1,
+	[F_SDIO] = 0,
+	[F_ETH0] = 0,
 	[F_PWM0 ... F_PWM37] = 2,
 	[F_I2C0 ... F_I2C4] = 1,
 	[F_UART0 ... F_UART11] = 1,
 	[F_UART12 ... F_UART15] = 3,
-	[F_GPIO0 ... F_GPIO9] = 0, [F_GPIO13] = 1, [F_ETH1] = 1,
-	[F_I2S0] = 2, [F_I2S0_MCLKIN] = 1, [F_I2S1] = 2, [F_I2S1_MCLKIN] = 1,
-	[F_SPI0] = 1,};
+	[F_GPIO0 ... F_GPIO11] = 0,
+	[F_GPIO12 ... F_GPIO13] = 1,
+	[F_GPIO14 ... F_GPIO67] = 0,
+	[F_ETH1] = 1,
+	[F_I2S0] = 2,
+	[F_I2S0_MCLKIN] = 1,
+	[F_I2S1] = 2,
+	[F_I2S1_MCLKIN] = 1,
+	[F_SPI0] = 1,
+};
 
 
 static const struct bm_pmx_func bm_funcs[] = {
@@ -760,6 +770,7 @@ static const struct bm_pmx_func bm_funcs[] = {
 	{"i2s1_a", i2s1_group, 1},
 	{"i2s1_mclkin_a", i2s1_mclkin_group, 1},
 	{"spi0_a", spi0_group, 1},
+	//======================================
 	{"nand_r", null_group, 1},
 	{"spi_r", null_group, 1},
 	{"emmc_r", null_group, 1},
@@ -955,7 +966,6 @@ static int bm_set_mux(struct pinctrl_dev *pctldev, unsigned int selector,
 	return 0;//0:ok 1:error
 }
 
-
 static const struct pinmux_ops bm_pinmux_ops = {
 	.get_functions_count = bm_get_functions_count,
 	.get_function_name = bm_get_fname,
@@ -1052,10 +1062,26 @@ static struct pinctrl_desc bm_desc = {
 
 static ssize_t mux_sysfs_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
+#if 0
 	char test[] = " mux_sysfs_show:OK";
 
 	dev_info(dev, "%s\n", test);
 	return sprintf(buf, "%s\n", test);
+#else
+	const struct bm_dev_mux *dev_mux = dev_get_drvdata(dev);
+	struct pinctrl *p;
+
+	p = pinctrl_get(dev);
+	if (IS_ERR(p))
+		return PTR_ERR(p);
+	if (p->state == dev_mux->acquire)
+		dev_info(dev, "dev_mux acquire.\n");
+	else if (p->state == dev_mux->release)
+		dev_info(dev, "dev_mux release.\n");
+	else
+		dev_info(dev, "dev_mux none.\n");
+	return 0;
+#endif
 }
 
 static ssize_t mux_sysfs_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
@@ -1312,15 +1338,13 @@ static void __exit bm_pinctrl_exit(void)
 }
 module_exit(bm_pinctrl_exit);
 
+
+#if !defined(CONFIG_BM1880_PRODUCT_EDB)
 //===NAND MUX pesudo-device===
-
-
-
 static int bm_nand_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
 	struct pinctrl *pctrl;
-
 	// dev_info(&pdev->dev, "%s\n", __func__);
 	//gp_pinctrl_init(pdev);
 
@@ -1369,14 +1393,11 @@ static int __init bm_nand_mux_init(void)
 }
 arch_initcall(bm_nand_mux_init);
 
-
- //===SPI MUX pesudo-device===
-
+//===SPI MUX pesudo-device===
 static int bm_spi_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
 	struct pinctrl *pctrl;
-
 	// dev_info(&pdev->dev, "%s\n", __func__);
 	//gp_pinctrl_init(pdev);
 
@@ -1424,14 +1445,13 @@ static int __init bm_spi_mux_init(void)
 	return platform_driver_register(&bm_spi_mux_driver);
 }
 arch_initcall(bm_spi_mux_init);
+#endif
 
-//==EMMC==
-
+//===EMMC===
 static int bm_emmc_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
 	struct pinctrl *pctrl;
-
 	// dev_info(&pdev->dev, "%s\n", __func__);
 	//gp_pinctrl_init(pdev);
 
@@ -1480,8 +1500,8 @@ static int __init bm_emmc_mux_init(void)
 }
 arch_initcall(bm_emmc_mux_init);
 
-//==UART==
-
+#if !defined(CONFIG_BM1880_PRODUCT_EDB)
+//===UART1===
 static int bm_uart1_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -1535,7 +1555,7 @@ static int __init bm_uart1_mux_init(void)
 }
 arch_initcall(bm_uart1_mux_init);
 
-//UART2
+//===UART2===
 static int bm_uart2_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -1588,9 +1608,8 @@ static int __init bm_uart2_mux_init(void)
 	return platform_driver_register(&bm_uart2_mux_driver);
 }
 arch_initcall(bm_uart2_mux_init);
-//UART3
 
-
+//===UART3===
 static int bm_uart3_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -1644,8 +1663,7 @@ static int __init bm_uart3_mux_init(void)
 }
 arch_initcall(bm_uart3_mux_init);
 
-//UART4
-
+//===UART4===
 static int bm_uart4_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -1699,9 +1717,7 @@ static int __init bm_uart4_mux_init(void)
 }
 arch_initcall(bm_uart4_mux_init);
 
-//UART5
-
-
+//===UART5===
 static int bm_uart5_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -1755,9 +1771,7 @@ static int __init bm_uart5_mux_init(void)
 }
 arch_initcall(bm_uart5_mux_init);
 
-//UART6
-
-
+//===UART6===
 static int bm_uart6_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -1811,8 +1825,7 @@ static int __init bm_uart6_mux_init(void)
 }
 arch_initcall(bm_uart6_mux_init);
 
-//UART7
-
+//===UART7===
 static int bm_uart7_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -1865,8 +1878,8 @@ static int __init bm_uart7_mux_init(void)
 	return platform_driver_register(&bm_uart7_mux_driver);
 }
 arch_initcall(bm_uart7_mux_init);
-//UART8
 
+//===UART8===
 static int bm_uart8_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -1919,8 +1932,8 @@ static int __init bm_uart8_mux_init(void)
 	return platform_driver_register(&bm_uart8_mux_driver);
 }
 arch_initcall(bm_uart8_mux_init);
-//UART9
 
+//===UART9===
 static int bm_uart9_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -1974,8 +1987,7 @@ static int __init bm_uart9_mux_init(void)
 }
 arch_initcall(bm_uart9_mux_init);
 
-//UART10
-
+//===UART10===
 static int bm_uart10_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -2029,8 +2041,7 @@ static int __init bm_uart10_mux_init(void)
 }
 arch_initcall(bm_uart10_mux_init);
 
-//UART11
-
+//===UART11===
 static int bm_uart11_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -2082,8 +2093,9 @@ static int __init bm_uart11_mux_init(void)
 	return platform_driver_register(&bm_uart11_mux_driver);
 }
 arch_initcall(bm_uart11_mux_init);
+#endif
 
-// UART12
+//===UART12===
 static int bm_uart12_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -2138,9 +2150,8 @@ static int __init bm_uart12_mux_init(void)
 	return platform_driver_register(&bm_uart12_mux_driver);
 }
 arch_initcall(bm_uart12_mux_init);
-// UART12 end
 
-// UART13
+//===UART13===
 static int bm_uart13_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -2195,9 +2206,8 @@ static int __init bm_uart13_mux_init(void)
 	return platform_driver_register(&bm_uart13_mux_driver);
 }
 arch_initcall(bm_uart13_mux_init);
-// UART13 end
 
-// UART14
+//===UART14===
 static int bm_uart14_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -2252,9 +2262,9 @@ static int __init bm_uart14_mux_init(void)
 	return platform_driver_register(&bm_uart14_mux_driver);
 }
 arch_initcall(bm_uart14_mux_init);
-// UART14 end
 
-// UART15
+#if !defined(CONFIG_BM1880_PRODUCT_EDB)
+//===UART15===
 static int bm_uart15_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -2309,12 +2319,10 @@ static int __init bm_uart15_mux_init(void)
 	return platform_driver_register(&bm_uart15_mux_driver);
 }
 arch_initcall(bm_uart15_mux_init);
-// UART15 end
+#endif
 
-
-//PWM
-
-
+#if !defined(CONFIG_BM1880_PRODUCT_EDB)
+//===PWM===
 static int bm_pwm_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -2372,8 +2380,9 @@ static int __init bm_pwm_mux_init(void)
 	return platform_driver_register(&bm_pwm_mux_driver);
 }
 arch_initcall(bm_pwm_mux_init);
+#endif
 
-//I2C MUX
+//===I2C MUX===
 static int bm_i2c_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -2406,15 +2415,20 @@ static int bm_i2c_mux_probe(struct platform_device *pdev)
 	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
 		dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
-
-//Set default pinmux to I2C
+#if !defined(CONFIG_BM1880_PRODUCT_EDB)
+	//Set default pinmux to I2C
 	dev_info(&pdev->dev, "set pin MUX\n");
 	pinctrl_select_state(pctrl, dev_mux->acquire);
-//Set pinmux end
-
+	//Set pinmux end
 	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
-	return ret;
+#else
+	if (!strcmp(dev_name(&pdev->dev), "i2c4-mux")) {
+		dev_info(&pdev->dev, "set pin MUX\n");
+		pinctrl_select_state(pctrl, dev_mux->acquire);
+	}
+#endif
 
+	return ret;
 }
 
 static const struct of_device_id bm_i2c_mux_of_match[] = {
@@ -2436,7 +2450,7 @@ static int __init bm_i2c_mux_init(void)
 }
 arch_initcall(bm_i2c_mux_init);
 
-//ETH MUX
+//===ETH MUX===
 static int bm_eth_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -2531,12 +2545,13 @@ static int bm_i2s_mux_probe(struct platform_device *pdev)
 	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
 		dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
-//Set default pinmux to I2S
+#if !defined(CONFIG_BM1880_PRODUCT_EDB)
+	//Set default pinmux to I2S
 	dev_info(&pdev->dev, "set pin MUX\n");
 	pinctrl_select_state(pctrl, dev_mux->acquire);
-//Set pinmux end
-
+	//Set pinmux end
 	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
+#endif
 	return ret;
 
 }
@@ -2559,8 +2574,9 @@ static int __init bm_i2s_mux_init(void)
 }
 arch_initcall(bm_i2s_mux_init);
 
-//wifi MUX
-static int bm_wifi_mux_probe(struct platform_device *pdev)
+#if defined(CONFIG_BM1880_PRODUCT_EDB)
+//===EDB GPIO MUX===
+static int bm_edb_gpio_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
 	struct pinctrl *pctrl = devm_pinctrl_get(&pdev->dev);
@@ -2570,14 +2586,10 @@ static int bm_wifi_mux_probe(struct platform_device *pdev)
 	if (!dev_mux)
 		return -ENOMEM;
 	dev_mux->dev = &pdev->dev;
-	// dev_info(&pdev->dev, "%s\n", __func__);
-	//gp_pinctrl_init(pdev);
-	// dev_info(&pdev->dev, "get pinctrl\n");
 	dev_set_drvdata(&pdev->dev, dev_mux);
 
 	if (IS_ERR(pctrl))
 		return PTR_ERR(pctrl);
-	// dev_info(&pdev->dev, "wifi\n");
 	dev_mux->acquire = pinctrl_lookup_state(pctrl, "acquire");
 	if (IS_ERR(dev_mux->acquire)) {
 		dev_err(&pdev->dev, "could not get pin status, acquire\n");
@@ -2592,35 +2604,35 @@ static int bm_wifi_mux_probe(struct platform_device *pdev)
 	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
 		dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
-//Set default pinmux to GPIO13
+	//Set default pinmux to GPIO13
 	dev_info(&pdev->dev, "set GPIO13 pin MUX\n");
 	pinctrl_select_state(pctrl, dev_mux->acquire);
-//Set pinmux end
+	//Set pinmux end
 
 	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
 	return ret;
-
 }
 
-static const struct of_device_id bm_wifi_mux_of_match[] = {
-	{ .compatible = "bitmain,wifi-mux" },
+static const struct of_device_id bm_edb_gpio_mux_of_match[] = {
+	{ .compatible = "bitmain,edb-gpio-mux" },
 	{ }
 };
-static struct platform_driver bm_wifi_mux_driver = {
+static struct platform_driver bm_edb_gpio_mux_driver = {
 	.driver = {
-		.name = "bm-wifi-mux",
-		.of_match_table = bm_wifi_mux_of_match,
+		.name = "edb-gpio-mux",
+		.of_match_table = bm_edb_gpio_mux_of_match,
 	},
-	.probe = bm_wifi_mux_probe,
+	.probe = bm_edb_gpio_mux_probe,
 };
 
-static int __init bm_wifi_mux_init(void)
+static int __init bm_edb_gpio_mux_init(void)
 {
-	return platform_driver_register(&bm_wifi_mux_driver);
+	return platform_driver_register(&bm_edb_gpio_mux_driver);
 }
-arch_initcall(bm_wifi_mux_init);
+arch_initcall(bm_edb_gpio_mux_init);
+#endif
 
-//spi0 MUX
+//===SPI0 MUX===
 static int bm_spi0_mux_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -2653,14 +2665,14 @@ static int bm_spi0_mux_probe(struct platform_device *pdev)
 	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
 		dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
-//Set default pinmux to spi0
+	#if !defined(CONFIG_BM1880_PRODUCT_EDB)
+	//Set default pinmux to spi0
 	dev_info(&pdev->dev, "set pin MUX\n");
 	pinctrl_select_state(pctrl, dev_mux->acquire);
-//Set pinmux end
-
+	//Set pinmux end
 	dev_dbg(&pdev->dev, "initialized Bitmain pin MUX driver\n");
+	#endif
 	return ret;
-
 }
 
 static const struct of_device_id bm_spi0_mux_of_match[] = {
@@ -2696,12 +2708,24 @@ static int bm_gpio_mux_probe(struct platform_device *pdev)
 	if (IS_ERR(pctrl))
 		return PTR_ERR(pctrl);
 
+	dev_mux->acquire = pinctrl_lookup_state(pctrl, "acquire");
+	if (IS_ERR(dev_mux->acquire)) {
+		dev_err(&pdev->dev, "could not get pin status, acquire\n");
+		return PTR_ERR(dev_mux->acquire);
+	}
+	dev_mux->release = pinctrl_lookup_state(pctrl, "release");
+	if (IS_ERR(dev_mux->release)) {
+		dev_err(&pdev->dev, "could not get pin status, release\n");
+		return PTR_ERR(dev_mux->release);
+	}
+
+	//pinctrl_select_state(pctrl, dev_mux->acquire);
+
+
 	if (device_create_file(&pdev->dev, &dev_attr_bm_mux))
 		dev_info(&pdev->dev, "Unable to createsysfs entry\n");
 
-	pinctrl_select_state(pctrl, dev_mux->acquire);
-	dev_dbg(&pdev->dev, "initialized Bitmain gpio MUX driver\n");
-
+	dev_info(&pdev->dev, "initialized Bitmain gpio MUX driver\n");
 	return ret;
 }
 

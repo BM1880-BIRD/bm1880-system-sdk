@@ -5,15 +5,6 @@ path_ko="/system/data"
 echo "load_driver for install ko"
 
 do_start () {
-
-        #load npu ko
-        bmnpu=`/sbin/lsmod | awk "\\$1==\"bmnpu\" {print \\$1}"`
-        if [ "$bmnpu" != "bmnpu" ]; then
-            /sbin/insmod $path_ko/bmnpu.ko || exit -1
-        else
-            echo "bmnpu.ko already installed"
-        fi
-
         module="vpu"
         device="vpu"
         mode="664"
@@ -73,7 +64,15 @@ do_start () {
         else
             echo "$module.ko already installed"
         fi
-        
+
+	#load npu ko
+        bmnpu=`/sbin/lsmod | awk "\\$1==\"bmnpu\" {print \\$1}"`
+        if [ "$bmnpu" != "bmnpu" ]; then
+            /sbin/insmod $path_ko/bmnpu.ko || exit -1
+        else
+            echo "bmnpu.ko already installed"
+        fi
+	
         [ $? = 0 ] && echo "OK" || echo "FAIL" 
 }
 do_stop () {

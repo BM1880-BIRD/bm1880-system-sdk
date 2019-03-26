@@ -754,6 +754,14 @@ static inline void spidev_probe_acpi(struct spi_device *spi) {}
 #define TFT_COL  320
 #define TFT_ROW  240
 
+enum __lcd_display {
+	LCD_DRIVE_ST7789V = 0,
+	LCD_DRIVE_ILI9341,
+	FRAME_BUFFER_ENABLE
+};
+
+unsigned int lcd_type = LCD_DRIVE_ILI9341;
+
 static int spi_fb_write_1byte(unsigned char data)
 {
 	struct spi_transfer	t = {
@@ -769,21 +777,225 @@ static int spi_fb_write_1byte(unsigned char data)
 	return spidev_sync(spidev, &m);
 }
 
-static void LcdSt7789vWritecomm(unsigned char u1Cmd)
+static void LcdWritecomm(unsigned char u1Cmd)
 {
 	gpio_direction_output(BM1880_LCD_RD_GPIO, 0); //RD=0
 	spi_fb_write_1byte(u1Cmd);
 }
-static void LcdSt7789vWritedata(unsigned char u1Data)
+static void LcdWritedata(unsigned char u1Data)
 {
 	gpio_direction_output(BM1880_LCD_RD_GPIO, 1); //RD=1
 	spi_fb_write_1byte(u1Data);
 }
+
+static void LcdIli9341Init(void)
+{
+	//printk("mark: %s, %d .\n", __FUNCTION__, __LINE__);
+	gpio_direction_output(BM1880_LCD_RESET_GPIO, 1); //RESET=1
+	mdelay(200);
+	gpio_direction_output(BM1880_LCD_RESET_GPIO, 0); //RESET=0
+	mdelay(800);
+	gpio_direction_output(BM1880_LCD_RESET_GPIO, 1); //RESET=1
+	mdelay(800);
+
+	LcdWritecomm(0xCF);
+	LcdWritedata(0x00);
+	LcdWritedata(0xC1);
+	LcdWritedata(0x30);
+
+	LcdWritecomm(0xED);
+	LcdWritedata(0x64);
+	LcdWritedata(0x03);
+	LcdWritedata(0x12);
+	LcdWritedata(0x81);
+
+	LcdWritecomm(0xE8);
+	LcdWritedata(0x85);
+	LcdWritedata(0x00);
+	LcdWritedata(0x7A);
+
+	LcdWritecomm(0xCB);
+	LcdWritedata(0x39);
+	LcdWritedata(0x2C);
+	LcdWritedata(0x00);
+	LcdWritedata(0x34);
+	LcdWritedata(0x02);
+
+	LcdWritecomm(0xF7);
+	LcdWritedata(0x20);
+
+	LcdWritecomm(0xEA);
+	LcdWritedata(0x00);
+	LcdWritedata(0x00);
+
+	LcdWritecomm(0xc0);
+	LcdWritedata(0x21);
+
+	LcdWritecomm(0xc1);
+	LcdWritedata(0x11);
+
+	LcdWritecomm(0xc5);
+	LcdWritedata(0x25);
+	LcdWritedata(0x32);
+
+	LcdWritecomm(0xc7);
+	LcdWritedata(0xaa);
+
+	LcdWritecomm(0x36);
+	//LcdWritedata(0x08);
+	LcdWritedata((1<<5)|(0<<6)|(1<<7)|(1<<3));
+
+	LcdWritecomm(0xb6);
+	LcdWritedata(0x0a);
+	LcdWritedata(0xA2);
+
+	LcdWritecomm(0xb1);
+	LcdWritedata(0x00);
+	LcdWritedata(0x1B);
+
+	LcdWritecomm(0xf2);
+	LcdWritedata(0x00);
+
+	LcdWritecomm(0x26);
+	LcdWritedata(0x01);
+
+	LcdWritecomm(0x3a);
+	LcdWritedata(0x55);
+
+	LcdWritecomm(0xE0);
+	LcdWritedata(0x0f);
+	LcdWritedata(0x2D);
+	LcdWritedata(0x0e);
+	LcdWritedata(0x08);
+	LcdWritedata(0x12);
+	LcdWritedata(0x0a);
+	LcdWritedata(0x3d);
+	LcdWritedata(0x95);
+	LcdWritedata(0x31);
+	LcdWritedata(0x04);
+	LcdWritedata(0x10);
+	LcdWritedata(0x09);
+	LcdWritedata(0x09);
+	LcdWritedata(0x0d);
+	LcdWritedata(0x00);
+
+	LcdWritecomm(0xE1);
+	LcdWritedata(0x00);
+	LcdWritedata(0x12);
+	LcdWritedata(0x17);
+	LcdWritedata(0x03);
+	LcdWritedata(0x0d);
+	LcdWritedata(0x05);
+	LcdWritedata(0x2c);
+	LcdWritedata(0x44);
+	LcdWritedata(0x41);
+	LcdWritedata(0x05);
+	LcdWritedata(0x0f);
+	LcdWritedata(0x0a);
+	LcdWritedata(0x30);
+	LcdWritedata(0x32);
+	LcdWritedata(0x0F);
+
+	LcdWritecomm(0x11);
+	mdelay(120);
+
+	LcdWritecomm(0x29);
+}
+
 static void LcdSt7789vInit(void)
 {
+	gpio_direction_output(BM1880_LCD_RESET_GPIO, 1); //RESET=1
+	mdelay(1);  //delay 1ms
+	gpio_direction_output(BM1880_LCD_RESET_GPIO, 0); //RESET=0
+	mdelay(10);  //delay 10ms
+	gpio_direction_output(BM1880_LCD_RESET_GPIO, 1); //RESET=1
+	mdelay(120);  //delay 120ms
+
+	//Display Setting
+	LcdWritecomm(0x36);
+	LcdWritedata(0xE0);
+
+	LcdWritecomm(0x3a);
+	LcdWritedata(0x55);
+	//ST7789V Frame rate setting
+	LcdWritecomm(0xb2);
+	LcdWritedata(0x0c);
+	LcdWritedata(0x0c);
+	LcdWritedata(0x00);
+	LcdWritedata(0x33);
+	LcdWritedata(0x33);
+	LcdWritecomm(0xb7);
+	LcdWritedata(0x35); //VGH=13V, VGL=-10.4V
+	//--------------------------
+	LcdWritecomm(0xbb);
+	LcdWritedata(0x19);
+	LcdWritecomm(0xc0);
+	LcdWritedata(0x2c);
+	LcdWritecomm(0xc2);
+	LcdWritedata(0x01);
+	LcdWritecomm(0xc3);
+	LcdWritedata(0x12);
+	LcdWritecomm(0xc4);
+	LcdWritedata(0x20);
+	LcdWritecomm(0xc6);
+	LcdWritedata(0x0f);
+	LcdWritecomm(0xd0);
+	LcdWritedata(0xa4);
+	LcdWritedata(0xa1);
+	//--------------------------
+	LcdWritecomm(0xe0); //gamma setting
+	LcdWritedata(0xd0);
+	LcdWritedata(0x04);
+	LcdWritedata(0x0d);
+	LcdWritedata(0x11);
+	LcdWritedata(0x13);
+	LcdWritedata(0x2b);
+	LcdWritedata(0x3f);
+	LcdWritedata(0x54);
+	LcdWritedata(0x4c);
+	LcdWritedata(0x18);
+	LcdWritedata(0x0d);
+	LcdWritedata(0x0b);
+	LcdWritedata(0x1f);
+	LcdWritedata(0x23);
+	LcdWritecomm(0xe1);
+	LcdWritedata(0xd0);
+	LcdWritedata(0x04);
+	LcdWritedata(0x0c);
+	LcdWritedata(0x11);
+	LcdWritedata(0x13);
+	LcdWritedata(0x2c);
+	LcdWritedata(0x3f);
+	LcdWritedata(0x44);
+	LcdWritedata(0x51);
+	LcdWritedata(0x2f);
+	LcdWritedata(0x1f);
+	LcdWritedata(0x1f);
+	LcdWritedata(0x20);
+	LcdWritedata(0x23);
+	LcdWritecomm(0x11);
+	mdelay(120);
+	LcdWritecomm(0x29); //display on
+
+}
+
+static void LcdInit(void)
+{
+	static bool first_init = true;
 	int err;
 
+	if (likely(first_init == false))
+		return;
+
 	//printk(KERN_INFO, "%s : ", __FUNCTION__);
+	spidev->spi->mode = SPI_MODE_0;
+	spidev->spi->max_speed_hz = 25000000;
+	spidev->spi->bits_per_word = 8;
+	err = spi_setup(spidev->spi);
+	if (err < 0) {
+		//printk("error");
+		return;
+	}
 
 	err = gpio_request(BM1880_LCD_RD_GPIO, "lcd_chip_rd");
 	if (err < 0) {
@@ -795,96 +1007,34 @@ static void LcdSt7789vInit(void)
 		//printk(KERN_WARNING, "request gpio for lcd failed!\n");
 		return;
 	}
-
-	gpio_direction_output(BM1880_LCD_RESET_GPIO, 1); //RESET=1
-	mdelay(1);  //delay 1ms
-	gpio_direction_output(BM1880_LCD_RESET_GPIO, 0); //RESET=0
-	mdelay(10);  //delay 10ms
-	gpio_direction_output(BM1880_LCD_RESET_GPIO, 1); //RESET=1
-	mdelay(120);  //delay 120ms
-
-	//Display Setting
-	LcdSt7789vWritecomm(0x36);
-	LcdSt7789vWritedata(0xE0);
-
-	LcdSt7789vWritecomm(0x3a);
-	LcdSt7789vWritedata(0x55);
-	//ST7789V Frame rate setting
-	LcdSt7789vWritecomm(0xb2);
-	LcdSt7789vWritedata(0x0c);
-	LcdSt7789vWritedata(0x0c);
-	LcdSt7789vWritedata(0x00);
-	LcdSt7789vWritedata(0x33);
-	LcdSt7789vWritedata(0x33);
-	LcdSt7789vWritecomm(0xb7);
-	LcdSt7789vWritedata(0x35); //VGH=13V, VGL=-10.4V
-	//--------------------------
-	LcdSt7789vWritecomm(0xbb);
-	LcdSt7789vWritedata(0x19);
-	LcdSt7789vWritecomm(0xc0);
-	LcdSt7789vWritedata(0x2c);
-	LcdSt7789vWritecomm(0xc2);
-	LcdSt7789vWritedata(0x01);
-	LcdSt7789vWritecomm(0xc3);
-	LcdSt7789vWritedata(0x12);
-	LcdSt7789vWritecomm(0xc4);
-	LcdSt7789vWritedata(0x20);
-	LcdSt7789vWritecomm(0xc6);
-	LcdSt7789vWritedata(0x0f);
-	LcdSt7789vWritecomm(0xd0);
-	LcdSt7789vWritedata(0xa4);
-	LcdSt7789vWritedata(0xa1);
-	//--------------------------
-	LcdSt7789vWritecomm(0xe0); //gamma setting
-	LcdSt7789vWritedata(0xd0);
-	LcdSt7789vWritedata(0x04);
-	LcdSt7789vWritedata(0x0d);
-	LcdSt7789vWritedata(0x11);
-	LcdSt7789vWritedata(0x13);
-	LcdSt7789vWritedata(0x2b);
-	LcdSt7789vWritedata(0x3f);
-	LcdSt7789vWritedata(0x54);
-	LcdSt7789vWritedata(0x4c);
-	LcdSt7789vWritedata(0x18);
-	LcdSt7789vWritedata(0x0d);
-	LcdSt7789vWritedata(0x0b);
-	LcdSt7789vWritedata(0x1f);
-	LcdSt7789vWritedata(0x23);
-	LcdSt7789vWritecomm(0xe1);
-	LcdSt7789vWritedata(0xd0);
-	LcdSt7789vWritedata(0x04);
-	LcdSt7789vWritedata(0x0c);
-	LcdSt7789vWritedata(0x11);
-	LcdSt7789vWritedata(0x13);
-	LcdSt7789vWritedata(0x2c);
-	LcdSt7789vWritedata(0x3f);
-	LcdSt7789vWritedata(0x44);
-	LcdSt7789vWritedata(0x51);
-	LcdSt7789vWritedata(0x2f);
-	LcdSt7789vWritedata(0x1f);
-	LcdSt7789vWritedata(0x1f);
-	LcdSt7789vWritedata(0x20);
-	LcdSt7789vWritedata(0x23);
-	LcdSt7789vWritecomm(0x11);
-	mdelay(120);
-	LcdSt7789vWritecomm(0x29); //display on
+	switch (lcd_type) {
+	case LCD_DRIVE_ST7789V:
+		LcdSt7789vInit();
+		break;
+	case LCD_DRIVE_ILI9341:
+		LcdIli9341Init();
+		break;
+	default:
+		break;
+	}
+	first_init = false;
 }
 
-static void LcdSt7789vBlockWrite(unsigned int Xstart, unsigned int Xend, unsigned int Ystart, unsigned int Yend)
+static void LcdBlockWrite(unsigned int Xstart, unsigned int Xend, unsigned int Ystart, unsigned int Yend)
 {
-	LcdSt7789vWritecomm(0x2A);
-	LcdSt7789vWritedata(Xstart>>8);
-	LcdSt7789vWritedata(Xstart);
-	LcdSt7789vWritedata(Xend>>8);
-	LcdSt7789vWritedata(Xend);
+	LcdWritecomm(0x2A);
+	LcdWritedata(Xstart>>8);
+	LcdWritedata(Xstart);
+	LcdWritedata(Xend>>8);
+	LcdWritedata(Xend);
 
-	LcdSt7789vWritecomm(0x2B);
-	LcdSt7789vWritedata(Ystart>>8);
-	LcdSt7789vWritedata(Ystart);
-	LcdSt7789vWritedata(Yend>>8);
-	LcdSt7789vWritedata(Yend);
+	LcdWritecomm(0x2B);
+	LcdWritedata(Ystart>>8);
+	LcdWritedata(Ystart);
+	LcdWritedata(Yend>>8);
+	LcdWritedata(Yend);
 
-	LcdSt7789vWritecomm(0x2C);
+	LcdWritecomm(0x2C);
 }
 
 static int spi_fb_pan_display(struct fb_var_screeninfo *var, struct fb_info *info)
@@ -898,8 +1048,9 @@ static int spi_fb_pan_display(struct fb_var_screeninfo *var, struct fb_info *inf
 	};
 	struct spi_message m;
 
+	LcdInit();
 	//printk("%s : ",__FUNCTION__);
-	LcdSt7789vBlockWrite(0, TFT_COL-1, 0, TFT_ROW-1);
+	LcdBlockWrite(0, TFT_COL-1, 0, TFT_ROW-1);
 	gpio_direction_output(BM1880_LCD_RD_GPIO, 1); //RD=1
 
 	spi_message_init(&m);
@@ -968,10 +1119,22 @@ static int spidev_probe(struct spi_device *spi)
 
 	fb_info->var.width = 320;
 	fb_info->var.height = 240;
+	fb_info->var.xres = 320;
+	fb_info->var.yres = 240;
 	fb_info->fbops = &spi_fbops;
 	fb_info->fix.smem_start = prmem->base;
 	fb_info->fix.smem_len = prmem->size;
 	fb_info->screen_base = ioremap(fb_info->fix.smem_start, fb_info->fix.smem_len);
+	fb_info->fix.type = FB_TYPE_PACKED_PIXELS;
+	fb_info->fix.visual = FB_VISUAL_TRUECOLOR;
+	fb_info->fix.line_length = 320*2;
+	fb_info->var.bits_per_pixel = 16;
+	fb_info->var.red.offset = 0;
+	fb_info->var.green.offset = 0;
+	fb_info->var.blue.offset = 0;
+	fb_info->var.transp.offset = 0;
+
+	//printk("zhxjun screen_base:%lx smem_start:%lx\n",fb_info->screen_base,fb_info->fix.smem_start);
 
 	err = register_framebuffer(fb_info);
 	if (err != 0)
@@ -1066,11 +1229,6 @@ static int __init spidev_init(void)
 {
 	int status;
 
-	#ifdef CONFIG_FB
-	struct fb_info *fb_info;
-	int err;
-	#endif
-
 	/* Claim our 256 reserved device numbers.  Then register a class
 	 * that will key udev/mdev to add/remove /dev nodes.  Last, register
 	 * the driver which manages those device numbers.
@@ -1091,16 +1249,6 @@ static int __init spidev_init(void)
 		class_destroy(spidev_class);
 		unregister_chrdev(SPIDEV_MAJOR, spidev_spi_driver.driver.name);
 	}
-
-#ifdef CONFIG_FB
-	spidev->spi->mode = SPI_MODE_0;
-	spidev->spi->max_speed_hz = 25000000;
-	spidev->spi->bits_per_word = 8;
-	spi_setup(spidev->spi);
-
-	//printk(KERN_INFO, "wangliang mark !\n");
-	LcdSt7789vInit();
-#endif
 
 	return status;
 }

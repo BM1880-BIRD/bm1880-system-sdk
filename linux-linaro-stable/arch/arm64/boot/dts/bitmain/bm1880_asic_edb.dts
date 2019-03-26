@@ -53,14 +53,91 @@
 			no-map;
 		};
 	};
-	/delete-node/ ethernet@58028000; //delete ETH1
-	/delete-node/ hpnfc@500C0000; // delete NAND
-	aliases {
-		/delete-property/ ethernet1;
-	};
 
-	wifi-mux{
-		compatible = "bitmain,wifi-mux";
+
+	edb-gpio3-mux{
+		compatible = "bitmain,edb-gpio-mux";
+		source_mux = <0x500104e8>;
+		mux_offset = <0x04>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio3_acquire>;
+		pinctrl-1= <&gpio3_release>;
+	};
+	edb-gpio5-mux{
+		compatible = "bitmain,edb-gpio-mux";
+		source_mux = <0x500104ec>;
+		mux_offset = <0x04>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio5_acquire>;
+		pinctrl-1= <&gpio5_release>;
+	};
+	edb-gpio6-mux{
+		compatible = "bitmain,edb-gpio-mux";
+		source_mux = <0x500104ec>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio6_acquire>;
+		pinctrl-1= <&gpio6_release>;
+	};
+	edb-gpio7-mux{
+		compatible = "bitmain,edb-gpio-mux";
+		source_mux = <0x500104f0>;
+		mux_offset = <0x04>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio7_acquire>;
+		pinctrl-1= <&gpio7_release>;
+	};
+	edb-gpio8-mux{
+		compatible = "bitmain,edb-gpio-mux";
+		source_mux = <0x500104f0>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio8_acquire>;
+		pinctrl-1= <&gpio8_release>;
+	};
+	edb-gpio9-mux{
+		compatible = "bitmain,edb-gpio-mux";
+		source_mux = <0x500104f4>;
+		mux_offset = <0x04>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio9_acquire>;
+		pinctrl-1= <&gpio9_release>;
+	};
+	edb-gpio10-mux{
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104f4>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio10_acquire>;
+		pinctrl-1= <&gpio10_release>;
+	};
+	edb-gpio11-mux{
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104f8>;
+		mux_offset = <0x04>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio11_acquire>;
+		pinctrl-1= <&gpio11_release>;
+	};
+	edb-gpio12-mux{
+		compatible = "bitmain,gpio-mux";
+		source_mux = <0x500104f8>;
+		mux_offset = <0x14>;
+		mux_value  = <0x1>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio12_acquire>;
+		pinctrl-1= <&gpio12_release>;
+	};
+	edb-gpio13-mux{//wifi enable pin.
+		compatible = "bitmain,edb-gpio-mux";
 		source_mux = <0x500104fc>;
 		mux_offset = <0x04>;
 		mux_value  = <0x1>;
@@ -68,7 +145,60 @@
 		pinctrl-0= <&gpio13_acquire>;
 		pinctrl-1= <&gpio13_release>;
 	};
-
+	edb-gpio46-mux{ //gpio46
+		compatible = "bitmain,edb-gpio-mux";
+		source_mux = <0x500104b4>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio46_acquire>;
+		pinctrl-1= <&gpio46_release>;
+	};
+	edb-gpio47-mux{ //gpio47
+		compatible = "bitmain,edb-gpio-mux";
+		source_mux = <0x500104b8>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio47_acquire>;
+		pinctrl-1= <&gpio47_release>;
+	};
+	edb-gpio52-mux{ //user led 1
+		compatible = "bitmain,edb-gpio-mux";
+		source_mux = <0x500104c0>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio52_acquire>;
+		pinctrl-1= <&gpio52_release>;
+	};
+	edb-gpio53-mux{ //user led 2
+		compatible = "bitmain,edb-gpio-mux";
+		source_mux = <0x500104c4>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio53_acquire>;
+		pinctrl-1= <&gpio53_release>;
+	};
+	edb-gpio56-mux{ //user led 3
+		compatible = "bitmain,edb-gpio-mux";
+		source_mux = <0x500104c8>;
+		mux_offset = <0x14>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio56_acquire>;
+		pinctrl-1= <&gpio56_release>;
+	};
+	edb-gpio57-mux{ //user led 4
+		compatible = "bitmain,edb-gpio-mux";
+		source_mux = <0x500104cc>;
+		mux_offset = <0x4>;
+		mux_value  = <0x0>;
+		pinctrl-names= "acquire", "release";
+		pinctrl-0= <&gpio57_acquire>;
+		pinctrl-1= <&gpio57_release>;
+	};
 	spi0-mux{
 		compatible = "bitmain,spi0-mux";
 		pinctrl-names= "acquire", "release";
@@ -95,5 +225,106 @@
 		};
 	};
 
+	/delete-node/ ethernet@58028000; //delete ETH1
+	/delete-node/ hpnfc@500C0000; // delete NAND
+	/delete-node/ serial@5801E000; // delete uart3
+	/delete-node/ pwm@50029000; // delete pwm0
+	/delete-node/ pwm@50029400; // delete pwm1
+	/delete-node/ pwm@50029800; // delete pwm2
+	/delete-node/ pwm@50029C00; // delete pwm3
+	/delete-node/ nand-mux;
+	/delete-node/ spi-mux;
+	/delete-node/ eth1-mux;
+	/delete-node/ uart1-mux;
+	/delete-node/ uart2-mux;
+	/delete-node/ uart3-mux;
+	/delete-node/ uart4-mux;
+	/delete-node/ uart5-mux;
+	/delete-node/ uart6-mux;
+	/delete-node/ uart7-mux;
+	/delete-node/ uart8-mux;
+	/delete-node/ uart9-mux;
+	/delete-node/ uart10-mux;
+	/delete-node/ uart11-mux;
+	/delete-node/ uart15-mux;
+	/delete-node/ pwm0-mux;
+	/delete-node/ pwm1-mux;
+	/delete-node/ pwm2-mux;
+	/delete-node/ pwm3-mux;
+	/delete-node/ pwm4-mux;
+	/delete-node/ pwm5-mux;
+	/delete-node/ pwm6-mux;
+	/delete-node/ pwm7-mux;
+	/delete-node/ pwm8-mux;
+	/delete-node/ pwm9-mux;
+	/delete-node/ pwm10-mux;
+	/delete-node/ pwm11-mux;
+	/delete-node/ pwm12-mux;
+	/delete-node/ pwm13-mux;
+	/delete-node/ pwm14-mux;
+	/delete-node/ pwm15-mux;
+	/delete-node/ pwm16-mux;
+	/delete-node/ pwm17-mux;
+	/delete-node/ pwm18-mux;
+	/delete-node/ pwm19-mux;
+	///delete-node/ pwm20-mux;
+	///delete-node/ pwm21-mux;
+	///delete-node/ pwm22-mux;
+	///delete-node/ pwm23-mux;
+	/delete-node/ pwm24-mux;
+	/delete-node/ pwm25-mux;
+	/delete-node/ pwm26-mux;
+	/delete-node/ pwm27-mux;
+	/delete-node/ pwm28-mux;
+	/delete-node/ pwm29-mux;
+	/delete-node/ pwm30-mux;
+	/delete-node/ pwm31-mux;
+	/delete-node/ pwm32-mux;
+	/delete-node/ pwm33-mux;
+	/delete-node/ pwm34-mux;
+	/delete-node/ pwm35-mux;
+	/delete-node/ pwm36-mux;
+	/delete-node/ pwm37-mux;
+	/delete-node/ i2c2-mux;
+	/delete-node/ i2c3-mux;
+	/delete-node/ gpio2-mux;
+	/delete-node/ gpio3-mux;
+	/delete-node/ gpio4-mux;
+	/delete-node/ gpio5-mux;
+	/delete-node/ gpio6-mux;
+	/delete-node/ gpio7-mux;
+	/delete-node/ gpio8-mux;
+	/delete-node/ gpio9-mux;
+	/delete-node/ gpio10-mux;
+	/delete-node/ gpio11-mux;
+	/delete-node/ gpio12-mux;
+	/delete-node/ gpio13-mux;
+	/delete-node/ gpio14-mux;
+	/delete-node/ gpio15-mux;
+	/delete-node/ gpio16-mux;
+	/delete-node/ gpio17-mux;
+	/delete-node/ gpio18-mux;
+	/delete-node/ gpio19-mux;
+	/delete-node/ gpio20-mux;
+	/delete-node/ gpio21-mux;
+	/delete-node/ gpio22-mux;
+	/delete-node/ gpio23-mux;
+	/delete-node/ gpio24-mux;
+	/delete-node/ gpio25-mux;
+	/delete-node/ gpio26-mux;
+	/delete-node/ gpio27-mux;
+	/delete-node/ gpio28-mux;
+	/delete-node/ gpio29-mux;
+	/delete-node/ gpio44-mux;
+	/delete-node/ gpio45-mux;
+	/delete-node/ gpio46-mux;
+	/delete-node/ gpio47-mux;
+	/delete-node/ gpio52-mux;
+	/delete-node/ gpio53-mux;
+	/delete-node/ gpio56-mux;
+	/delete-node/ gpio57-mux;
 
+	aliases {
+		/delete-property/ ethernet1;
+	};
 };
