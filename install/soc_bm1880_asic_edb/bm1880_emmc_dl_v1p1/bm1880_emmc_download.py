@@ -87,10 +87,10 @@ if __name__ == '__main__':
     print ("Done")
 
     print ("Processing %s and then reboot..." % filename)
-    print ("It takes about 120 seconds, please wait...")
+    print ("It takes about 250 seconds, please wait...")
     time.sleep(5);
 
-    bm_usb_serial.serial_query([pkt.rom_vidpid, pkt.prg_vidpid], 120)
+    bm_usb_serial.serial_query([pkt.rom_vidpid, pkt.prg_vidpid], 250)
 
     bm_usb_serial.usb_emmc_dl_verify([pkt.kernel_libusb_vidpid], 30)
     print ("Done")
