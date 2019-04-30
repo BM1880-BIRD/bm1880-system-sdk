@@ -19,6 +19,11 @@ $ tar -xvf gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu.tar
 
 ### Build SDK, you can build sdk for EDB **OR** NNM
 #### Build SDK for EDB:
+
+```bash
+$ sudo apt-get install device-tree-compiler
+
+```
 ```bash
 $ cd ../../
 $ source build/envsetup_edb.sh
