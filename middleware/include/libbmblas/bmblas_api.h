@@ -13,12 +13,12 @@
 #ifndef _BMDNN_API_H_
 #define _BMDNN_API_H_
 #include <libbmutils/bm_debug.h>
-#include <bmkernel/bm168x/bmkernel_1682.h>
+//#include <bmkernel/bm168x/bmkernel_1682.h>
 #include <libbmruntime/bmruntime_bmkernel.h>
 #include <libbmruntime/bmruntime_bmnet.h>
 #include <libbmruntime/bmruntime.h>
 #include <bmkernel/bm1880/bmkernel_1880.h>
-#include <bmkernel/bm1882/bmkernel_1882.h>
+//#include <bmkernel/bm1882/bmkernel_1882.h>
 #include <libbmutils/bm_native_ref.h>
 
 typedef enum {
