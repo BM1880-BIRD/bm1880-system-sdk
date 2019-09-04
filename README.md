@@ -87,3 +87,14 @@ https://sophon-edge.gitbook.io/project/overview/edge-tpu-developer-board#emmc-bo
 
 https://sophon-edge.gitbook.io/project/overview/edge-tpu-developer-board#emmc-boot
 
+
+
+### v1.1.4 Major change list:
+
+    	1. 新增USB ConfigFS功能(可以想更新U盘一样更新emmc rootfs分区，提高开效率)
+    	2. 新增以太网TFTP更新软件功能
+    	3. 新增thermal and CCF framework
+    	4. 解決RTSP长时间测试随机断线问题
+    	5. 解決USB async mode不稳定问题
+    	6. 优化OpenCV API: VPP硬件resize加速, 多合一功能加速
+
