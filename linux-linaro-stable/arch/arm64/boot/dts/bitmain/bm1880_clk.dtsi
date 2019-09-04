@@ -1,0 +1,65 @@
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/clock/bm1880-clock.h>
+/ {
+
+	clocks {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		osc: oscillator {
+			#clock-cells = <0>;
+			compatible = "fixed-clock";
+			clock-frequency = <25000000>;
+			clock-output-names = "osc1";
+		};
+
+		fpll: fpll {
+			#clock-cells = <0>;
+			compatible = "bitmain, pll-clock";
+			subctrl-syscon = <&top_misc>;
+			id = <FPLL_CLK>;
+			clocks = <&osc>;
+			clock-output-names = "fpll_clk";
+		};
+
+		spll: spll {
+			#clock-cells = <0>;
+			compatible = "bitmain, pll-clock";
+			subctrl-syscon = <&top_misc>;
+			id = <SPLL_CLK>;
+			clocks = <&osc>;
+			clock-output-names = "spll_clk";
+		};
+
+		dpll: dpll {
+			#clock-cells = <0>;
+			compatible = "bitmain, pll-clock";
+			subctrl-syscon = <&top_misc>;
+			id = <DPLL_CLK>;
+			clocks = <&osc>;
+			clock-output-names = "dpll_clk";
+		};
+
+		mpll: mpll {
+			#clock-cells = <0>;
+			compatible = "bitmain, pll-clock";
+			subctrl-syscon = <&top_misc>;
+			id = <MPLL_CLK>;
+			clocks = <&osc>;
+			clock-output-names = "mpll_clk";
+		};
+
+		div_clk: div_clk {
+			compatible = "bitmain, pll-child-clock";
+			#clock-cells = <1>;
+			id = <DIV_CLK_TABLE>;
+		};
+
+		mux_clk: mux_clk {
+			compatible = "bitmain, pll-mux-clock";
+			#clock-cells = <1>;
+			id = <MUX_CLK_TABLE>;
+		};
+	};
+};

@@ -27,5 +27,5 @@ struct bitmain_heap_info {
 
 #define ION_IOC_BITMAIN_FLUSH_RANGE		1
 #define ION_IOC_BITMAIN_GET_HEAP_INFO		2
-
+#define ION_IOC_BITMAIN_INVALIDATE_RANGE		3
 #endif /* __ION_BITMAIN_H__ */

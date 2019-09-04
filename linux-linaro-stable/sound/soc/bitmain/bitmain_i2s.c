@@ -484,6 +484,7 @@ static int dw_i2s_set_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt)
 		ret = -EINVAL;
 		break;
 	}
+	i2s_write_reg(dev->i2s_base, I2S_USER_REG_CTL, ctl_val);
 #else
 	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
 	case SND_SOC_DAIFMT_CBM_CFM:

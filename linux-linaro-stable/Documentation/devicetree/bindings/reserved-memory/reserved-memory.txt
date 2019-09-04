@@ -51,6 +51,7 @@ compatible (optional) - standard definition
           used as a shared pool of DMA buffers for a set of devices. It can
           be used by an operating system to instanciate the necessary pool
           management subsystem if necessary.
+        - misc_reserved: cdump will use to store the magic number
         - vendor specific string in the form <vendor>,[<device>-]<usage>
 no-map (optional) - empty property
     - Indicates the operating system must not create a virtual mapping

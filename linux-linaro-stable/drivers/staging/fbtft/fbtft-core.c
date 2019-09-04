@@ -829,11 +829,13 @@ struct fb_info *fbtft_framebuffer_alloc(struct fbtft_display *display,
 #endif
 
 	if (txbuflen > 0) {
+#if !defined(CONFIG_ARCH_BM1880)
 #ifdef CONFIG_HAS_DMA
 		if (dma) {
 			dev->coherent_dma_mask = ~0;
 			txbuf = dmam_alloc_coherent(dev, txbuflen, &par->txbuf.dma, GFP_DMA);
 		} else
+#endif
 #endif
 		{
 			txbuf = devm_kzalloc(par->info->device, txbuflen, GFP_KERNEL);
@@ -947,14 +949,14 @@ int fbtft_register_framebuffer(struct fb_info *fb_info)
 			goto reg_fail;
 	}
 
-	/* update the entire display */
-	par->fbtftops.update_display(par, 0, par->info->var.yres - 1);
-
 	if (par->fbtftops.set_gamma && par->gamma.curves) {
 		ret = par->fbtftops.set_gamma(par, par->gamma.curves);
 		if (ret)
 			goto reg_fail;
 	}
+
+	/* update the entire display */
+	par->fbtftops.update_display(par, 0, par->info->var.yres - 1);
 
 	if (par->fbtftops.register_backlight)
 		par->fbtftops.register_backlight(par);

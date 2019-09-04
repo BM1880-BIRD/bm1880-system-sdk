@@ -154,9 +154,7 @@ static struct usb_endpoint_descriptor bcm_ss_out_desc = {
 static struct usb_ss_ep_comp_descriptor bcm_ss_bulk_comp_desc = {
 	.bLength =              sizeof(bcm_ss_bulk_comp_desc),
 	.bDescriptorType =      USB_DT_SS_ENDPOINT_COMP,
-#ifdef CONFIG_BITMAIN_LIBUSB_PATH
 	.bMaxBurst       =      3,
-#endif
 };
 
 static struct usb_descriptor_header *bcm_ss_function[] = {
@@ -507,7 +505,11 @@ static struct config_item_type bcm_func_type = {
 
 static void bcm_free_instance(struct usb_function_instance *fi)
 {
+	struct bm_serial_opts *opts;
 
+	opts = container_of(fi, struct bm_serial_opts, func_inst);
+	bmserial_free_line(opts->port_num);
+	kfree(opts);
 }
 
 static struct usb_function_instance *bcm_alloc_instance(void)

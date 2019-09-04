@@ -53,4 +53,15 @@ config HSEM_U8500
 
 	  If unsure, say N.
 
+config BM_HWSPINLOCK
+	tristate "Bitmain HWSpinlock"
+	depends on ARCH_BITMAIN
+	select HWSPINLOCK
+	help
+	  Say y here to support the BITMAIN Hardware Semaphore functionality, which
+	  provides a synchronisation mechanism for the various processor on the
+	  SoC.
+
+	  If unsure, say N.
+
 endmenu

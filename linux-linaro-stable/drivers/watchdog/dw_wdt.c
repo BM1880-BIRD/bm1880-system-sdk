@@ -32,14 +32,33 @@
 #include <linux/platform_device.h>
 #include <linux/reboot.h>
 #include <linux/watchdog.h>
+#include <asm/irq.h>
+#include <linux/interrupt.h>	/* for in_interrupt() */
+#include <linux/reset.h>
+
+#ifdef CONFIG_ARCH_BM1684
+#include <soc/bitmain/bm1684_top.h>
+#include <linux/of_device.h>
+#include <linux/mfd/syscon.h>
+#include <linux/regmap.h>
+#endif
 
 #define WDOG_CONTROL_REG_OFFSET		    0x00
 #define WDOG_CONTROL_REG_WDT_EN_MASK	    0x01
+#define WDOG_CONTROL_REG_WDT_EN_INTRT	    0x02
+#define WDOG_CONTROL_REG_WDT_RT_16T_PERIOD	0x0C
+#define WDOG_CONTROL_REG_WDT_RT_32T_PERIOD	0x10
 #define WDOG_TIMEOUT_RANGE_REG_OFFSET	    0x04
 #define WDOG_TIMEOUT_RANGE_TOPINIT_SHIFT    4
 #define WDOG_CURRENT_COUNT_REG_OFFSET	    0x08
 #define WDOG_COUNTER_RESTART_REG_OFFSET     0x0c
 #define WDOG_COUNTER_RESTART_KICK_VALUE	    0x76
+
+#ifdef CONFIG_ARCH_BM1880_ASIC
+#define BM1880TOP				0x50010000
+#define BM1880TOP_WDT_OFFSET	0x8
+#define BM1880TOP_WDT_VAL		0x4
+#endif
 
 /* The maximum TOP (timeout period) value that can be set in the watchdog. */
 #define DW_WDT_MAX_TOP		15
@@ -52,14 +71,59 @@ MODULE_PARM_DESC(nowayout, "Watchdog cannot be stopped once started "
 		 "(default=" __MODULE_STRING(WATCHDOG_NOWAYOUT) ")");
 
 struct dw_wdt {
-	void __iomem		*regs;
-	struct clk		*clk;
-	unsigned long		rate;
-	struct notifier_block	restart_handler;
-	struct watchdog_device	wdd;
+	void __iomem            *regs;
+	struct clk              *clk;
+	unsigned long           rate;
+	struct watchdog_device  wdd;
+	struct notifier_block   restart_handler;
+	struct reset_control    *rst;
+	/* Save/restore */
+	u32			control;
+	u32			timeout;
 };
 
 #define to_dw_wdt(wdd)	container_of(wdd, struct dw_wdt, wdd)
+
+#ifdef CONFIG_ARCH_BM1880_ASIC
+/*
+ * in BM1880 we first enable top WDT reset gate
+ * Next chips, will put this to ATF
+ */
+int bm1880_top_setting(void)
+{
+	void __iomem	*tpreg;
+	unsigned int val;
+
+	tpreg = ioremap_nocache(BM1880TOP, PAGE_SIZE);
+	if (IS_ERR(tpreg))
+		return PTR_ERR(tpreg);
+
+	/* set ((TOP_BASE + 8), 0x4); */
+	val = readl((tpreg + BM1880TOP_WDT_OFFSET));
+	val |= BM1880TOP_WDT_VAL;
+	writel(val, (tpreg + BM1880TOP_WDT_OFFSET));
+	iounmap(tpreg);
+
+	return 0;
+}
+
+static int dw_wdt_ping(struct watchdog_device *wdd);
+
+#endif
+
+irqreturn_t bm_wdt_irq_handler(int irq, void *__data)
+{
+	struct watchdog_device *wdd = __data;
+	int rc = IRQ_HANDLED;
+
+	dev_err_once(wdd->parent, "bm_wdt_irq_handler\n");
+	/* user can add self define
+	 * behavior in irq handler
+	 */
+
+	/* TODO */
+	return rc;
+}
 
 static inline int dw_wdt_is_enabled(struct dw_wdt *dw_wdt)
 {
@@ -89,7 +153,6 @@ static int dw_wdt_ping(struct watchdog_device *wdd)
 
 	writel(WDOG_COUNTER_RESTART_KICK_VALUE, dw_wdt->regs +
 	       WDOG_COUNTER_RESTART_REG_OFFSET);
-
 	return 0;
 }
 
@@ -128,10 +191,27 @@ static int dw_wdt_start(struct watchdog_device *wdd)
 
 	dw_wdt_set_timeout(wdd, wdd->timeout);
 
-	set_bit(WDOG_HW_RUNNING, &wdd->status);
+	/*before start count, should restart the counter*/
+	dw_wdt_ping(wdd);
 
-	writel(WDOG_CONTROL_REG_WDT_EN_MASK,
-	       dw_wdt->regs + WDOG_CONTROL_REG_OFFSET);
+	writel(WDOG_CONTROL_REG_WDT_EN_MASK |
+			WDOG_CONTROL_REG_WDT_RT_16T_PERIOD |
+			WDOG_CONTROL_REG_WDT_EN_INTRT,
+			dw_wdt->regs + WDOG_CONTROL_REG_OFFSET);
+	return 0;
+}
+
+static int dw_wdt_stop(struct watchdog_device *wdd)
+{
+	struct dw_wdt *dw_wdt = to_dw_wdt(wdd);
+
+	if (!dw_wdt->rst) {
+		set_bit(WDOG_HW_RUNNING, &wdd->status);
+		return 0;
+	}
+
+	reset_control_assert(dw_wdt->rst);
+	reset_control_deassert(dw_wdt->rst);
 
 	return 0;
 }
@@ -176,6 +256,7 @@ static const struct watchdog_info dw_wdt_ident = {
 static const struct watchdog_ops dw_wdt_ops = {
 	.owner		= THIS_MODULE,
 	.start		= dw_wdt_start,
+	.stop		= dw_wdt_stop,
 	.ping		= dw_wdt_ping,
 	.set_timeout	= dw_wdt_set_timeout,
 	.get_timeleft	= dw_wdt_get_timeleft,
@@ -185,6 +266,9 @@ static const struct watchdog_ops dw_wdt_ops = {
 static int dw_wdt_suspend(struct device *dev)
 {
 	struct dw_wdt *dw_wdt = dev_get_drvdata(dev);
+
+	dw_wdt->control = readl(dw_wdt->regs + WDOG_CONTROL_REG_OFFSET);
+	dw_wdt->timeout = readl(dw_wdt->regs + WDOG_TIMEOUT_RANGE_REG_OFFSET);
 
 	clk_disable_unprepare(dw_wdt->clk);
 
@@ -198,6 +282,9 @@ static int dw_wdt_resume(struct device *dev)
 
 	if (err)
 		return err;
+
+	writel(dw_wdt->timeout, dw_wdt->regs + WDOG_TIMEOUT_RANGE_REG_OFFSET);
+	writel(dw_wdt->control, dw_wdt->regs + WDOG_CONTROL_REG_OFFSET);
 
 	dw_wdt_ping(&dw_wdt->wdd);
 
@@ -213,12 +300,54 @@ static int dw_wdt_drv_probe(struct platform_device *pdev)
 	struct watchdog_device *wdd;
 	struct dw_wdt *dw_wdt;
 	struct resource *mem;
-	int ret;
+	int ret = 0, irq;
+
+#ifdef CONFIG_ARCH_BM1684
+	struct device_node *np = dev->of_node, *np_top;
+	static struct regmap *syscon;
+	int val;
+#endif
 
 	dw_wdt = devm_kzalloc(dev, sizeof(*dw_wdt), GFP_KERNEL);
 	if (!dw_wdt)
 		return -ENOMEM;
 
+#ifdef CONFIG_ARCH_BM1880_ASIC
+	ret = bm1880_top_setting();
+#endif
+
+#ifdef CONFIG_ARCH_BM1684
+	np_top = of_parse_phandle(np, "subctrl-syscon", 0);
+	if (!np_top) {
+		dev_err(dev, "%s can't get subctrl-syscon node\n", __func__);
+		ret = -EINVAL;
+	}
+
+	syscon = syscon_node_to_regmap(np_top);
+	if (IS_ERR(syscon)) {
+		dev_err(dev, "cannot get regmap\n");
+		ret = -EINVAL;
+	}
+	regmap_read(syscon, TOP_CTRL_REG, &val);
+	regmap_write(syscon, TOP_CTRL_REG, val|0x4);
+#endif
+
+	if (ret != 0)
+		goto out_free_devm;
+
+	irq = platform_get_irq(pdev, 0);
+	if (irq < 0) {
+		dev_err(dev, "no irq provided");
+		goto no_irq;
+	}
+
+	ret = request_irq(irq, &bm_wdt_irq_handler, IRQF_SHARED,
+			"bm_dw_wdt", &dw_wdt->wdd);
+	if (ret != 0) {
+		dev_err(dev, "request interrupt %d failed\n", irq);
+		goto no_irq;
+	}
+no_irq:
 	mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	dw_wdt->regs = devm_ioremap_resource(dev, mem);
 	if (IS_ERR(dw_wdt->regs))
@@ -237,6 +366,14 @@ static int dw_wdt_drv_probe(struct platform_device *pdev)
 		ret = -EINVAL;
 		goto out_disable_clk;
 	}
+
+	dw_wdt->rst = devm_reset_control_get_optional_shared(&pdev->dev, NULL);
+	if (IS_ERR(dw_wdt->rst)) {
+		ret = PTR_ERR(dw_wdt->rst);
+		goto out_disable_clk;
+	}
+
+	reset_control_deassert(dw_wdt->rst);
 
 	wdd = &dw_wdt->wdd;
 	wdd->info = &dw_wdt_ident;
@@ -279,6 +416,9 @@ static int dw_wdt_drv_probe(struct platform_device *pdev)
 
 out_disable_clk:
 	clk_disable_unprepare(dw_wdt->clk);
+
+out_free_devm:
+	devm_kfree(dev, dw_wdt);
 	return ret;
 }
 
@@ -293,6 +433,16 @@ static int dw_wdt_drv_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static void dw_wdt_drv_shutdown(struct platform_device *pdev)
+{
+	struct dw_wdt *dw_wdt = platform_get_drvdata(pdev);
+
+	if (dw_wdt_is_enabled(dw_wdt)) {
+		reset_control_assert(dw_wdt->rst);
+		reset_control_deassert(dw_wdt->rst);
+	}
+}
+
 #ifdef CONFIG_OF
 static const struct of_device_id dw_wdt_of_match[] = {
 	{ .compatible = "snps,dw-wdt", },
@@ -304,6 +454,7 @@ MODULE_DEVICE_TABLE(of, dw_wdt_of_match);
 static struct platform_driver dw_wdt_driver = {
 	.probe		= dw_wdt_drv_probe,
 	.remove		= dw_wdt_drv_remove,
+	.shutdown	= dw_wdt_drv_shutdown,
 	.driver		= {
 		.name	= "dw_wdt",
 		.of_match_table = of_match_ptr(dw_wdt_of_match),

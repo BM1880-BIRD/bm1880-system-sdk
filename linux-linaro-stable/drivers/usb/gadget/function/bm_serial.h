@@ -14,6 +14,7 @@
 
 #include <linux/usb/composite.h>
 #include <linux/usb/cdc.h>
+#include <linux/ioctl.h>
 
 #define MAX_U_SERIAL_PORTS	4
 
@@ -51,6 +52,21 @@ struct bmserial {
 	void (*disconnect)(struct bmserial *p);
 	int (*send_break)(struct bmserial *p, int duration);
 };
+
+/*ioctl declare*/
+struct ioctl_arg {
+	unsigned int reg;
+	unsigned int val;
+};
+
+#define IOC_MAGIC ('\x66')
+
+#define IOCTL_VALSET      _IOW(IOC_MAGIC, 0, struct ioctl_arg)
+#define IOCTL_VALGET      _IOR(IOC_MAGIC, 1, struct ioctl_arg)
+#define IOCTL_VALGET_NUM  _IOR(IOC_MAGIC, 2, int)
+#define IOCTL_VALSET_NUM  _IOW(IOC_MAGIC, 3, int)
+
+#define IOCTL_VAL_MAXNR 3
 
 /* utilities to allocate/free request and buffer */
 struct usb_request *bm_alloc_req(struct usb_ep *ep, unsigned int len, gfp_t flags);

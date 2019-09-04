@@ -66,9 +66,6 @@
 #define  SDHCI_WRITE_PROTECT	BIT(19)
 
 #define SDHCI_HOST_CONTROL	0x28
-#define SDHCI_HOST_CONTROL2	0x3E
-#define SDHCI_HOST_VER4_ENABLE  (1 << 12)
-#define SDHCI_HOST_ADDRESSING   (1 << 13)
 #define  SDHCI_CTRL_LED		BIT(0)
 #define  SDHCI_CTRL_4BITBUS	BIT(1)
 #define  SDHCI_CTRL_HISPD	BIT(2)
@@ -114,6 +111,9 @@
 #define  SDHCI_RESET_DATA	0x04
 
 #define SDHCI_INT_STATUS	0x30
+#define SDHCI_ERR_INT_STATUS	0x32
+#define SDHCI_INT_XFER_COMPLETE         BIT(1)
+#define SDHCI_INT_BUF_RD_READY          BIT(5)
 #define SDHCI_INT_ENABLE	0x34
 #define SDHCI_ERR_INT_STATUS_EN  0x36
 #define SDHCI_SIGNAL_ENABLE	0x38
@@ -149,7 +149,24 @@
 #define SDHCI_INT_ALL_MASK	((unsigned int)-1)
 
 #define SDHCI_ACMD12_ERR	0x3C
+
 #define SDHCI_HOST_CONTROL2	0x3E
+#define SDHCI_HOST_VER4_ENABLE  BIT(12)
+#define SDHCI_HOST_ADDRESSING   BIT(13)
+#define SDHCI_HOST_ADMA2_LEN_MODE       BIT(10)
+#define SDHCI_CTRL_UHS_MASK        0x0007
+#define SDHCI_CTRL_UHS_SDR12      0x0000
+#define SDHCI_CTRL_UHS_SDR25      0x0001
+#define SDHCI_CTRL_UHS_SDR50      0x0002
+#define SDHCI_CTRL_UHS_SDR104     0x0003
+#define SDHCI_CTRL_UHS_DDR50      0x0004
+#define SDHCI_CTRL_DRV_TYPE_MASK   0x0030
+#define SDHCI_CTRL_DRV_TYPE_B     0x0000
+#define SDHCI_CTRL_DRV_TYPE_A     0x0010
+#define SDHCI_CTRL_DRV_TYPE_C     0x0020
+#define SDHCI_CTRL_DRV_TYPE_D     0x0030
+#define SDHCI_CTRL_EXEC_TUNING     0x0040
+#define SDHCI_CTRL_PRESET_VAL_ENABLE   0x8000
 
 /* 3E-3F reserved */
 
@@ -173,6 +190,11 @@
 #define  SDHCI_CAN_64BIT	BIT(28)
 
 #define SDHCI_CAPABILITIES_1	0x44
+#define  SDHCI_SUPPORT_SDR50	0x00000001
+#define  SDHCI_SUPPORT_SDR104	0x00000002
+#define  SDHCI_SUPPORT_DDR50	0x00000004
+#define  SDHCI_USE_SDR50_TUNING	0x00002000
+
 #define  SDHCI_CLOCK_MUL_MASK	0x00FF0000
 #define  SDHCI_CLOCK_MUL_SHIFT	16
 
@@ -289,8 +311,16 @@
 #define SDHCI_QUIRK_BROKEN_R1B		(1 << 2)
 #define SDHCI_QUIRK_NO_HISPD_BIT	(1 << 3)
 #define SDHCI_QUIRK_BROKEN_VOLTAGE	(1 << 4)
+/*
+ * SDHCI_QUIRK_BROKEN_HISPD_MODE
+ * the hardware cannot operate correctly in high-speed mode,
+ * this quirk forces the sdhci host-controller to non high-speed mode
+ */
+#define SDHCI_QUIRK_BROKEN_HISPD_MODE	BIT(5)
 #define SDHCI_QUIRK_WAIT_SEND_CMD	(1 << 6)
 #define SDHCI_QUIRK_USE_WIDE8		(1 << 8)
+#define SDHCI_QUIRK_NO_1_8_V		BIT(9)
+
 /* to make gcc happy */
 struct sdhci_host;
 
@@ -312,6 +342,7 @@ struct sdhci_ops {
 	void	(*set_control_reg)(struct sdhci_host *host);
 	void	(*set_ios_post)(struct sdhci_host *host);
 	void	(*set_clock)(struct sdhci_host *host, u32 div);
+	int	(*platform_execute_tuning)(struct mmc *host, u8 opcode);
 };
 
 struct sdhci_host {

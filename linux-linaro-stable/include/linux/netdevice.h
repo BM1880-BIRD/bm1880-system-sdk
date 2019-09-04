@@ -589,7 +589,9 @@ struct netdev_queue {
 	unsigned long		trans_start;
 
 	unsigned long		state;
-
+#if defined(CONFIG_ARCH_BM1880)
+	unsigned int		enter_point;
+#endif
 #ifdef CONFIG_BQL
 	struct dql		dql;
 #endif
@@ -3029,7 +3031,9 @@ static inline void netdev_tx_sent_queue(struct netdev_queue *dev_queue,
 
 	if (likely(dql_avail(&dev_queue->dql) >= 0))
 		return;
-
+#if defined(CONFIG_ARCH_BM1880)
+	dev_queue->enter_point = 0;
+#endif
 	set_bit(__QUEUE_STATE_STACK_XOFF, &dev_queue->state);
 
 	/*
@@ -3064,6 +3068,9 @@ static inline void netdev_tx_completed_queue(struct netdev_queue *dev_queue,
 {
 #ifdef CONFIG_BQL
 	if (unlikely(!bytes))
+#if defined(CONFIG_ARCH_BM1880)
+		if (dev_queue->enter_point != 2)
+#endif
 		return;
 
 	dql_completed(&dev_queue->dql, bytes);
@@ -3076,6 +3083,9 @@ static inline void netdev_tx_completed_queue(struct netdev_queue *dev_queue,
 	smp_mb();
 
 	if (dql_avail(&dev_queue->dql) < 0)
+#if defined(CONFIG_ARCH_BM1880)
+		if (dev_queue->enter_point != 2)
+#endif
 		return;
 
 	if (test_and_clear_bit(__QUEUE_STATE_STACK_XOFF, &dev_queue->state))

@@ -865,14 +865,33 @@ static ssize_t set_pec(struct device *dev, struct device_attribute *dummy,
 
 static DEVICE_ATTR(pec, S_IWUSR | S_IRUGO, show_pec, set_pec);
 
+#ifdef CONFIG_ARCH_BM1684
+static int tmp451_remote_calibration(int temp11)
+{
+	int m_t_register;
+	int m_t_remote = 0, m_t_err1 = 0, m_t3 = 0;
+
+	m_t_register = temp11;
+	m_t_remote = (m_t_register - 6947);
+	m_t_err1 = (273150 + 1000*25) * (1110 - 1008) / 1008;
+	m_t3 = (((m_t_remote + m_t_err1)*1008) - ((1110 - 1008)*273150)) / 1110;
+	pr_debug("%s  m_t_regsiter=%d m_t3=%d\n", __func__, m_t_register, m_t3);
+	return m_t3;
+}
+#endif
+
 static int lm90_get_temp11(struct lm90_data *data, int index)
 {
 	s16 temp11 = data->temp11[index];
 	int temp;
 
-	if (data->kind == adt7461 || data->kind == tmp451)
+	if (data->kind == adt7461 || data->kind == tmp451) {
 		temp = temp_from_u16_adt7461(data, temp11);
-	else if (data->kind == max6646)
+#ifdef CONFIG_ARCH_BM1684
+		if (index == REMOTE_TEMP)
+			temp = tmp451_remote_calibration(temp);
+#endif
+	} else if (data->kind == max6646)
 		temp = temp_from_u16(temp11);
 	else
 		temp = temp_from_s16(temp11);

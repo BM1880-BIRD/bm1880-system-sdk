@@ -292,7 +292,7 @@
 	"bootcmd_pxe=" \
 		BOOTENV_RUN_NET_USB_START \
 		BOOTENV_RUN_NET_PCI_ENUM \
-		"dhcp; " \
+		"run nfsargs; " \
 		"if pxe get; then " \
 			"pxe boot; " \
 		"fi\0"
@@ -369,7 +369,7 @@
 	\
 	"scan_dev_for_boot_part="                                         \
 		"part list ${devtype} ${devnum} -bootable devplist; "     \
-		"env exists devplist || setenv devplist 1; "              \
+		"setenv devplist 1; "              \
 		"for distro_bootpart in ${devplist}; do "                 \
 			"if fstype ${devtype} "                           \
 					"${devnum}:${distro_bootpart} "   \

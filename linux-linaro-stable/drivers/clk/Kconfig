@@ -198,6 +198,12 @@ config COMMON_CLK_OXNAS
 	---help---
 	  Support for the OXNAS SoC Family clocks.
 
+config COMMON_CLK_BITMAIN
+	bool "Clock driver for Bitmain SoC Family"
+	---help---
+	  Support for the Bitmain SoC.
+
+
 source "drivers/clk/bcm/Kconfig"
 source "drivers/clk/hisilicon/Kconfig"
 source "drivers/clk/mediatek/Kconfig"
@@ -210,6 +216,5 @@ source "drivers/clk/sunxi-ng/Kconfig"
 source "drivers/clk/tegra/Kconfig"
 source "drivers/clk/ti/Kconfig"
 source "drivers/clk/uniphier/Kconfig"
-source "drivers/clk/bitmain/Kconfig"
 
 endmenu

@@ -1,0 +1,9 @@
+<physical_partition size_in_kb="14680064">
+	<partition label="BOOT"       size_in_kb="131072"  readonly="false"  />
+	<partition label="RECOVERY"   size_in_kb="131072"  readonly="false"  />
+	<partition label="MISC"       size_in_kb="131072"  readonly="false"  />
+	<partition label="ROOTFS"     size_in_kb="2097152" readonly="true"   />
+	<partition label="ROOTFS_RW"  size_in_kb="2097152" readonly="false"  />
+	<partition label="SYSTEM"     size_in_kb="2097152" readonly="false"  />
+	<partition label="DATA"       size_in_kb="7995392" readonly="false"  />
+</physical_partition>

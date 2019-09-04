@@ -1,20 +1,30 @@
-basic idea:
-  All files which are essential to system booting is categorized as "fixed files",
-  they are listed explicitly in scripts/xxx_fixed_files.txt.
-  Among these essesntial files, common ones for all chips are located in "target"
-  folder, and platform/target dependent ones are located in "extra" folder.
+we have these folders in this repo:
 
-  Other files for advanced features will be included using gen_initramfs_list, here
-  we assume they are all platform independent and all located in "target" folder.
+prebuild:
+	to store header files and libraries for cross compling.
 
-When packing a cpio file, following procedure will be done:
-  1. use corresponding scripts/xxx_fixed_files.txt as base list of fixed files.
-  2. append files in "extra" fodler to previous base list.
-  3. generate list of files from "target" folder, if a file already existed in base
-     list, skip it. i.e base list has higher priority.
-  4. integrate both lists from step 2 and 3, use this list to create cpio archive.
+tools:
+	bin and scritps for generating rootfs
 
-When packing an itb file, following precdure will be done:
-  1. check if %project_name.its file exists in "scripts" folder, if so, use it
-  2. check if %chip_name.txt file exists in "scripts" folder, if so, use it
-  3. use multi.its as fallthough option
+configs:
+	we have two types of configuration file:
+	1. txt: for file list in ramdisk
+	2. its: for generating itb file
+
+target:
+	file to build up a root filesystem. there are two subfolders:
+	1. common: for platform independent files
+	2. overlay: for platform dependent files
+	when building rootfs, files in overlay folder will be merged
+	into common folder.
+
+in configs folder and target/overlay folder, there are subfolders for
+priority purpose: if a folder with project's name exists, it would be
+merged into a folder with its chip name. project folder has higher
+priority.
+
+for example, if we are building bm1682_asic_box project,
+configs/bm1682_asic_box and config/bm1682 would be merged to generate
+build/bm1682_asic_box/configs. target/overlay/bm1682_asic_box,
+target/overlay/bm1682 and target/common would be merget to generate
+build/bm1682_asic_box/target.

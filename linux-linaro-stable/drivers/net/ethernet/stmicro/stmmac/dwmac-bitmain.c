@@ -24,6 +24,14 @@
 
 #include "stmmac_platform.h"
 
+struct bm16xx_mac {
+	struct device *dev;
+	struct reset_control *rst;
+	struct clk *clk_tx;
+	struct clk *gate_clk_tx;
+	struct gpio_desc *reset;
+};
+
 static u64 bm_dma_mask = DMA_BIT_MASK(40);
 
 static int bm_eth_reset_phy(struct platform_device *pdev)
@@ -53,10 +61,47 @@ static int bm_eth_reset_phy(struct platform_device *pdev)
 	return 0;
 }
 
+static void bm16xx_mac_fix_speed(void *priv, unsigned int speed)
+{
+	struct bm16xx_mac *bsp_priv = priv;
+	unsigned long rate = 125000000;
+	bool needs_calibration = false;
+	int err;
+
+	switch (speed) {
+	case SPEED_1000:
+		needs_calibration = true;
+		rate = 125000000;
+		break;
+
+	case SPEED_100:
+		needs_calibration = true;
+		rate = 25000000;
+		break;
+
+	case SPEED_10:
+		needs_calibration = true;
+		rate = 2500000;
+		break;
+
+	default:
+		dev_err(bsp_priv->dev, "invalid speed %u\n", speed);
+		break;
+	}
+
+	if (needs_calibration) {
+		err = clk_set_rate(bsp_priv->clk_tx, rate);
+		if (err < 0)
+			dev_err(bsp_priv->dev, "failed to set TX rate: %d\n"
+					, err);
+	}
+}
+
 static int bm_dwmac_probe(struct platform_device *pdev)
 {
 	struct plat_stmmacenet_data *plat_dat;
 	struct stmmac_resources stmmac_res;
+	struct bm16xx_mac *bsp_priv = NULL;
 	int ret;
 
 	pdev->dev.dma_mask = &bm_dma_mask;
@@ -75,6 +120,29 @@ static int bm_dwmac_probe(struct platform_device *pdev)
 	ret = stmmac_dvr_probe(&pdev->dev, plat_dat, &stmmac_res);
 	if (ret)
 		goto err_remove_config_dt;
+
+	bsp_priv = devm_kzalloc(&pdev->dev, sizeof(*bsp_priv), GFP_KERNEL);
+	if (!bsp_priv)
+		return PTR_ERR(bsp_priv);
+
+	bsp_priv->dev = &pdev->dev;
+
+	/* clock setup */
+	bsp_priv->clk_tx = devm_clk_get(&pdev->dev,
+					"clk_tx");
+	if (IS_ERR(bsp_priv->clk_tx))
+		dev_warn(&pdev->dev, "Cannot get mac tx clock!\n");
+	else
+		plat_dat->fix_mac_speed = bm16xx_mac_fix_speed;
+
+	bsp_priv->gate_clk_tx = devm_clk_get(&pdev->dev,
+					"gate_clk_tx");
+	if (IS_ERR(bsp_priv->gate_clk_tx))
+		dev_warn(&pdev->dev, "Cannot get mac tx gating clock!\n");
+	else
+		clk_prepare_enable(bsp_priv->gate_clk_tx);
+
+	plat_dat->bsp_priv = bsp_priv;
 
 	return 0;
 

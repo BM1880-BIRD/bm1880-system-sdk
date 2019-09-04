@@ -1,0 +1,4 @@
+kernel/drivers/video/backlight/lcd.ko:
+kernel/drivers/soc/bitmain/bmperf/bmperf.ko:
+kernel/drivers/spi/spidev.ko:
+kernel/drivers/media/usb/gspca/gspca_main.ko:

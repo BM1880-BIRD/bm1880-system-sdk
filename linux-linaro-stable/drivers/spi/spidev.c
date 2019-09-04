@@ -83,7 +83,7 @@ struct spidev_data {
 
 	/* TX/RX buffers are NULL unless this device is open (users > 0) */
 	struct mutex		buf_lock;
-	unsigned		users;
+	unsigned int		users;
 	u8			*tx_buffer;
 	u8			*rx_buffer;
 	u32			speed_hz;
@@ -96,8 +96,8 @@ static DEFINE_MUTEX(device_list_lock);
 static struct spidev_data	*spidev;
 #endif
 
-static unsigned bufsiz = 4096;
-module_param(bufsiz, uint, S_IRUGO);
+static unsigned int bufsiz = 4096;
+module_param(bufsiz, uint, 0444);
 MODULE_PARM_DESC(bufsiz, "data bytes in biggest supported SPI message");
 
 /*-------------------------------------------------------------------------*/
@@ -212,13 +212,13 @@ spidev_write(struct file *filp, const char __user *buf,
 }
 
 static int spidev_message(struct spidev_data *spidev,
-		struct spi_ioc_transfer *u_xfers, unsigned n_xfers)
+		struct spi_ioc_transfer *u_xfers, unsigned int n_xfers)
 {
 	struct spi_message	msg;
 	struct spi_transfer	*k_xfers;
 	struct spi_transfer	*k_tmp;
 	struct spi_ioc_transfer *u_tmp;
-	unsigned		n, total, tx_total, rx_total;
+	unsigned int		n, total, tx_total, rx_total;
 	u8			*tx_buf, *rx_buf;
 	int			status = -EFAULT;
 
@@ -329,7 +329,7 @@ done:
 
 static struct spi_ioc_transfer *
 spidev_get_ioc_message(unsigned int cmd, struct spi_ioc_transfer __user *u_ioc,
-		unsigned *n_ioc)
+		unsigned int *n_ioc)
 {
 	struct spi_ioc_transfer	*ioc;
 	u32	tmp;
@@ -366,7 +366,7 @@ spidev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	struct spidev_data	*spidev;
 	struct spi_device	*spi;
 	u32			tmp;
-	unsigned		n_ioc;
+	unsigned int		n_ioc;
 	struct spi_ioc_transfer	*ioc;
 
 	/* Check type and command number */
@@ -527,7 +527,7 @@ spidev_compat_ioc_message(struct file *filp, unsigned int cmd,
 	int				retval = 0;
 	struct spidev_data		*spidev;
 	struct spi_device		*spi;
-	unsigned			n_ioc, n;
+	unsigned int			n_ioc, n;
 	struct spi_ioc_transfer		*ioc;
 
 	u_ioc = (struct spi_ioc_transfer __user *) compat_ptr(arg);
@@ -747,10 +747,11 @@ static inline void spidev_probe_acpi(struct spi_device *spi) {}
 /*-------------------------------------------------------------------------*/
 
 #ifdef CONFIG_FB
+#define EDB_GPIO(x) ((x < 32)?(480 + x):((x < 64)?(448 + x - 32):((x <= 67)?(444 + x - 64):(-1))))
 //GPIO7
-#define BM1880_LCD_RD_GPIO (487)
+#define BM1880_LCD_RD_GPIO EDB_GPIO(7)
 //GPIO51
-#define BM1880_LCD_RESET_GPIO (467)
+#define BM1880_LCD_RESET_GPIO EDB_GPIO(51)
 #define TFT_COL  320
 #define TFT_ROW  240
 
@@ -1041,7 +1042,7 @@ static int spi_fb_pan_display(struct fb_var_screeninfo *var, struct fb_info *inf
 {
 	struct spi_transfer	t = {
 			.tx_buf		= info->screen_base,
-			.len		= 320*240*2,
+			.len		= TFT_COL*TFT_ROW*2,
 			.speed_hz	= 25000000,
 			//.speed_hz	= spidev->speed_hz,
 			.bits_per_word = 16,
@@ -1049,7 +1050,6 @@ static int spi_fb_pan_display(struct fb_var_screeninfo *var, struct fb_info *inf
 	struct spi_message m;
 
 	LcdInit();
-	//printk("%s : ",__FUNCTION__);
 	LcdBlockWrite(0, TFT_COL-1, 0, TFT_ROW-1);
 	gpio_direction_output(BM1880_LCD_RD_GPIO, 1); //RD=1
 
@@ -1079,8 +1079,8 @@ static int spidev_probe(struct spi_device *spi)
 	int			status;
 	unsigned long		minor;
 #ifdef CONFIG_FB
-	struct device_node *target = NULL;
-	struct reserved_mem *prmem = NULL;
+	u8 *fb_mem = NULL;
+	int fb_memlen = TFT_COL*TFT_ROW*2*2;
 	struct fb_info *fb_info;
 	int err;
 #endif
@@ -1097,44 +1097,29 @@ static int spidev_probe(struct spi_device *spi)
 	}
 
 #ifdef CONFIG_FB
-	if (spi->dev.of_node)
-		target = of_parse_phandle(spi->dev.of_node, "memory-region", 0);
-
-	if (target) {
-		prmem = of_reserved_mem_lookup(target);
-		of_node_put(target);
-
-		if (!prmem) {
-			dev_err(&spi->dev, "[SPIDRV]: cannot acquire memory-region\n");
-			return -1;
-		}
-	} else {
-		dev_err(&spi->dev, "[SPIDRV]: cannot find the node, memory-region\n");
+	fb_mem = devm_kzalloc(&(spi->dev), fb_memlen, GFP_KERNEL);
+	if (!fb_mem)
 		return -1;
-	}
 
 	fb_info = framebuffer_alloc(0, NULL);
 	if (!fb_info)
 		return -1;
-
-	fb_info->var.width = 320;
-	fb_info->var.height = 240;
-	fb_info->var.xres = 320;
-	fb_info->var.yres = 240;
+	fb_info->var.width = TFT_COL;
+	fb_info->var.height = TFT_ROW;
+	fb_info->var.xres = TFT_COL;
+	fb_info->var.yres = TFT_ROW;
 	fb_info->fbops = &spi_fbops;
-	fb_info->fix.smem_start = prmem->base;
-	fb_info->fix.smem_len = prmem->size;
-	fb_info->screen_base = ioremap(fb_info->fix.smem_start, fb_info->fix.smem_len);
+	fb_info->fix.smem_start = __pa(fb_mem);
+	fb_info->fix.smem_len = fb_memlen;
+	fb_info->screen_base = fb_mem;
 	fb_info->fix.type = FB_TYPE_PACKED_PIXELS;
 	fb_info->fix.visual = FB_VISUAL_TRUECOLOR;
-	fb_info->fix.line_length = 320*2;
+	fb_info->fix.line_length = TFT_COL*2;
 	fb_info->var.bits_per_pixel = 16;
 	fb_info->var.red.offset = 0;
 	fb_info->var.green.offset = 0;
 	fb_info->var.blue.offset = 0;
 	fb_info->var.transp.offset = 0;
-
-	//printk("zhxjun screen_base:%lx smem_start:%lx\n",fb_info->screen_base,fb_info->fix.smem_start);
 
 	err = register_framebuffer(fb_info);
 	if (err != 0)

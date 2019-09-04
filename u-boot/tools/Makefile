@@ -32,6 +32,8 @@ CONFIG_BUILD_ENVCRC ?= $(ENVCRC-y)
 
 hostprogs-$(CONFIG_SPL_GENERATE_ATMEL_PMECC_HEADER) += atmel_pmecc_params
 
+hostprogs-$(CONFIG_OF_BOARD) += dtb_combine
+
 hostprogs-$(CONFIG_LCD_LOGO) += bmp_logo
 hostprogs-$(CONFIG_VIDEO_LOGO) += bmp_logo
 HOSTCFLAGS_bmp_logo.o := -pedantic

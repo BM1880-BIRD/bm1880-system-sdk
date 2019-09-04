@@ -26,6 +26,7 @@
 #include <watchdog.h>
 #include <asm/io.h>
 #include <linux/compiler.h>
+#include <net.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -43,7 +44,70 @@ static ulong	dp_last_length = 0x40;
 static ulong	mm_last_addr, mm_last_size;
 
 static	ulong	base_address = 0;
+static int tftp_update_func(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+	int rc = 0;
+	ulong board_ipaddr, host_ipaddr, gate_ipaddr;
+	ulong bytes;
+	ulong count = 1;
+	int	size = 4;
+	void *start, *buf1, *buf2, *buf3;
+	char boardip[256];
+	char hostip[256];
+	char gateip[256];
+	u32 buf1_val, buf1_1, buf1_2, buf1_3, buf1_4;
+	u32 buf2_val, buf2_1, buf2_2, buf2_3, buf2_4;
+	u32 buf3_val, buf3_1, buf3_2, buf3_3, buf3_4;
 
+	board_ipaddr = 0x0400038C;//simple_strtoul(0x0400038C, NULL, 16);
+	board_ipaddr += base_address;
+	bytes = size * count;
+	start = map_sysmem(board_ipaddr, bytes);
+	buf1 = start;
+	buf1_val = *((u32 *)buf1);
+	buf1_1 = (buf1_val >> 24);
+	buf1_2 = ((buf1_val & 0x00FF0000) >> 16);
+	buf1_3 = ((buf1_val & 0x0000FF00) >> 8);
+	buf1_4 = ((buf1_val & 0x0000FF));
+	printf("register 0x0400038C = [0x%x]\n", buf1_val);
+	snprintf(boardip, 256, "%d.%d.%d.%d", buf1_1, buf1_2, buf1_3, buf1_4);
+	printf("boardip set =%s\n", boardip);
+	setenv("ipaddr", boardip);
+	net_ip = string_to_ip(boardip);
+	host_ipaddr = 0x04000390;//simple_strtoul(0x04000390, NULL, 16);
+	host_ipaddr += base_address;
+	start = map_sysmem(host_ipaddr, bytes);
+	buf2 = start;
+	buf2_val = *((u32 *)buf2);
+	buf2_1 = (buf2_val >> 24);
+	buf2_2 = ((buf2_val & 0x00FF0000) >> 16);
+	buf2_3 =  ((buf2_val & 0x0000FF00) >> 8);
+	buf2_4 = ((buf2_val & 0x0000FF));
+	printf("register 0x04000390 = [0x%x]\n", buf2_val);
+	snprintf(hostip, 256, "%d.%d.%d.%d", buf2_1, buf2_2, buf2_3, buf2_4);
+	printf("hostip set =%s\n", hostip);
+	setenv("serverip", hostip);
+	net_server_ip = string_to_ip(hostip);
+	gate_ipaddr = 0x04000394;//simple_strtoul(0x04000394, NULL, 16);
+	gate_ipaddr += base_address;
+	start = map_sysmem(gate_ipaddr, bytes);
+	buf3 = start;
+	buf3_val = *((u32 *)buf3);
+	buf3_1 = (buf3_val >> 24);
+	buf3_2 = ((buf3_val & 0x00FF0000) >> 16);
+	buf3_3 = ((buf3_val & 0x0000FF00) >> 8);
+	buf3_4 = ((buf3_val & 0x0000FF));
+	printf("register 0x04000394 = [0x%x]\n", buf3_val);
+	snprintf(gateip, 256, "%d.%d.%d.%d", buf3_1, buf3_2, buf3_3, buf3_4);
+	printf("gateip=%s\n", gateip);
+	setenv("gatewayip", gateip);
+	net_gateway = string_to_ip(gateip);
+	unmap_sysmem(buf1);
+	unmap_sysmem(buf2);
+	unmap_sysmem(buf3);
+	unmap_sysmem(start);
+	return rc;
+}
 /* Memory Display
  *
  * Syntax:
@@ -1184,6 +1248,15 @@ U_BOOT_CMD(
 #endif
 );
 
+U_BOOT_CMD(
+	ip_update,	1,	1,	tftp_update_func,
+	"Parse the reg and sync ip addr to uboot",
+#ifdef CONFIG_SYS_SUPPORT_64BIT_DATA
+	"[.b, .w, .l, .q] address [# of objects]"
+#else
+	"Enter the command and trigger directly"
+#endif
+);
 
 U_BOOT_CMD(
 	mm,	2,	1,	do_mem_mm,

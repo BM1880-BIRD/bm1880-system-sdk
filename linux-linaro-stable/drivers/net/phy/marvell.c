@@ -590,6 +590,53 @@ static int marvell_config_aneg_fiber(struct phy_device *phydev)
 	return changed;
 }
 
+static int m88e1512_config_aneg(struct phy_device *phydev)
+{
+	int err, ctl;
+
+	err = phy_write(phydev, MII_MARVELL_PHY_PAGE, MII_M1111_COPPER);
+	if (err < 0)
+		goto error;
+
+	/* Configure the copper link first */
+	err = m88e1318_config_aneg(phydev);
+	if (err < 0)
+		goto error;
+
+	/* Then the fiber link */
+	err = phy_write(phydev, MII_MARVELL_PHY_PAGE, MII_M1111_FIBER);
+	if (err < 0)
+		goto error;
+
+#define M88E1512_FIBER_SPEC_CTRL	0x1a
+	ctl = phy_read(phydev, M88E1512_FIBER_SPEC_CTRL);
+	if (ctl < 0)
+		goto error;
+
+	/* Set SGMII Output Amplitude to 602mv */
+	ctl &= ~(0x7);
+	ctl |= 0x6;
+
+	phy_write(phydev, M88E1512_FIBER_SPEC_CTRL, ctl);
+
+	ctl = phy_read(phydev, MII_BMCR);
+	if (ctl < 0)
+		goto error;
+
+	/* Don't isolate the PHY if we're negotiating */
+	ctl &= ~BMCR_ISOLATE;
+
+	ctl |= BMCR_ANENABLE | BMCR_SPEED1000 | BMCR_FULLDPLX;
+
+	phy_write(phydev, MII_BMCR, ctl);
+
+	return phy_write(phydev, MII_MARVELL_PHY_PAGE, MII_M1111_COPPER);
+
+error:
+	phy_write(phydev, MII_MARVELL_PHY_PAGE, MII_M1111_COPPER);
+	return err;
+}
+
 static int m88e1510_config_aneg(struct phy_device *phydev)
 {
 	int err;
@@ -1675,6 +1722,26 @@ static struct phy_driver marvell_drivers[] = {
 		.get_stats = marvell_get_stats,
 	},
 	{
+		.phy_id = MARVELL_PHY_ID_88E1512,
+		.phy_id_mask = 0xffffffff,
+		.name = "Marvell 88E1512",
+		.features = PHY_GBIT_FEATURES | SUPPORTED_FIBRE,
+		.flags = PHY_HAS_INTERRUPT,
+		.probe = marvell_probe,
+		.config_init = &m88e1510_config_init,
+		.config_aneg = &m88e1512_config_aneg,
+		.aneg_done   = &marvell_aneg_done,
+		.read_status = &marvell_read_status,
+		.ack_interrupt = &marvell_ack_interrupt,
+		.config_intr = &marvell_config_intr,
+		.did_interrupt = &m88e1121_did_interrupt,
+		.resume = &marvell_resume,
+		.suspend = &marvell_suspend,
+		.get_sset_count = marvell_get_sset_count,
+		.get_strings = marvell_get_strings,
+		.get_stats = marvell_get_stats,
+	},
+	{
 		.phy_id = MARVELL_PHY_ID_88E1510,
 		.phy_id_mask = MARVELL_PHY_ID_MASK,
 		.name = "Marvell 88E1510",
@@ -1747,6 +1814,7 @@ static struct mdio_device_id __maybe_unused marvell_tbl[] = {
 	{ MARVELL_PHY_ID_88E1240, MARVELL_PHY_ID_MASK },
 	{ MARVELL_PHY_ID_88E1318S, MARVELL_PHY_ID_MASK },
 	{ MARVELL_PHY_ID_88E1116R, MARVELL_PHY_ID_MASK },
+	{ MARVELL_PHY_ID_88E1512, 0xffffffff },
 	{ MARVELL_PHY_ID_88E1510, MARVELL_PHY_ID_MASK },
 	{ MARVELL_PHY_ID_88E1540, MARVELL_PHY_ID_MASK },
 	{ MARVELL_PHY_ID_88E3016, MARVELL_PHY_ID_MASK },

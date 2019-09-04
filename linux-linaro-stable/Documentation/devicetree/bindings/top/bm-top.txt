@@ -1,0 +1,7 @@
+Bitmain top controller
+
+Required properties:
+- compatible: should contain "bitmain,top-misc"
+- reg: physical base address and length of the controller's registers
+
+

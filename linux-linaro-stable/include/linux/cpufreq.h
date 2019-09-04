@@ -886,4 +886,14 @@ unsigned int cpufreq_generic_get(unsigned int cpu);
 int cpufreq_generic_init(struct cpufreq_policy *policy,
 		struct cpufreq_frequency_table *table,
 		unsigned int transition_latency);
+
+#ifdef CONFIG_ARCH_BM1682
+extern u32 bm_get_cpufreq(void);
+#else
+static inline u32 bm_get_cpufreq(void)
+{
+	return 0;
+}
+#endif
+
 #endif /* _LINUX_CPUFREQ_H */

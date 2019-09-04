@@ -15,6 +15,7 @@
 #include <linux/kexec.h>
 #include <linux/page-flags.h>
 #include <linux/smp.h>
+#include <linux/reboot.h>
 
 #include <asm/cacheflush.h>
 #include <asm/cpu_ops.h>
@@ -149,6 +150,8 @@ void machine_kexec(struct kimage *kimage)
 	void *reboot_code_buffer;
 	bool in_kexec_crash = (kimage == kexec_crash_image);
 	bool stuck_cpus = cpus_are_stuck_in_kernel();
+
+	clear_abnormal_magic();
 
 	/*
 	 * New cpus may have become stuck_in_kernel after we loaded the image.

@@ -72,10 +72,10 @@
 				"netdev=eth0\0"		\
 				"consoledev=ttyS0\0"	\
 				"baudrate=115200\0"	\
-				"othbootargs=earlycon debug user_debug=31 loglevel=10 no_console_suspend"
+				"othbootargs=earlycon debug user_debug=31 loglevel=10 no_console_suspend crashkernel=512M-1G:80M,1G-:128M"
 
 /* Config Boot From RAM or NFS */
-#define CONFIG_BOOTCOMMAND	"run bmrb || run bmdl || run sdboot || run emmcboot || run nfsboot"
+#define CONFIG_BOOTCOMMAND	"run bmrb || run bmtb || run bmsq || run bmdl || run ramboot || run sdboot || run emmcboot || run nfsboot"
 
 #define CONFIG_NFSBOOTCOMMAND	"setenv bootargs root=/dev/nfs init=/init rw "  			\
 					"nfsroot=$serverip:$rootpath,v3,tcp "				\
@@ -106,6 +106,16 @@
 				"bootm ${uimage_addr}#config@1;"	\
 				"fi;"
 
+#define CONFIG_BMSQCOMMAND	\
+				"setenv bootargs console=$consoledev,$baudrate $othbootargs;"	\
+				"mw.l 0x04000388 0x626d7371;"				\
+				"cmp.l 0x04000384 0x04000388 1;"				\
+				"if test $? -eq 0; then "\
+				"bm_utask;"	\
+				"setenv uimage_addr 0x10F100000;"				\
+				"bootm ${uimage_addr}#config@1;"	\
+				"fi;"
+
 #define CONFIG_BMDLCOMMAND	\
 				"setenv bootargs console=$consoledev,$baudrate $othbootargs;"	\
 				"setenv uimage_addr 0x10F100000;"				\
@@ -117,6 +127,21 @@
 				"if test $? -eq 0; then "\
 				"bm_reboot;"    \
 				"fi;"  \
+				"fi;"
+
+#define CONFIG_BMTBCOMMAND	\
+				"setenv bootargs console=$consoledev,$baudrate $othbootargs;"	\
+				"mw.l 0x04000388 0x626d7463;"				\
+				"cmp.l 0x04000384 0x04000388 1;"				\
+				"if test $? -eq 0; then "\
+				"ip_update;"  \
+				"tftp 0x08003000 fip.bin;"	\
+				"mmc dev 0 1;" \
+				"mmc write 0x08003000 0 0x400;" \
+				"mw.l 0x04000384 0x626d7462;"				\
+				"tftp 0x10F100000 ramboot_mini.itb;"	\
+				"setenv uimage_addr 0x10F100000;"				\
+				"bootm ${uimage_addr}#config@1;"	\
 				"fi;"
 
 #define CONFIG_BMRBCOMMAND	\
@@ -137,16 +162,17 @@
 				"setenv boot_part_blocks 0x40000;"		\
 				"else "				\
 				"setenv boot_part_offset 0x2000;"		\
-				"setenv boot_part_blocks 0x77FF;"		\
+				"mmc read ${uimage_addr} ${boot_part_offset} 1;" \
+				"get_itb_size boot_part_blocks 0x10F100000;" \
 				"fi;"		\
 				"mmc dev 0 ;"		\
 				"mmc read ${uimage_addr} ${boot_part_offset} ${boot_part_blocks} ;"		\
 				"bootm ${uimage_addr}#config@1"
 
-#define CONFIG_IPADDR			192.168.0.3
+#define CONFIG_IPADDR			192.168.0.199
 #define CONFIG_NETMASK			255.255.255.0
-#define CONFIG_GATEWAYIP		192.168.0.11
-#define CONFIG_SERVERIP			192.168.56.101
+#define CONFIG_GATEWAYIP		192.168.0.200
+#define CONFIG_SERVERIP			192.168.0.200
 #define CONFIG_HOSTNAME			unknown
 #define CONFIG_ROOTPATH			"/home/share/nfsroot"
 
@@ -166,39 +192,7 @@
 #define CONFIG_ENV_IS_NOWHERE
 #define CONFIG_FAT_WRITE
 
-/*
-#define CONFIG_CMD_NAND
-#define CONFIG_SYS_NAND_BASE		0
-#define CONFIG_SYS_MAX_NAND_DEVICE	1
-#define CONFIG_SYS_MAX_NAND_CHIPS	1
-#define CONFIG_SYS_NAND_SELF_INIT
-#define CONFIG_SYS_NAND_ONFI_DETECTION
-
-#define CONFIG_MTD_NAND_CDN_HPNFC
-#define CONFIG_MTD_DEBUG
-#define CONFIG_MTD_DEBUG_VERBOSE 3
-
-#define CONFIG_CMD_MTDPARTS
-#define CONFIG_RBTREE
-#define CONFIG_LZO
-#define CONFIG_MTD_DEVICE
-#define CONFIG_MTD_PARTITIONS
-#define MTDIDS_DEFAULT       "nand0=nand"
-#define MTDPARTS_DEFAULT     \
-         "mtdparts=nand:"    \
-         "8m(fip0),"         \
-         "8m(fip1),"         \
-         "10m(rsvd0),"       \
-         "1m(dt0),"          \
-         "1m(dt1),"          \
-         "4m(rsvd1),"        \
-         "8m(uImage0),"      \
-         "32m(uramdisk0),"   \
-         "8m(config0),"      \
-         "8m(config1),"      \
-         "8m(uImage1),"      \
-         "32m(uramdisk1)"
-
-*/
+#define CONFIG_MMC_HS200_SUPPORT
+#define CONFIG_MMC_SUPPORTS_TUNING
 
 #endif /* __VEXPRESS_AEMV8A_H */

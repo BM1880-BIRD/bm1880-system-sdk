@@ -1143,6 +1143,7 @@ static struct dma_async_tx_descriptor *dwc_prep_dma_cyclic(struct dma_chan *chan
 	struct dma_slave_config *sconfig = &dwc->dma_sconfig;
 	unsigned int tmp_len;
 	size_t target_period_len;
+	u64 ctl_val = 0;
 
 	spin_lock_irqsave(&dwc->lock, flags);
 	if (!list_empty(&dwc->queue) || !list_empty(&dwc->active_list)) {
@@ -1209,12 +1210,21 @@ static struct dma_async_tx_descriptor *dwc_prep_dma_cyclic(struct dma_chan *chan
 		case DMA_MEM_TO_DEV:
 			lli_write(desc, dar, sconfig->dst_addr);
 			lli_write(desc, sar, buf_addr + period_len * i);
-			lli_write(desc, ctl, (DWC_DEFAULT_CTL(chan)
+			ctl_val = (DWC_DEFAULT_CTL(chan)
+#if defined(CONFIG_ARCH_BM1882)
+				| DWC_CTL_DST_MSIZE(3)
+				| DWC_CTL_SRC_MSIZE(3)
+				| DWC_CTL_ARLEN_EN
+				| DWC_CTL_ARLEN(15UL)
+				| DWC_CTL_AWLEN_EN
+				| DWC_CTL_AWLEN(0UL)
+#endif
 				| DWC_CTL_SHADOWREG_OR_LLI_VALID
 				| DWC_CTL_DST_WIDTH(reg_width)
 				| DWC_CTL_SRC_WIDTH(reg_width)
 				| DWC_CTL_DST_FIX
-				| DWC_CTL_SRC_INC));
+				| DWC_CTL_SRC_INC);
+			lli_write(desc, ctl, ctl_val);
 
 			if ((period_len * (i+1)) % target_period_len == 0)
 				lli_set(desc, ctl, DWC_CTL_IOC_BLT_EN);
@@ -1222,12 +1232,22 @@ static struct dma_async_tx_descriptor *dwc_prep_dma_cyclic(struct dma_chan *chan
 		case DMA_DEV_TO_MEM:
 			lli_write(desc, dar, buf_addr + period_len * i);
 			lli_write(desc, sar, sconfig->src_addr);
-			lli_write(desc, ctl, (DWC_DEFAULT_CTL(chan)
+			ctl_val = (DWC_DEFAULT_CTL(chan)
+#if defined(CONFIG_ARCH_BM1882)
+				| DWC_CTL_DST_MSIZE(3)
+				| DWC_CTL_SRC_MSIZE(3)
+				| DWC_CTL_ARLEN_EN
+				| DWC_CTL_ARLEN(0UL)
+				| DWC_CTL_AWLEN_EN
+				| DWC_CTL_AWLEN(15UL)
+#endif
 				| DWC_CTL_SHADOWREG_OR_LLI_VALID
 				| DWC_CTL_SRC_WIDTH(reg_width)
 				| DWC_CTL_DST_WIDTH(reg_width)
 				| DWC_CTL_DST_INC
-				| DWC_CTL_SRC_FIX));
+				| DWC_CTL_SRC_FIX);
+
+			lli_write(desc, ctl, ctl_val);
 
 			if ((period_len * (i+1)) % target_period_len == 0)
 				lli_set(desc, ctl, DWC_CTL_IOC_BLT_EN);

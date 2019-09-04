@@ -1,0 +1,28 @@
+* IM290 Camera
+
+The Sony IMX290 is a 6.46mm CMO active pixel type solid-state image sensor
+with a square pixel array and 2.13M effective pixels. It is programmable
+through a i2C. The IMX290 sensor supports 1080P and 720P. It also can
+support raw RGB 10bit/12bit output formats.
+
+Required Properties:
+- compatible: Must be "sony,imx290"
+- reg: I2C slave address
+- link-frequencies: target pixel clock frequency.
+
+For further reading on port node refer to
+Documentation/devicetree/bindings/media/video-interfaces.txt.
+
+Example:
+
+	i2c3: i2c@04030000 {
+		...
+		...
+		camera0: imx290@1A {
+			compatible = "sony,imx290";
+			reg = <0x1A>;
+			//clocks = <&ext_cam_clk>;
+			status = "okay";
+		};
+		...
+	};

@@ -221,8 +221,7 @@ static int build_elf_header(struct crashdump_mem *cdump_mem)
 	return 0;
 }
 
-static int do_bm_crash_dump(cmd_tbl_t *cmdtp, int flag, int argc,
-			    char *const argv[])
+int do_cdump(void)
 {
 	char cmd[128];
 	char image_name[15];
@@ -232,11 +231,6 @@ static int do_bm_crash_dump(cmd_tbl_t *cmdtp, int flag, int argc,
 	struct blk_desc *dev_desc;
 	struct crashdump_mem cdump_mem[MAX_NUM_DUMP_MEM_FIELD];
 	disk_partition_t info;
-
-	if (argc > 2) {
-		printf("usage: cdump\n");
-		return -1;
-	}
 
 	for (i = 0; i < 8; i++) {
 		sprintf(cmd, "1:%d", i);
@@ -249,7 +243,7 @@ static int do_bm_crash_dump(cmd_tbl_t *cmdtp, int flag, int argc,
 
 		dev = dev_desc->devnum;
 		if (fat_set_blk_dev(dev_desc, &info) != 0) {
-			printf("Unable to use %s %d:%d for fatinfo.\n", argv[1], dev, part);
+			printf("Unable to use %d:%d for fatinfo.\n", dev, part);
 			continue;
 		}
 
@@ -298,6 +292,16 @@ static int do_bm_crash_dump(cmd_tbl_t *cmdtp, int flag, int argc,
 	printf("crash memory dump finished!!\n");
 
 	return 0;
+}
+
+static int do_bm_crash_dump(cmd_tbl_t *cmdtp, int flag, int argc,
+			    char *const argv[])
+{
+	if (argc > 2) {
+		printf("usage: cdump\n");
+		return -1;
+	}
+	return do_cdump();
 }
 
 U_BOOT_CMD(cdump, 2, 0, do_bm_crash_dump,

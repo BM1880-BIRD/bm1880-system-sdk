@@ -36,6 +36,7 @@
 #include <linux/debugfs.h>
 #include <linux/dma-buf.h>
 #include <linux/idr.h>
+#include <linux/syscalls.h>
 
 #include "ion.h"
 
@@ -80,7 +81,6 @@ static struct ion_buffer *ion_buffer_create(struct ion_heap *heap,
 					    unsigned long flags)
 {
 	struct ion_buffer *buffer;
-	struct sg_table *table;
 	int ret;
 
 	buffer = kzalloc(sizeof(*buffer), GFP_KERNEL);
@@ -89,6 +89,8 @@ static struct ion_buffer *ion_buffer_create(struct ion_heap *heap,
 
 	buffer->heap = heap;
 	buffer->flags = flags;
+	buffer->dev = dev;
+	buffer->size = len;
 
 	ret = heap->ops->allocate(heap, buffer, len, flags);
 
@@ -108,12 +110,14 @@ static struct ion_buffer *ion_buffer_create(struct ion_heap *heap,
 		goto err1;
 	}
 
-	table = buffer->sg_table;
-	buffer->dev = dev;
-	buffer->size = len;
+	/* record heap size usage as buffer created */
+	spin_lock(&heap->stat_lock);
+	heap->num_of_buffers++;
+	heap->num_of_alloc_bytes += len;
+	if (heap->num_of_alloc_bytes > heap->alloc_bytes_wm)
+		heap->alloc_bytes_wm = heap->num_of_alloc_bytes;
+	spin_unlock(&heap->stat_lock);
 
-	buffer->dev = dev;
-	buffer->size = len;
 	INIT_LIST_HEAD(&buffer->attachments);
 	mutex_init(&buffer->lock);
 	mutex_lock(&dev->buffer_lock);
@@ -136,6 +140,13 @@ void ion_buffer_destroy(struct ion_buffer *buffer)
 		buffer->heap->ops->unmap_kernel(buffer->heap, buffer);
 	}
 	buffer->heap->ops->free(buffer);
+
+	/* minus heap size usage as buffer destroyed */
+	spin_lock(&buffer->heap->stat_lock);
+	buffer->heap->num_of_buffers--;
+	buffer->heap->num_of_alloc_bytes -= buffer->size;
+	spin_unlock(&buffer->heap->stat_lock);
+
 	kfree(buffer);
 }
 
@@ -256,10 +267,10 @@ static void ion_dma_buf_detatch(struct dma_buf *dmabuf,
 	struct ion_dma_buf_attachment *a = attachment->priv;
 	struct ion_buffer *buffer = dmabuf->priv;
 
-	free_duped_table(a->table);
 	mutex_lock(&buffer->lock);
 	list_del(&a->list);
 	mutex_unlock(&buffer->lock);
+	free_duped_table(a->table);
 
 	kfree(a);
 }
@@ -452,6 +463,14 @@ int ion_alloc(size_t len, unsigned int heap_id_mask, unsigned int flags, struct 
 		*buf = buffer;
 	return fd;
 }
+EXPORT_SYMBOL(ion_alloc);
+
+void ion_free(int fd)
+{
+	if (sys_close(fd))
+		pr_err("Error ion_free closing the fd %d.\n", fd);
+}
+EXPORT_SYMBOL(ion_free);
 
 int ion_query_heaps(struct ion_heap_query *query)
 {
@@ -552,6 +571,7 @@ void ion_device_add_heap(struct ion_heap *heap)
 		       __func__);
 
 	spin_lock_init(&heap->free_lock);
+	spin_lock_init(&heap->stat_lock);
 	heap->free_list_size = 0;
 
 	if (heap->flags & ION_HEAP_FLAG_DEFER_FREE)
@@ -561,6 +581,9 @@ void ion_device_add_heap(struct ion_heap *heap)
 		ion_heap_init_shrinker(heap);
 
 	heap->dev = dev;
+	heap->num_of_buffers = 0;
+	heap->num_of_alloc_bytes = 0;
+	heap->alloc_bytes_wm = 0;
 	down_write(&dev->lock);
 	heap->id = heap_id++;
 	/*
@@ -569,13 +592,19 @@ void ion_device_add_heap(struct ion_heap *heap)
 	 */
 	plist_node_init(&heap->node, -heap->id);
 	plist_add(&heap->node, &dev->heaps);
-
+#ifdef CONFIG_ARCH_BITMAIN
+	bm_ion_create_debug_info(heap);
+#endif
 	if (heap->shrinker.count_objects && heap->shrinker.scan_objects) {
 		char debug_name[64];
 
 		snprintf(debug_name, 64, "%s_shrink", heap->name);
 		debug_file = debugfs_create_file(
-			debug_name, 0644, dev->debug_root, heap,
+			debug_name, 0644,
+			(heap->heap_dfs_root) ?
+				 (heap->heap_dfs_root) :
+				 dev->debug_root,
+			heap,
 			&debug_shrink_fops);
 		if (!debug_file) {
 			char buf[256], *path;

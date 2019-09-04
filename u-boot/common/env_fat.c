@@ -37,7 +37,7 @@ int env_init(void)
 #ifdef CONFIG_CMD_SAVEENV
 int saveenv(void)
 {
-	env_t	env_new;
+	env_t __aligned(ARCH_DMA_MINALIGN) env_new;
 	struct blk_desc *dev_desc = NULL;
 	disk_partition_t info;
 	int dev, part;

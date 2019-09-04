@@ -776,9 +776,7 @@ bool str2long(const char *p, ulong *num)
 	return *p != '\0' && *endptr == '\0';
 }
 
-#ifdef CONFIG_TARGET_BITMAIN_BM1682_HDS
 #define USHRT_MAX     ((u16)(~0U))
-#define SHRT_MAX     ((s16)(USHRT_MAX >> 1))
 
 /**
  * simple_strtoll - convert a string to a signed long long
@@ -1025,4 +1023,3 @@ int vsscanf(const char *buf, const char *fmt, va_list args)
 
 	return num;
 }
-#endif

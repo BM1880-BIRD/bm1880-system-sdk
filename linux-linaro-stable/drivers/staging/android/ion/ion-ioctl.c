@@ -91,8 +91,11 @@ long ion_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			       data.allocation.heap_id_mask,
 			       data.allocation.flags,
 			       &buffer);
-		if (fd < 0)
+		if (fd < 0) {
+			pr_err("%s ion alloc failed, fd=%d, from %s\n",
+			       __func__, fd, current->comm);
 			return fd;
+		}
 
 		data.allocation.paddr = buffer->paddr;
 		data.allocation.fd = fd;

@@ -13,7 +13,6 @@ if __name__ == '__main__':
     total_time = time.time()
 
     bm_usb_serial = bm_usb_pyserial()
-
     if len(sys.argv) > 1:
         bm_usb_serial.parse_arg()
 
@@ -39,9 +38,14 @@ if __name__ == '__main__':
 
     print ("Jumping to prg.bin...")
     bm_usb_serial.usb_send_req_data(pkt.BM_USB_JUMP, 0x04003000, 0, None)
+    del bm_usb_serial
     # Delay 1s because rom and prg use the same vid/pid with different speed.
     time.sleep(1)
-    bm_usb_serial.serial_query([pkt.prg_vidpid], 3)
+
+    bm_usb_serial = bm_usb_pyserial()
+    if len(sys.argv) > 1:
+        bm_usb_serial.parse_arg()
+    bm_usb_serial.serial_query([pkt.prg_vidpid], 6)
     print ("Done")
 
     print ("Sending FIP.bin...")
@@ -59,6 +63,11 @@ if __name__ == '__main__':
     # prg write FIP.bin to eMMC
     bm_usb_serial.usb_send_req_data(pkt.BM_USB_BREAK, 0x04003000, 0, None)
     print ("Downloading FIP.bin to eMMC then reboot to uboot...")
+    del bm_usb_serial
+
+    bm_usb_serial = bm_usb_pyserial()
+    if len(sys.argv) > 1:
+        bm_usb_serial.parse_arg()
     bm_usb_serial.serial_query([pkt.uboot_vidpid])
     print ("Done")
 
@@ -68,12 +77,14 @@ if __name__ == '__main__':
 
     print ("Booting linux in ramboot_mini.itb...")
     bm_usb_serial.usb_send_req_data(pkt.BM_USB_BREAK, 0x04003000, 0, None)
+    del bm_usb_serial
 
     bm_usb_libusb = bm_usb_libusb()
     if len(sys.argv) > 1:
         bm_usb_libusb.parse_arg()
 
-    device = bm_usb_libusb.libusb_query([pkt.kernel_libusb_vidpid], 30)
+    time.sleep(20)
+    device = bm_usb_libusb.libusb_query([pkt.kernel_libusb_vidpid], 10)
     print ("Done")
 
     filename = 'emmc.tar.gz'
@@ -84,14 +95,22 @@ if __name__ == '__main__':
     bm_usb_libusb.usb_send_req_kernel(pkt.BM_USB_NONE, file_size, file_path, 0)
     dest_addr = 0x4003000
     bm_usb_libusb.usb_send_file(filename, dest_addr, 0)
+    del bm_usb_libusb
     print ("Done")
 
     print ("Processing %s and then reboot..." % filename)
-    print ("It takes about 120 seconds, please wait...")
+    print ("It takes about 150 seconds, please wait...")
     time.sleep(5);
 
-    bm_usb_serial.serial_query([pkt.rom_vidpid, pkt.prg_vidpid], 120)
+    bm_usb_serial = bm_usb_pyserial()
+    if len(sys.argv) > 1:
+        bm_usb_serial.parse_arg()
+    bm_usb_serial.serial_query([pkt.rom_vidpid, pkt.prg_vidpid], 250)
+    del bm_usb_serial
 
+    bm_usb_serial = bm_usb_pyserial()
+    if len(sys.argv) > 1:
+        bm_usb_serial.parse_arg()
     bm_usb_serial.usb_emmc_dl_verify([pkt.kernel_libusb_vidpid], 30)
     print ("Done")
     print ("Download complete")

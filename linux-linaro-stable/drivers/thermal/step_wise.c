@@ -24,7 +24,6 @@
 
 #include <linux/thermal.h>
 #include <trace/events/thermal.h>
-
 #include "thermal_core.h"
 
 /*
@@ -94,7 +93,11 @@ static unsigned long get_target_state(struct thermal_instance *instance,
 			if (!throttle)
 				next_target = THERMAL_NO_TARGET;
 		} else {
+#if (defined CONFIG_ARCH_BM1880) || (defined CONFIG_ARCH_BM1684)
+			next_target = throttle ? cur_state : (cur_state - 1);
+#else
 			next_target = cur_state - 1;
+#endif
 			if (next_target > instance->upper)
 				next_target = instance->upper;
 		}

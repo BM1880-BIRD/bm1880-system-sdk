@@ -16,6 +16,13 @@
 #include <linux/syscalls.h>
 #include <linux/syscore_ops.h>
 #include <linux/uaccess.h>
+#include <linux/of.h>
+#include <linux/of_fdt.h>
+#include <linux/mm.h>
+#include <linux/vmalloc.h>
+#include <asm/cacheflush.h>
+
+#define ABNORMAL_MAGIC  0x8a7b6c5d
 
 /*
  * this indicates whether you can reboot with ctrl-alt-del: the default is yes
@@ -49,6 +56,57 @@ int reboot_force;
  */
 
 void (*pm_power_off_prepare)(void);
+
+void set_magic(u64 data)
+{
+	u64 *magic;
+
+	struct page *pages;
+	phys_addr_t page_start;
+	unsigned int page_cnt;
+	pgprot_t prot;
+	phys_addr_t start;
+	u64 magic_region[2] = {0, 0};
+	struct device_node *np;
+
+	np = of_find_node_by_path("/reserved-memory");
+	if (np) {
+		np = of_find_compatible_node(np, NULL, "misc_reserved");
+		if (np)
+			of_property_read_u64_array(np, "reg", magic_region, 2);
+	}
+	if (!np)
+		return;
+
+	start = magic_region[0];
+	page_cnt = (magic_region[1] + PAGE_SIZE - 1) / PAGE_SIZE;
+
+	page_start = start - offset_in_page(start);
+	prot = pgprot_noncached(PAGE_KERNEL);
+
+	pages = pfn_to_page(page_start >> PAGE_SHIFT);
+	magic = (u64 *)vmap(&pages, page_cnt, VM_MAP, prot);
+
+	if (!magic) {
+		pr_err("magic vmap failed");
+		return;
+	}
+
+	*magic = data;
+	__flush_dcache_area(magic, sizeof(u64));
+
+	vunmap(magic);
+}
+
+void clear_abnormal_magic(void)
+{
+	set_magic(0);
+}
+
+void set_abnormal_magic(void)
+{
+	set_magic(ABNORMAL_MAGIC);
+}
 
 /**
  *	emergency_restart - reboot the system
@@ -221,6 +279,7 @@ void kernel_restart(char *cmd)
 	else
 		pr_emerg("Restarting system with command '%s'\n", cmd);
 	kmsg_dump(KMSG_DUMP_RESTART);
+	clear_abnormal_magic();
 	machine_restart(cmd);
 }
 EXPORT_SYMBOL_GPL(kernel_restart);
@@ -245,6 +304,7 @@ void kernel_halt(void)
 	syscore_shutdown();
 	pr_emerg("System halted\n");
 	kmsg_dump(KMSG_DUMP_HALT);
+	clear_abnormal_magic();
 	machine_halt();
 }
 EXPORT_SYMBOL_GPL(kernel_halt);
@@ -263,6 +323,7 @@ void kernel_power_off(void)
 	syscore_shutdown();
 	pr_emerg("Power down\n");
 	kmsg_dump(KMSG_DUMP_POWEROFF);
+	clear_abnormal_magic();
 	machine_power_off();
 }
 EXPORT_SYMBOL_GPL(kernel_power_off);

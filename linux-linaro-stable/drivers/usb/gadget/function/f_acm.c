@@ -254,9 +254,6 @@ static struct usb_endpoint_descriptor acm_ss_out_desc = {
 static struct usb_ss_ep_comp_descriptor acm_ss_bulk_comp_desc = {
 	.bLength =              sizeof(acm_ss_bulk_comp_desc),
 	.bDescriptorType =      USB_DT_SS_ENDPOINT_COMP,
-#ifdef CONFIG_BITMAIN_LIBUSB_PATH
-	.bMaxBurst       =      3,
-#endif
 };
 
 static struct usb_ss_ep_comp_descriptor acm_ss_bulk_comp_nofity_desc = {

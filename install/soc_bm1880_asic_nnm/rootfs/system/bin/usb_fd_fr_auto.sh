@@ -7,4 +7,4 @@ rm -rf /dev/bm-npu0
 insmod bmnpu.ko
 mdev -s
 cd /system/bin
-./usb_1880
+./test_libusb_fdfr ./fdfr.conf

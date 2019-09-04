@@ -76,6 +76,7 @@ static int init_display(struct fbtft_par *par)
 
 static void set_addr_win(struct fbtft_par *par, int xs, int ys, int xe, int ye)
 {
+	#if 0
 	write_reg(par, MIPI_DCS_SET_COLUMN_ADDRESS,
 		  (xs >> 8) & 0xFF, xs & 0xFF, (xe >> 8) & 0xFF, xe & 0xFF);
 
@@ -83,6 +84,21 @@ static void set_addr_win(struct fbtft_par *par, int xs, int ys, int xe, int ye)
 		  (ys >> 8) & 0xFF, ys & 0xFF, (ye >> 8) & 0xFF, ye & 0xFF);
 
 	write_reg(par, MIPI_DCS_WRITE_MEMORY_START);
+	#else
+	static int xs_pri = 0xFFFF, ys_pri = 0xFFFF, xe_pri = 0xFFFF, ye_pri = 0xFFFF;
+
+	if ((xs_pri != xs) || (ys_pri != ys) || (xe_pri != xe) || (ye_pri != ye)) {
+		xs_pri = xs;
+		ys_pri = ys;
+		write_reg(par, MIPI_DCS_SET_COLUMN_ADDRESS,
+			  (xs >> 8) & 0xFF, xs & 0xFF, (xe >> 8) & 0xFF, xe & 0xFF);
+		xe_pri = xe;
+		ye_pri = ye;
+		write_reg(par, MIPI_DCS_SET_PAGE_ADDRESS,
+			  (ys >> 8) & 0xFF, ys & 0xFF, (ye >> 8) & 0xFF, ye & 0xFF);
+		write_reg(par, MIPI_DCS_WRITE_MEMORY_START);
+	}
+	#endif
 }
 
 #define MEM_Y   BIT(7) /* MY row address order */

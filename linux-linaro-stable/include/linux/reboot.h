@@ -42,6 +42,9 @@ extern int register_restart_handler(struct notifier_block *);
 extern int unregister_restart_handler(struct notifier_block *);
 extern void do_kernel_restart(char *cmd);
 
+extern void clear_abnormal_magic(void);
+extern void set_abnormal_magic(void);
+
 /*
  * Architecture-specific implementations of sys_reboot commands.
  */

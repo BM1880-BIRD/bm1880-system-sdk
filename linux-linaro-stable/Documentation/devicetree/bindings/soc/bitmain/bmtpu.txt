@@ -1,0 +1,8 @@
+Bitmain TPU driver, PCIe host style, just for aicplatform demo.
+
+Required properties:
+- compatible: "bitmain,tpu-1682"
+- compatible: "bitmain,tpu-1684"
+- reg: to simulate the 3 PCIe bars, here should also provide 3 register regions,
+       same as the PCIe bar mappings.
+- interrupts: CDMA interrupt number

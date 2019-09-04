@@ -27,16 +27,16 @@
 
 		ion_reserved: ion {
 			compatible = "ion-region";
-			size = <0x0 0x20000000>; // 512MB
+			size = <0x0 0x18000000>; // 384MB
 		};
 
 		jpu_reserved: jpu {
-			size = <0x0 0x08000000>; // 128M
+			size = <0x0 0x01000000>; // 16M
 			no-map;
 		};
 
 		vpu_reserved: vpu {
-			size = <0x0 0x08000000>; // 128M
+			size = <0x0 0x04000000>; // 64M
 			no-map;
 		};
 	};

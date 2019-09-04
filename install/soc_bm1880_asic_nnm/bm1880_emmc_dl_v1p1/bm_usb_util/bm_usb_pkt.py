@@ -13,7 +13,7 @@ rom_vidpid    = 'VID:PID=0559:1000'
 prg_vidpid    = 'VID:PID=30B1:1000'
 uboot_vidpid  = 'VID:PID=30B1:1001'
 verify_vidpid = 'VID:PID='
-kernel_acm_vidpid = 'VID:PID=30B1:1002'
+kernel_acm_vidpid = 'VID:PID=30B1:1003'
 kernel_libusb_vidpid = 'VID:PID=30B1:1003'
 
 SUCCESS = 0

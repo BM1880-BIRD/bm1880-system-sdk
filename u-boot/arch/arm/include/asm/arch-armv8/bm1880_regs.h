@@ -20,8 +20,19 @@
 #define BIT_TOP_SOFT_RST_SDIO   (1 << 14)
 #define BIT_TOP_SOFT_RST_NAND   (1 << 12)
 
+#define REG_TOP_USB_CTRSTS	(TOP_BASE + 0x38)
+
+#define REG_TOP_USB_PHY_CTRL		(TOP_BASE + 0x48)
+#define BIT_TOP_USB_PHY_CTRL_EXTVBUS	BIT(0)
+#define REG_TOP_DDR_ADDR_MODE		(TOP_BASE + 0x64)
+
 /* irq */
 #define IRQ_LEVEL   0
 #define IRQ_EDGE    3
+
+/* usb */
+#define USB_BASE            0x50080000
+#define USB_HOST_BASE       0x50090000
+#define USB_DEV_BASE        0x500A0000
 
 #endif

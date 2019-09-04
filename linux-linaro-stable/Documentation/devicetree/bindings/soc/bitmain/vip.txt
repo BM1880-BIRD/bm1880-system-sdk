@@ -1,0 +1,8 @@
+Bitmain vip driver
+
+This document describes the binding for the Bitmain vip.
+
+Required properties:
+- compatible: "bitmain,vip"
+- reg: vip register regions
+- interrupts: vip interrupt number

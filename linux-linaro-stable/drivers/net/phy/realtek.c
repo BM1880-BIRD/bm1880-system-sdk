@@ -33,6 +33,11 @@ MODULE_DESCRIPTION("Realtek PHY driver");
 MODULE_AUTHOR("Johnson Leung");
 MODULE_LICENSE("GPL");
 
+static int rtl_soft_reset(struct phy_device *phydev)
+{
+	return 0;
+}
+
 static int rtl821x_ack_interrupt(struct phy_device *phydev)
 {
 	int err;
@@ -168,6 +173,7 @@ static struct phy_driver realtek_drvs[] = {
 		.phy_id_mask	= 0x001fffff,
 		.features	= PHY_GBIT_FEATURES,
 		.flags		= PHY_HAS_INTERRUPT,
+		.soft_reset	= &rtl_soft_reset,
 		.config_aneg	= &genphy_config_aneg,
 		.config_init	= &rtl8211f_config_init,
 		.read_status	= &genphy_read_status,

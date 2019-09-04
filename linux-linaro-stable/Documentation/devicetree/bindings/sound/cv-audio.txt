@@ -1,0 +1,49 @@
+* BM1880 V2 I2S/PCM/TDM module
+
+Required properties:
+- compatible: "cv,i2s_tdm_subsys"
+- compatible: "cv,audio"
+- compatible: "cv,cv-i2s"
+- cv,model: The module name of bitmain platform.
+- cv,audio-codec: The codec used by BM1880 platform.
+- cv,i2s-controller: the i2s interface used by BM1880.
+- cv,codec-clock-rate: The clock rate.
+
+Example:
+
+	i2s_subsys {
+		compatible = "cv,i2s_tdm_subsys";
+		regbase = <0x04108000>;
+		sclk_fs_in_sel = <0x7654>;
+		sdi_in_sel = <0x7654>;
+		sdo_out_sel = <0x7654>;
+		multi_sync = <0x0000>;
+		bclk_oen_sel = <0x1>;
+	};
+
+
+	i2s0: i2s@04100000 {
+		compatible = "cv,cv-i2s";
+		reg = <0x0 0x04100000 0x0 0x2000>;
+		interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&i2s_mclk 0>;
+		clock-names = "i2sclk";
+		dev-id = <0>;
+		#sound-dai-cells = <0>;
+		dmas = <&dmac 0 1 1 /* read channel */
+			&dmac 1 1 1>; /* write channel */
+		dma-names = "rx", "tx";
+	};
+
+	sound {
+
+		compatible = "cv,audio";
+
+		cv,model = "CV1880";
+
+		cv,audio-codec = <&adau1372_1>;
+
+		cv,i2s-controller = <&i2s0>;
+
+		cv,codec-clock-rate = <12288000>;
+	}

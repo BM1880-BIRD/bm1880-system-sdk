@@ -6,7 +6,6 @@
 typedef  char CSC_TYPE;
 
 namespace cv { namespace vpp {
-
 /** @brief Resizes an image by vpp hardware accelerator.
 
 The function is hardware acceleartor version of cv::resize(Mat, Mat).
@@ -22,6 +21,23 @@ you may call the function as follows:
 src.size(), fx, and fy; the type of dst is as same as of src 
 */
 CV_EXPORTS void resize(Mat& src, Mat& dst);             //C++
+
+/** @brief Resizes an image by vpp hardware accelerator.
+
+The function is hardware acceleartor version of cv::resize(Mat, Mat, int).
+you may call the function as follows:
+@code
+    Mat src = imread("pic.jpg");
+    Mat dst(h, w, CV_8UC3);
+    vpp::resize(src, dst, method);
+@endcode
+
+@param src input image, can be Mat
+@param dst output image; it has the size dsize (when it is non-zero) or the size computed from
+src.size(), fx, and fy; the type of dst is as same as of src
+@param interpolation interpolation method, see VPP document
+*/
+CV_EXPORTS void resize(Mat& src, Mat& dst, int interpolation, void *param = NULL);             //C++
 
 /** @brief Python API: Resizes an image by vpp hardware accelerator.
 
@@ -41,6 +57,9 @@ src.size(), fx, and fy; the type of dst is UMat. If python need numpy array, dst
 */
 
 CV_EXPORTS_W void resize(InputArray _src, CV_OUT UMat& _dst);           //python
+
+CV_EXPORTS Mat crop_resize_border(Mat& src, int h, int w, int crop_x, int crop_y, int crop_w, int crop_h, int top, int bottom, int left, int right);
+CV_EXPORTS void crop_resize_border_split(Mat& src, int h, int w, int crop_x, int crop_y, int crop_w, int crop_h, int top, int bottom, int left, int right, Mat *dst);
 
 /** @brief draw border around source image by hardware accelerator
 The function is hardware acceleartor version cv::copyMakeBorder to draw border around source image. 
@@ -369,8 +388,8 @@ CV_EXPORTS void cvtColor1682(Mat& src, IplImage* img, int srcFmt, int dstFmt);
 #define ARGB32        3
 
 /*maximum and minimum image resolution BM1880 supported*/
-#define MAX_RESOLUTION_W    (1920)
-#define MAX_RESOLUTION_H    (1440)
+#define MAX_RESOLUTION_W    (2048)
+#define MAX_RESOLUTION_H    (2048)
 
 #define MIN_RESOLUTION_W_LINEAR    (8)    /*linear mode to linear mode*/
 #define MIN_RESOLUTION_H_LINEAR    (8)    /*linear mode to linear mode*/
@@ -402,6 +421,15 @@ CV_EXPORTS void cvtColor1682(Mat& src, IplImage* img, int srcFmt, int dstFmt);
 #define MIN_RESOLUTION_W_LINEAR    (8)    /*linear mode to linear mode*/
 #define MIN_RESOLUTION_H_LINEAR    (8)    /*linear mode to linear mode*/
 #endif
+
+enum _FILTER_TYPE_ {
+    FILTER_BILINEAR = 0,
+    FILTER_SCALE_UP1,
+    FILTER_SCALE_UP2,
+    FILTER_SCALE_DOWN1,
+    FILTER_SCALE_DOWN2,
+    FILTER_COEFF = 15,
+};
 
 enum csc_coe_type {
   Default = 0, YPbPr
@@ -469,5 +497,8 @@ struct vpp_batch {
 #define VPP_UPDATE_BATCH_SPLIT _IOWR('v', 0x03, unsigned long)
 #define VPP_UPDATE_BATCH_NON_CACHE _IOWR('v', 0x04, unsigned long)
 #define VPP_UPDATE_BATCH_CROP_TEST _IOWR('v', 0x05, unsigned long)
+#define VPP_GET_STATUS _IOWR('v', 0x06, unsigned long)
+#define VPP_TOP_RST _IOWR('v', 0x07, unsigned long)
+#define VPP_UPDATE_BATCH_VIDEO_FD_PA _IOWR('v', 0x08, unsigned long)
 
 #endif

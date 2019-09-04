@@ -35,9 +35,6 @@
 #include <linux/fs.h>
 #include <linux/eventfd.h>
 
-
-
-
 /*
  * This component encapsulates the TTY layer glue needed to provide basic
  * "serial port" functionality through the USB gadget stack.  Each such
@@ -92,45 +89,43 @@
  * (and thus for each /dev/ node).
  */
 struct gs_port {
-	struct tty_port		port;
-	spinlock_t		port_lock;	/* guard port_* access */
+	struct tty_port port;
+	spinlock_t port_lock;	/* guard port_* access */
 
-	struct bmserial		*port_usb;
+	struct bmserial *port_usb;
 
-	bool			openclose;	/* open/close in progress */
-	u8			port_num;
+	bool openclose;		/* open/close in progress */
+	u8 port_num;
 
-	struct list_head	read_pool;
+	struct list_head read_pool;
 	int read_started;
 	int read_allocated;
-	struct list_head	read_queue;
-	unsigned int		n_read;
-	struct tasklet_struct	push;
+	struct list_head read_queue;
+	unsigned int n_read;
+	struct tasklet_struct push;
 
-	struct list_head	write_pool;
+	struct list_head write_pool;
 	int write_started;
 	int write_allocated;
-	//struct gs_buf		port_write_buf;
-	wait_queue_head_t	drain_wait;	/* wait while writes drain */
-	bool                    write_busy;
-	wait_queue_head_t	close_wait;
+	//struct gs_buf         port_write_buf;
+	wait_queue_head_t drain_wait;	/* wait while writes drain */
+	bool write_busy;
+	wait_queue_head_t close_wait;
 
 	/* REVISIT this state ... */
 	struct usb_cdc_line_coding port_line_coding;	/* 8-N-1 etc */
 };
 
 static struct portmaster {
-	struct mutex	lock;			/* protect open/close */
-	struct gs_port	*port;
+	struct mutex lock;	/* protect open/close */
+	struct gs_port *port;
 } ports[MAX_U_SERIAL_PORTS];
-
-
 
 /*bitmain device node*/
 static struct class *bitmain_class;
 static struct device *bitmain_device_rx, *bitmain_device_tx;
 
-#define MAX_SIZE (1024 * 1024)   /* max size mmaped to userspace */
+#define MAX_SIZE (1024 * 1024)	/* max size mmaped to userspace */
 #define RX_DEVICE_NAME "bmusb_rx"
 #define TX_DEVICE_NAME "bmusb_tx"
 #define RX_CLASS_NAME "bitmain_usb_rx"
@@ -144,6 +139,7 @@ static DEFINE_MUTEX(bmusb_rx_mutex);
 static DEFINE_MUTEX(bmusb_tx_mutex);
 
 #define MAX_TRANSFER_LENGTH 65536
+#define timeout_value 1
 
 struct bm_serial_request {
 	struct usb_request *request;
@@ -159,6 +155,10 @@ struct usb_dev_state {
 	struct list_head async_completed;
 	struct list_head memory_list;
 	wait_queue_head_t wait;
+	int timeout_done;
+	struct timer_list timeout;
+	unsigned char val;
+	rwlock_t ioctl_lock;
 };
 
 struct async {
@@ -171,6 +171,13 @@ struct async {
 
 struct bm_serial_request *bm_request_rx;
 struct bm_serial_request *bm_request_tx;
+static struct timer_list timeout_rx;
+static struct timer_list timeout_tx;
+spinlock_t lock_rx;
+spinlock_t lock_tx;
+
+static int async_enable_tx;
+static int async_enable;
 
 static char flag = 'n';
 static char flag_tx = 'n';
@@ -268,7 +275,7 @@ gs_buf_put(struct gs_buf *gb, const char *buf, unsigned int count)
 {
 	unsigned int len;
 
-	len  = gs_buf_space_avail(gb);
+	len = gs_buf_space_avail(gb);
 	if (count > len)
 		count = len;
 
@@ -278,13 +285,13 @@ gs_buf_put(struct gs_buf *gb, const char *buf, unsigned int count)
 	len = gb->buf_buf + gb->buf_size - gb->buf_put;
 	if (count > len) {
 		memcpy(gb->buf_put, buf, len);
-		memcpy(gb->buf_buf, buf+len, count - len);
+		memcpy(gb->buf_buf, buf + len, count - len);
 		gb->buf_put = gb->buf_buf + count - len;
 	} else {
 		memcpy(gb->buf_put, buf, count);
 		if (count < len)
 			gb->buf_put += count;
-		else /* count == len */
+		else		/* count == len */
 			gb->buf_put = gb->buf_buf;
 	}
 
@@ -299,8 +306,7 @@ gs_buf_put(struct gs_buf *gb, const char *buf, unsigned int count)
  *
  * Return the number of bytes copied.
  */
-static unsigned int
-gs_buf_get(struct gs_buf *gb, char *buf, unsigned int count)
+static unsigned int gs_buf_get(struct gs_buf *gb, char *buf, unsigned int count)
 {
 	unsigned int len;
 
@@ -314,13 +320,13 @@ gs_buf_get(struct gs_buf *gb, char *buf, unsigned int count)
 	len = gb->buf_buf + gb->buf_size - gb->buf_get;
 	if (count > len) {
 		memcpy(buf, gb->buf_get, len);
-		memcpy(buf+len, gb->buf_buf, count - len);
+		memcpy(buf + len, gb->buf_buf, count - len);
 		gb->buf_get = gb->buf_buf + count - len;
 	} else {
 		memcpy(buf, gb->buf_get, count);
 		if (count < len)
 			gb->buf_get += count;
-		else /* count == len */
+		else		/* count == len */
 			gb->buf_get = gb->buf_buf;
 	}
 
@@ -337,8 +343,8 @@ gs_buf_get(struct gs_buf *gb, char *buf, unsigned int count)
  * Allocate a usb_request and its buffer.  Returns a pointer to the
  * usb_request or NULL if there is an error.
  */
-struct usb_request *
-bm_alloc_req(struct usb_ep *ep, unsigned int len, gfp_t kmalloc_flags)
+struct usb_request *bm_alloc_req(struct usb_ep *ep, unsigned int len,
+				 gfp_t kmalloc_flags)
 {
 	struct usb_request *req;
 
@@ -355,6 +361,7 @@ bm_alloc_req(struct usb_ep *ep, unsigned int len, gfp_t kmalloc_flags)
 
 	return req;
 }
+
 EXPORT_SYMBOL_GPL(bm_alloc_req);
 
 /*
@@ -367,24 +374,25 @@ void bm_free_req(struct usb_ep *ep, struct usb_request *req)
 	kfree(req->buf);
 	usb_ep_free_request(ep, req);
 }
+
 EXPORT_SYMBOL_GPL(bm_free_req);
 
 static void bm_read_complete(struct usb_ep *ep, struct usb_request *req)
 {
 	memcpy(&buffer_rx[bm_request_rx->actual_length], req->buf, req->actual);
 	bm_request_rx->actual_length = bm_request_rx->actual_length +
-		req->actual;
+	    req->actual;
 	if ((bm_request_rx->actual_length < bm_request_rx->request_length) &&
-		(req->actual != 0) && (req->actual % ep->maxpacket == 0)) {
+	    (req->actual != 0) && (req->actual % ep->maxpacket == 0)) {
 		req->length = bm_request_rx->request_length -
-			bm_request_rx->actual_length;
+		    bm_request_rx->actual_length;
 		if (req->length > MAX_TRANSFER_LENGTH)
 			req->length = MAX_TRANSFER_LENGTH;
 		if (req->status == 0)
 			usb_ep_queue(ep, req, GFP_ATOMIC);
 	} else {
-		wake_up_interruptible(&wq);
 		flag = 'y';
+		wake_up_interruptible(&wq);
 	}
 }
 
@@ -400,16 +408,15 @@ static void bm_write_complete(struct usb_ep *ep, struct usb_request *req)
 			usb_ep_queue(ep, req, GFP_ATOMIC);
 	} else {
 		req->req_map = 0;
-		//printk("write complete actual\n");
-		wake_up_interruptible(&wq_tx);
 		flag_tx = 'y';
+		wake_up_interruptible(&wq_tx);
 	}
 }
 
 static void bm_free_requests(struct usb_ep *ep, struct list_head *head,
-							 int *allocated)
+			     int *allocated)
 {
-	struct usb_request	*req;
+	struct usb_request *req;
 
 	while (!list_empty(head)) {
 		req = list_entry(head->next, struct usb_request, list);
@@ -420,18 +427,19 @@ static void bm_free_requests(struct usb_ep *ep, struct list_head *head,
 	}
 }
 
-static int bm_alloc_requests(struct usb_ep *ep, void (*fn)(struct usb_ep *,
-			struct usb_request *))
+static int bm_alloc_requests(struct usb_ep *ep, void (*fn) (struct usb_ep *,
+							    struct usb_request
+							    *))
 {
-	int			i;
-	struct usb_request	*req;
+	int i;
+	struct usb_request *req;
 
 	/* Pre-allocate up to QUEUE_SIZE transfers, but if we can't
 	 * do quite that many this time, don't fail ... we just won't
 	 * be as speedy as we might otherwise be.
 	 */
-		req = bm_alloc_req(ep, MAX_SIZE, GFP_ATOMIC);
-		req->complete = fn;
+	req = bm_alloc_req(ep, MAX_SIZE, GFP_ATOMIC);
+	req->complete = fn;
 	return 0;
 }
 
@@ -446,10 +454,10 @@ static int bm_alloc_requests(struct usb_ep *ep, void (*fn)(struct usb_ep *,
  */
 static int bm_start_io(struct gs_port *port)
 {
-	struct list_head	*head = &port->read_pool;
-	struct usb_ep		*ep = port->port_usb->out;
-	int			status;
-	unsigned int		started;
+	struct list_head *head = &port->read_pool;
+	struct usb_ep *ep = port->port_usb->out;
+	int status;
+	unsigned int started;
 
 	/* Allocate RX and TX I/O buffers.  We can't easily do this much
 	 * earlier (with GFP_KERNEL) because the requests are coupled to
@@ -534,14 +542,85 @@ static int reap_as(struct usb_dev_state *ps)
 	return as;
 }
 
+static void bmusb_timeout(unsigned long arg)
+{
+	struct usb_dev_state *ps = (struct usb_dev_state *)arg;
+	unsigned long flags;
+
+	spin_lock_irqsave(&ps->lock, flags);
+
+	ps->timeout_done = 1;
+	if (flag == 'n')
+		wake_up(&ps->wait);
+	spin_unlock_irqrestore(&ps->lock, flags);
+}
+
+static void bmusb_timeout_tx(unsigned long arg)
+{
+	struct usb_dev_state *ps_tx = (struct usb_dev_state *)arg;
+	unsigned long flags;
+
+	spin_lock_irqsave(&ps_tx->lock, flags);
+
+	ps_tx->timeout_done = 1;
+	wake_up(&ps_tx->wait);
+	spin_unlock_irqrestore(&ps_tx->lock, flags);
+}
+
+static void bmusb_timeout_read(unsigned long arg)
+{
+	struct usb_dev_state *ps = (struct usb_dev_state *)arg;
+	unsigned long flags;
+	struct usb_ep *out = ports[0].port->port_usb->out;
+
+	spin_lock_irqsave(&lock_rx, flags);
+
+	if (flag == 'n') {
+		if (bm_request_rx->complete != 1000) {
+			usb_ep_dequeue(out, bm_request_rx->request);
+			flag = 'y';
+			wake_up_interruptible(&wq);
+			memset(buffer_rx, 0, MAX_TRANSFER_LENGTH);
+		}
+	}
+
+	spin_unlock_irqrestore(&lock_rx, flags);
+}
+
+static void bmusb_timeout_write(unsigned long arg)
+{
+	struct usb_dev_state *ps = (struct usb_dev_state *)arg;
+	unsigned long flags;
+	struct usb_ep *in = ports[0].port->port_usb->in;
+
+	spin_lock_irqsave(&lock_tx, flags);
+
+	if (flag_tx == 'n') {
+		if (bm_request_tx->complete != 2000) {
+			usb_ep_dequeue(in, bm_request_tx->request);
+			flag_tx = 'y';
+			wake_up_interruptible(&wq_tx);
+		}
+	}
+	spin_unlock_irqrestore(&lock_tx, flags);
+}
+
 /*bitmain usb file operation*/
 
 /*  executed once the device is closed or releaseed by userspace
  *  @param inodep: pointer to struct inode
  *  @param filep: pointer to struct file
  */
-static int bmusbrx_release(struct inode *inodep, struct file *filep)
+static int bmusbrx_release(struct inode *inodep, struct file *filp)
 {
+	if (async_enable == 1) {
+		struct usb_dev_state *ps = filp->private_data;
+
+		if (ps) {
+			del_timer_sync(&ps->timeout);
+			kfree(ps);
+		}
+	}
 	mutex_unlock(&bmusb_rx_mutex);
 	return 0;
 }
@@ -549,12 +628,12 @@ static int bmusbrx_release(struct inode *inodep, struct file *filep)
 /* executed once the device is opened.
  *
  */
-static int bmusbrx_open(struct inode *inodep, struct file *filep)
+static int bmusbrx_open(struct inode *inodep, struct file *filp)
 {
 	int ret = 0;
 	struct usb_dev_state *ps;
 
-	ps = kzalloc(sizeof(struct usb_dev_state), GFP_KERNEL);
+	ps = kmalloc(sizeof(struct usb_dev_state), GFP_KERNEL);
 
 	if (!mutex_trylock(&bmusb_rx_mutex)) {
 		pr_alert("bmusbrx_mmap: device busy!\n");
@@ -563,24 +642,28 @@ static int bmusbrx_open(struct inode *inodep, struct file *filep)
 	}
 
 	spin_lock_init(&ps->lock);
+	spin_lock_init(&lock_rx);
+	rwlock_init(&ps->ioctl_lock);
+	ps->val = 0xFF;
 	INIT_LIST_HEAD(&ps->async_completed);
-	init_waitqueue_head(&ps->wait);
-
+	async_enable = 0;
+	filp->private_data = ps;
 	pr_info("bmusbrx_mmap: Device opened\n");
 
 out:
 	return ret;
 }
 
-static unsigned int bmusbrx_poll(struct file *filp,
-				 struct poll_table_struct *wait)
+static unsigned int bmusbrx_poll(struct file *filp, poll_table *wait)
 {
 	struct usb_dev_state *ps = filp->private_data;
 	unsigned int mask = 0;
 
 	poll_wait(filp, &ps->wait, wait);
-	if (filp->f_mode & FMODE_READ && !list_empty(&ps->async_completed))
-		mask |= POLLIN;  //mask |= POLLIN | POLLWRNORM;
+	if ((filp->f_mode & FMODE_READ) && (flag == 'n'))
+		mask |= POLLIN;	//mask |= POLLIN | POLLWRNORM;
+	else
+		mask |= POLLERR;
 	if (list_empty(&ps->list))
 		mask |= POLLERR;
 	return mask;
@@ -589,40 +672,53 @@ static unsigned int bmusbrx_poll(struct file *filp,
 
 static int bmusbrx_flush(struct file *filp, fl_owner_t id)
 {
-	struct usb_ep		*out = ports[0].port->port_usb->out;
+	struct usb_ep *out = ports[0].port->port_usb->out;
 
 	if (bm_request_rx->complete != 1000) {
 		if (!bm_request_rx->request) {
 			usb_ep_dequeue(out, bm_request_rx->request);
-			wake_up_interruptible(&wq);
 			flag = 'y';
+			wake_up_interruptible(&wq);
 		}
 	}
 
 }
 
-static ssize_t bmusbrx_read(struct file *filep, char *buffer, size_t len, loff_t
-		*offset)
+static ssize_t bmusbrx_read(struct file *filp, char *buffer, size_t len, loff_t
+			*offset)
 {
 	int ret;
-	struct usb_ep		*out = ports[0].port->port_usb->out;
+	struct usb_ep *out = NULL;
 	int i;
 
-	if (len > MAX_SIZE) {
-		pr_err("%s len 0x%lx > MAX_SIZE 0x%lx\n", __func__, len, MAX_SIZE);
+	if (ports[0].port && ports[0].port->port_usb)
+		out = ports[0].port->port_usb->out;
+	else {
+		pr_err("%s port is empty\n", __func__);
 		ret = -EFAULT;
 		goto out;
 	}
-	//bm_request_rx->request = usb_ep_alloc_request(out, GFP_KERNEL);
-	//bm_request_rx->request->buf = kmalloc(MAX_TRANSFER_LENGTH, GFP_KERNEL);
+
+	struct usb_dev_state *ps = filp->private_data;
+
+	if (len > MAX_SIZE) {
+		pr_err("%s len 0x%lx > MAX_SIZE 0x%lx\n", __func__, len,
+		       MAX_SIZE);
+		ret = -EFAULT;
+		goto out;
+	}
 	bm_request_rx->request->complete = bm_read_complete;
 	bm_request_rx->request->actual = 0;
 	bm_request_rx->request_length = len;
 	bm_request_rx->actual_length = 0;
 	bm_request_rx->complete = 0;
+	ps->timeout_done = 0;
+	if (async_enable == 1)
+		mod_timer(&timeout_rx, jiffies + timeout_value * HZ);
 
 	if (bm_request_rx->request->buf == NULL) {
-		pr_err("%s request (%p)->buf allocation fail\n", __func__, bm_request_rx->request);
+		pr_err("%s request (%p)->buf allocation fail\n", __func__,
+		       bm_request_rx->request);
 		ret = -ENOMEM;
 		goto out;
 	}
@@ -641,26 +737,79 @@ static ssize_t bmusbrx_read(struct file *filep, char *buffer, size_t len, loff_t
 	if (copy_to_user(buffer, buffer_rx, len) == 0)
 		ret = bm_request_rx->actual_length;
 	else
-		ret =  -EFAULT;
+		ret = -EFAULT;
 
 	bm_request_rx->complete = 1000;
 	if (flag == 'n')
 		usb_ep_dequeue(out, bm_request_rx->request);
 	flag = 'n';
-	//kfree(buffer_rx);
-	//bm_free_req(out, bm_request_rx->request);
-
 
 out:
 	return ret;
 }
 
-static ssize_t bmusbrx_write(struct file *filep, const char *buffer, size_t len,
-		loff_t *offset)
+static ssize_t bmusbrx_write(struct file *filp, const char *buffer, size_t len,
+			loff_t *offset)
 {
 	return 0;
 }
 
+static long bmusbrx_ioctl(struct file *filp, unsigned int cmd,
+			  unsigned long arg)
+{
+	struct usb_dev_state *ioctl_data = filp->private_data;
+	int retval;
+	unsigned char val;
+	struct ioctl_arg data;
+
+	memset(&data, 0, sizeof(data));
+	switch (cmd) {
+	case IOCTL_VALSET:
+		if (copy_from_user(&data, (int __user *)arg, sizeof(data))) {
+			retval = -EFAULT;
+			goto done;
+		}
+		write_lock(&ioctl_data->ioctl_lock);
+		ioctl_data->val = data.val;
+		write_unlock(&ioctl_data->ioctl_lock);
+		break;
+	case IOCTL_VALGET:
+		read_lock(&ioctl_data->ioctl_lock);
+		val = ioctl_data->val;
+		read_unlock(&ioctl_data->ioctl_lock);
+		data.val = val;
+
+		if (copy_to_user((int __user *)arg, &data, sizeof(data))) {
+			retval = -EFAULT;
+			goto done;
+		}
+
+		break;
+
+	case IOCTL_VALGET_NUM:
+		retval = __put_user(async_enable, (int __user *)arg);
+		break;
+	case IOCTL_VALSET_NUM:
+		async_enable = arg;
+		if (async_enable == 1) {
+			init_waitqueue_head(&ioctl_data->wait);
+			init_timer(&ioctl_data->timeout);
+			ioctl_data->timeout.function = bmusb_timeout;
+			ioctl_data->timeout.data = (unsigned long)ioctl_data;
+			ioctl_data->timeout_done = 0;
+			mod_timer(&ioctl_data->timeout,
+				  jiffies + timeout_value * HZ);
+			setup_timer(&timeout_rx, bmusb_timeout_read, 0);
+		}
+
+		break;
+	default:
+		retval = -ENOTTY;
+	}
+
+done:
+	return retval;
+}
 
 static const struct file_operations bmusbrx_fops = {
 	.open = bmusbrx_open,
@@ -669,7 +818,7 @@ static const struct file_operations bmusbrx_fops = {
 	.release = bmusbrx_release,
 	.poll = bmusbrx_poll,
 	.flush = bmusbrx_flush,
-	/*.unlocked_ioctl = mchar_ioctl,*/
+	.unlocked_ioctl = bmusbrx_ioctl,
 	.owner = THIS_MODULE,
 };
 
@@ -689,13 +838,13 @@ static int bmusbtx_release(struct inode *inodep, struct file *filep)
 /* executed once the device is opened.
  *
  */
-static int bmusbtx_open(struct inode *inodep, struct file *filep)
+static int bmusbtx_open(struct inode *inodep, struct file *filp)
 {
 	int ret = 0;
-	struct list_head	*head = &ports[0].port->read_pool;
-	struct usb_ep		*out = ports[0].port->port_usb->out;
-	struct usb_ep		*in  = ports[0].port->port_usb->in;
-	int			status;
+	int status;
+	struct usb_dev_state *ps_tx;
+
+	ps_tx = kmalloc(sizeof(struct usb_dev_state), GFP_KERNEL);
 
 	if (!mutex_trylock(&bmusb_tx_mutex)) {
 		pr_alert("bmusbtx_mmap: device busy!\n");
@@ -703,23 +852,88 @@ static int bmusbtx_open(struct inode *inodep, struct file *filep)
 		goto out;
 	}
 
-	pr_info("bmusbtx_mmap: Device opened\n");
+	spin_lock_init(&ps_tx->lock);
+	spin_lock_init(&lock_tx);
+	INIT_LIST_HEAD(&ps_tx->async_completed);
+	rwlock_init(&ps_tx->ioctl_lock);
+	ps_tx->val = 0xFF;
+	async_enable_tx = 0;
+	filp->private_data = ps_tx;
+	pr_info("bmusbtx: Device opened\n");
 
 out:
 	return ret;
 }
 
-
-static unsigned int bmusbtx_poll(struct file *filp, struct poll_table_struct *wait)
+static long bmusbtx_ioctl(struct file *filp, unsigned int cmd,
+			  unsigned long arg)
 {
-	struct usb_dev_state *ps = filp->private_data;
+	struct usb_dev_state *ioctl_data = filp->private_data;
+	int retval;
+	unsigned char val;
+	struct ioctl_arg data;
+
+	memset(&data, 0, sizeof(data));
+	switch (cmd) {
+	case IOCTL_VALSET:
+		if (copy_from_user(&data, (int __user *)arg, sizeof(data))) {
+			retval = -EFAULT;
+			goto done;
+		}
+		write_lock(&ioctl_data->ioctl_lock);
+		ioctl_data->val = data.val;
+		write_unlock(&ioctl_data->ioctl_lock);
+
+		break;
+	case IOCTL_VALGET:
+		read_lock(&ioctl_data->ioctl_lock);
+		val = ioctl_data->val;
+		read_unlock(&ioctl_data->ioctl_lock);
+		data.val = val;
+
+		if (copy_to_user((int __user *)arg, &data, sizeof(data))) {
+			retval = -EFAULT;
+			goto done;
+		}
+
+		break;
+
+	case IOCTL_VALGET_NUM:
+		retval = __put_user(async_enable_tx, (int __user *)arg);
+		break;
+	case IOCTL_VALSET_NUM:
+		async_enable_tx = arg;
+		if (async_enable_tx == 1) {
+			init_waitqueue_head(&ioctl_data->wait);
+			init_timer(&ioctl_data->timeout);
+			ioctl_data->timeout.function = bmusb_timeout_tx;
+			ioctl_data->timeout.data = (unsigned long)ioctl_data;
+			ioctl_data->timeout_done = 0;
+			mod_timer(&ioctl_data->timeout,
+				  jiffies + timeout_value * HZ);
+			setup_timer(&timeout_tx, bmusb_timeout_write, 0);
+		}
+		break;
+	default:
+		retval = -ENOTTY;
+	}
+
+done:
+	return retval;
+}
+
+static unsigned int bmusbtx_poll(struct file *filp, poll_table *wait)
+{
+	struct usb_dev_state *ps_tx = filp->private_data;
 	unsigned int mask = 0;
 
-	poll_wait(filp, &ps->wait, wait);
-	//if (ps->flag == 1)
-	if (filp->f_mode & FMODE_WRITE && !list_empty(&ps->async_completed))
-		mask |= POLLOUT | POLLWRNORM;  //mask |= POLLOUT | POLLWRNORM;
-	if (list_empty(&ps->list))
+	poll_wait(filp, &ps_tx->wait, wait);
+	if ((filp->f_mode & FMODE_WRITE) && (flag_tx == 'n'))
+		mask |= POLLOUT;
+	else
+		mask |= POLLERR;
+
+	if (list_empty(&ps_tx->list))
 		mask |= POLLERR;
 	return mask;
 
@@ -727,37 +941,40 @@ static unsigned int bmusbtx_poll(struct file *filp, struct poll_table_struct *wa
 
 static int bmusbtx_flush(struct file *filp, fl_owner_t id)
 {
-	struct usb_ep		*in = ports[0].port->port_usb->in;
+	struct usb_ep *in = ports[0].port->port_usb->in;
 
 	if (bm_request_tx->complete != 2000) {
 		if (!bm_request_tx->request) {
 			usb_ep_dequeue(in, bm_request_tx->request);
-			wake_up_interruptible(&wq_tx);
 			flag_tx = 'y';
+			wake_up_interruptible(&wq_tx);
 		}
 	}
 }
 
 static ssize_t bmusbtx_read(struct file *filep, char *buffer, size_t len, loff_t
-		*offset)
+			*offset)
 {
 	return 0;
 }
 
 static ssize_t bmusbtx_write(struct file *filep, const char *buffer, size_t len,
-		loff_t *offset)
+			loff_t *offset)
 {
 	int ret;
 	int i;
 
-	//struct usb_request	*req;
-	struct usb_ep		*in;
+	struct usb_ep *in;
+	struct usb_dev_state *ps_tx;
 
-	in = ports[0].port->port_usb->in;
+	if (ports[0].port && ports[0].port->port_usb)
+		in = ports[0].port->port_usb->in;
+	else {
+		pr_err("%s port is empty\n", __func__);
+		ret = -EFAULT;
+		goto out;
+	}
 
-
-	//bm_request_tx->request = usb_ep_alloc_request(in, GFP_ATOMIC);
-	//bm_request_tx->request->buf = kmalloc(MAX_SIZE, GFP_KERNEL);
 	bm_request_tx->request->complete = bm_write_complete;
 	bm_request_tx->complete = 0;
 
@@ -771,6 +988,8 @@ static ssize_t bmusbtx_write(struct file *filep, const char *buffer, size_t len,
 	ret = len;
 	bm_request_tx->request->actual = len;
 	bm_request_tx->request->req_map = 0;
+	if (async_enable_tx == 1)
+		mod_timer(&timeout_tx, jiffies + timeout_value * HZ);
 
 	if (len > MAX_TRANSFER_LENGTH)
 		bm_request_tx->request->length = MAX_TRANSFER_LENGTH;
@@ -785,7 +1004,6 @@ static ssize_t bmusbtx_write(struct file *filep, const char *buffer, size_t len,
 
 	bm_request_tx->complete = 2000;
 	flag_tx = 'n';
-	//bm_free_req(in, bm_request_tx->request);
 
 out:
 	return ret;
@@ -798,24 +1016,24 @@ static const struct file_operations bmusbtx_fops = {
 	.release = bmusbtx_release,
 	.poll = bmusbtx_poll,
 	.flush = bmusbtx_flush,
-	/*.unlocked_ioctl = mchar_ioctl,*/
+	.unlocked_ioctl = bmusbtx_ioctl,
 	.owner = THIS_MODULE,
 };
+
 static ssize_t rx_state_show(struct device *pdev, struct device_attribute *attr,
-							char *buf)
+			     char *buf)
 {
 	return 0;
 }
 
 static ssize_t tx_state_store(struct device *dev, struct device_attribute *attr,
-		const char *buf, size_t count)
+			      const char *buf, size_t count)
 {
 	return 0;
 }
 
 static DEVICE_ATTR(rx_state, 0444, rx_state_show, NULL);
-static DEVICE_ATTR(tx_state,  0200, NULL, tx_state_store);
-
+static DEVICE_ATTR(tx_state, 0200, NULL, tx_state_store);
 
 static int bm_device_create(struct bmserial *gser)
 {
@@ -823,7 +1041,8 @@ static int bm_device_create(struct bmserial *gser)
 
 	/* RX device init */
 	bitmain_device_rx = device_create(bitmain_class, NULL,
-				MKDEV(rx_major, 0), NULL, RX_DEVICE_NAME);
+					  MKDEV(rx_major, 0), NULL,
+					  RX_DEVICE_NAME);
 	if (IS_ERR(bitmain_device_rx))
 		return PTR_ERR(bitmain_device_rx);
 
@@ -832,23 +1051,23 @@ static int bm_device_create(struct bmserial *gser)
 	err = device_create_file(bitmain_device_rx, &dev_attr_rx_state);
 	if (err) {
 		device_destroy(bitmain_device_rx->class,
-			bitmain_device_rx->devt);
+			       bitmain_device_rx->devt);
 		return err;
 	}
 
-	/*TX device init*/
+	/*TX device init */
 	bitmain_device_tx = device_create(bitmain_class, NULL,
-				MKDEV(tx_major, 0), NULL, TX_DEVICE_NAME);
+					  MKDEV(tx_major, 0), NULL,
+					  TX_DEVICE_NAME);
 	if (IS_ERR(bitmain_device_tx))
 		return PTR_ERR(bitmain_device_tx);
 
 	dev_set_drvdata(bitmain_device_tx, gser->in->driver_data);
 
-
 	err = device_create_file(bitmain_device_tx, &dev_attr_tx_state);
 	if (err) {
 		device_destroy(bitmain_device_tx->class,
-			bitmain_device_tx->devt);
+			       bitmain_device_tx->devt);
 		return err;
 	}
 
@@ -865,11 +1084,10 @@ static void bitmain_device_destroy(void)
 
 }
 
-static int
-bm_port_alloc(u8 port_num, struct usb_cdc_line_coding *coding)
+static int bm_port_alloc(u8 port_num, struct usb_cdc_line_coding *coding)
 {
-	struct gs_port	*port;
-	int		ret = 0;
+	struct gs_port *port;
+	int ret = 0;
 
 	mutex_lock(&ports[port_num].lock);
 	if (ports[port_num].port) {
@@ -901,12 +1119,20 @@ out:
 	return ret;
 }
 
+static void bm_free_port(struct gs_port *port)
+{
+	/* wait for old opens to finish */
+	WARN_ON(port->port_usb != NULL);
+	tty_port_destroy(&port->port);
+	kfree(port);
+}
+
 int bmserial_alloc_line(unsigned char *line_num)
 {
-	struct usb_cdc_line_coding	coding;
-	struct device			*tty_dev;
-	int				ret;
-	u8				port_num;
+	struct usb_cdc_line_coding coding;
+	struct device *tty_dev;
+	int ret;
+	u8 port_num;
 
 	coding.dwDTERate = cpu_to_le32(9600);
 	coding.bCharFormat = 8;
@@ -931,7 +1157,26 @@ int bmserial_alloc_line(unsigned char *line_num)
 err:
 	return ret;
 }
+
 EXPORT_SYMBOL_GPL(bmserial_alloc_line);
+
+void bmserial_free_line(unsigned char port_num)
+{
+	struct gs_port *port;
+
+	mutex_lock(&ports[port_num].lock);
+	if (WARN_ON(!ports[port_num].port)) {
+		mutex_unlock(&ports[port_num].lock);
+		return;
+	}
+	port = ports[port_num].port;
+	ports[port_num].port = NULL;
+	mutex_unlock(&ports[port_num].lock);
+
+	bm_free_port(port);
+}
+
+EXPORT_SYMBOL_GPL(bmserial_free_line);
 
 /**
  * bmserial_connect - notify TTY I/O glue that USB link is active
@@ -956,12 +1201,10 @@ EXPORT_SYMBOL_GPL(bmserial_alloc_line);
  */
 int bmserial_connect(struct bmserial *gser, u8 port_num)
 {
-	struct gs_port	*port;
-	unsigned long	flags;
-	int		status;
+	struct gs_port *port;
+	unsigned long flags;
+	int status;
 	int ret;
-	//struct usb_ep		*in = ports[0].port->port_usb->in;
-	//struct usb_ep		*out = ports[0].port->port_usb->out;
 
 	if (port_num >= MAX_U_SERIAL_PORTS)
 		return -ENXIO;
@@ -999,8 +1242,8 @@ int bmserial_connect(struct bmserial *gser, u8 port_num)
 		}
 
 		bitmain_class = class_create(THIS_MODULE, RX_CLASS_NAME);
-			if (IS_ERR(bitmain_class))
-				return PTR_ERR(bitmain_class);
+		if (IS_ERR(bitmain_class))
+			return PTR_ERR(bitmain_class);
 
 		if (bm_device_create(gser) < 0)
 			ret = -1;
@@ -1011,21 +1254,22 @@ int bmserial_connect(struct bmserial *gser, u8 port_num)
 					GFP_KERNEL);
 		buffer_rx = vmalloc(MAX_SIZE);
 		if ((bm_request_tx == NULL) ||
-			(bm_request_rx == NULL) ||
-			(buffer_rx == NULL)) {
+		    (bm_request_rx == NULL) || (buffer_rx == NULL)) {
 			pr_err("%s resource allocation fail\n", __func__);
 			status = ENOMEM;
 			goto fail_out;
 		}
-		bm_request_tx->request = usb_ep_alloc_request(gser->in, GFP_KERNEL);
+		bm_request_tx->request =
+		    usb_ep_alloc_request(gser->in, GFP_KERNEL);
 		bm_request_tx->request->buf = kmalloc(MAX_SIZE, GFP_KERNEL);
 
-		bm_request_rx->request = usb_ep_alloc_request(gser->out, GFP_KERNEL);
-		bm_request_rx->request->buf = kmalloc(MAX_TRANSFER_LENGTH, GFP_KERNEL);
+		bm_request_rx->request =
+		    usb_ep_alloc_request(gser->out, GFP_KERNEL);
+		bm_request_rx->request->buf =
+		    kmalloc(MAX_TRANSFER_LENGTH, GFP_KERNEL);
 
 		create_complete = 1;
 	}
-
 #if 1
 	/* then tell the tty glue that I/O can work */
 	//spin_lock_irqsave(&port->port_lock, flags);
@@ -1060,6 +1304,7 @@ fail_out:
 	usb_ep_disable(gser->in);
 	return status;
 }
+
 EXPORT_SYMBOL_GPL(bmserial_connect);
 /**
  * bmserial_disconnect - notify TTY I/O glue that USB link is inactive
@@ -1074,16 +1319,20 @@ EXPORT_SYMBOL_GPL(bmserial_connect);
  */
 void bmserial_disconnect(struct bmserial *gser)
 {
+	struct gs_port *port = gser->ioport;
+
+	port->port_usb = NULL;
+	gser->ioport = NULL;
 	/* disable endpoints, aborting down any active I/O */
 	usb_ep_disable(gser->out);
 	usb_ep_disable(gser->in);
-
 }
+
 EXPORT_SYMBOL_GPL(bmserial_disconnect);
 
 static int bmserial_init(void)
 {
-	int	status;
+	int status;
 	int i;
 
 	for (i = 0; i < MAX_U_SERIAL_PORTS; i++)
@@ -1092,14 +1341,13 @@ static int bmserial_init(void)
 	create_complete = 0;
 	return status;
 }
+
 module_init(bmserial_init);
 
 static void bmserial_cleanup(void)
 {
-	device_destroy(bitmain_device_rx->class,
-			bitmain_device_rx->devt);
-	device_destroy(bitmain_device_tx->class,
-			bitmain_device_tx->devt);
+	device_destroy(bitmain_device_rx->class, bitmain_device_rx->devt);
+	device_destroy(bitmain_device_tx->class, bitmain_device_tx->devt);
 	if (!IS_ERR(bitmain_class))
 		class_destroy(bitmain_class);
 
@@ -1108,6 +1356,7 @@ static void bmserial_cleanup(void)
 	unregister_chrdev(rx_major, RX_DEVICE_NAME);
 	unregister_chrdev(tx_major, TX_DEVICE_NAME);
 }
+
 module_exit(bmserial_cleanup);
 
 MODULE_LICENSE("GPL");

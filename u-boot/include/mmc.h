@@ -52,12 +52,63 @@
 #define MMC_VERSION_5_0		MAKE_MMC_VERSION(5, 0, 0)
 #define MMC_VERSION_5_1		MAKE_MMC_VERSION(5, 1, 0)
 
-#define MMC_MODE_HS		(1 << 0)
-#define MMC_MODE_HS_52MHz	(1 << 1)
-#define MMC_MODE_4BIT		(1 << 2)
-#define MMC_MODE_8BIT		(1 << 3)
-#define MMC_MODE_SPI		(1 << 4)
-#define MMC_MODE_DDR_52MHz	(1 << 5)
+#ifdef CONFIG_MMC_HS200_SUPPORT
+enum bus_mode {
+	MMC_LEGACY,
+	SD_LEGACY,
+	MMC_HS,
+	SD_HS,		//3
+	MMC_HS_52,
+	MMC_DDR_52,
+	UHS_SDR12,
+	UHS_SDR25,	//7
+	UHS_SDR50,
+	UHS_DDR50,
+	UHS_SDR104,
+	MMC_HS_200,	//11
+	MMC_HS_400,
+	MMC_MODES_END
+};
+
+static inline bool mmc_is_mode_ddr(enum bus_mode mode)
+{
+	if (mode == MMC_DDR_52)
+		return true;
+#if CONFIG_IS_ENABLED(MMC_UHS_SUPPORT)
+	else if (mode == UHS_DDR50)
+		return true;
+#endif
+#if CONFIG_IS_ENABLED(MMC_HS400_SUPPORT)
+	else if (mode == MMC_HS_400)
+		return true;
+#endif
+	else
+		return false;
+}
+
+#define MMC_CAP(mode)		BIT(mode)
+#define MMC_MODE_HS		(MMC_CAP(MMC_HS) | MMC_CAP(SD_HS))
+#define MMC_MODE_HS_52MHz	MMC_CAP(MMC_HS_52)
+#define MMC_MODE_DDR_52MHz	MMC_CAP(MMC_DDR_52)
+#define MMC_MODE_HS200		MMC_CAP(MMC_HS_200)
+#define MMC_MODE_HS400		MMC_CAP(MMC_HS_400)
+
+#define MMC_MODE_8BIT		BIT(30)
+#define MMC_MODE_4BIT		BIT(29)
+#define MMC_MODE_1BIT		BIT(28)
+#define MMC_MODE_SPI		BIT(27)
+
+#else
+#define MMC_MODE_HS			BIT(0)
+#define MMC_MODE_HS_52MHz	BIT(1)
+#define MMC_MODE_4BIT		BIT(2)
+#define MMC_MODE_8BIT		BIT(3)
+#define MMC_MODE_SPI		BIT(4)
+#define MMC_MODE_DDR_52MHz	BIT(5)
+#define MMC_MODE_HS200		BIT(6)
+#define MMC_MODE_1BIT		BIT(7)
+
+#endif
 
 #define SD_DATA_4BIT	0x00040000
 
@@ -82,6 +133,8 @@
 #define MMC_CMD_SET_BLOCKLEN		16
 #define MMC_CMD_READ_SINGLE_BLOCK	17
 #define MMC_CMD_READ_MULTIPLE_BLOCK	18
+#define MMC_CMD_SEND_TUNING_BLOCK		19
+#define MMC_CMD_SEND_TUNING_BLOCK_HS200	21
 #define MMC_CMD_SET_BLOCK_COUNT         23
 #define MMC_CMD_WRITE_SINGLE_BLOCK	24
 #define MMC_CMD_WRITE_MULTIPLE_BLOCK	25
@@ -206,11 +259,25 @@
 #define EXT_CSD_CARD_TYPE_DDR_52	(EXT_CSD_CARD_TYPE_DDR_1_8V \
 					| EXT_CSD_CARD_TYPE_DDR_1_2V)
 
+#define EXT_CSD_CARD_TYPE_HS200_1_8V	BIT(4)
+#define EXT_CSD_CARD_TYPE_HS200_1_2V	BIT(5)
+#define EXT_CSD_CARD_TYPE_HS200		(EXT_CSD_CARD_TYPE_HS200_1_8V \
+					| EXT_CSD_CARD_TYPE_HS200_1_2V)
+
+#define EXT_CSD_HS_TIMING_HIGH_SPEED	1
+#define EXT_CSD_HS_TIMING_HS200		2
+
 #define EXT_CSD_BUS_WIDTH_1	0	/* Card is in 1 bit mode */
 #define EXT_CSD_BUS_WIDTH_4	1	/* Card is in 4 bit mode */
 #define EXT_CSD_BUS_WIDTH_8	2	/* Card is in 8 bit mode */
 #define EXT_CSD_DDR_BUS_WIDTH_4	5	/* Card is in 4 bit DDR mode */
 #define EXT_CSD_DDR_BUS_WIDTH_8	6	/* Card is in 8 bit DDR mode */
+#define EXT_CSD_DDR_FLAG	BIT(2)	/* Flag for DDR mode */
+
+#define EXT_CSD_TIMING_LEGACY	0	/* no high speed */
+#define EXT_CSD_TIMING_HS	1	/* HS */
+#define EXT_CSD_TIMING_HS200	2	/* HS200 */
+#define EXT_CSD_TIMING_HS400	3	/* HS400 */
 
 #define EXT_CSD_BOOT_ACK_ENABLE			(1 << 6)
 #define EXT_CSD_BOOT_PARTITION_ENABLE		(1 << 3)
@@ -244,6 +311,12 @@
 #define MMC_RSP_BUSY	(1 << 3)		/* card may send busy */
 #define MMC_RSP_OPCODE	(1 << 4)		/* response contains opcode */
 
+#define MMC_CMD_MASK	(3 << 5)		/* non-SPI command type */
+#define MMC_CMD_AC	(0 << 5)
+#define MMC_CMD_ADTC	BIT(5)
+#define MMC_CMD_BC	(2 << 5)
+#define MMC_CMD_BCR	(3 << 5)
+
 #define MMC_RSP_NONE	(0)
 #define MMC_RSP_R1	(MMC_RSP_PRESENT|MMC_RSP_CRC|MMC_RSP_OPCODE)
 #define MMC_RSP_R1b	(MMC_RSP_PRESENT|MMC_RSP_CRC|MMC_RSP_OPCODE| \
@@ -260,6 +333,20 @@
 #define PART_SUPPORT		(0x1)
 #define ENHNCD_SUPPORT		(0x2)
 #define PART_ENH_ATTRIB		(0x1f)
+
+#define MMC_QUIRK_RETRY_SEND_CID	BIT(0)
+#define MMC_QUIRK_RETRY_SET_BLOCKLEN	BIT(1)
+
+enum mmc_voltage {
+	MMC_SIGNAL_VOLTAGE_000 = 0,
+	MMC_SIGNAL_VOLTAGE_120 = 1,
+	MMC_SIGNAL_VOLTAGE_180 = 2,
+	MMC_SIGNAL_VOLTAGE_330 = 4,
+};
+
+#define MMC_ALL_SIGNAL_VOLTAGE (MMC_SIGNAL_VOLTAGE_120 |\
+				MMC_SIGNAL_VOLTAGE_180 |\
+				MMC_SIGNAL_VOLTAGE_330)
 
 /* Maximum block size for MMC */
 #define MMC_MAX_BLOCK_LEN	512
@@ -357,6 +444,16 @@ struct dm_mmc_ops {
 	 * @return 0 if write-enabled, 1 if write-protected, -ve on error
 	 */
 	int (*get_wp)(struct udevice *dev);
+
+	/**
+	 * execute_tuning() - Start the tuning process
+	 *
+	 * @dev:	Device to start the tuning
+	 * @opcode: Command opcode to send
+	 * @return 0 if OK, -ve on error
+	 */
+	int (*execute_tuning)(struct udevice *dev, uint opcode);
+
 };
 
 #define mmc_get_ops(dev)        ((struct dm_mmc_ops *)(dev)->driver->ops)
@@ -419,7 +516,9 @@ struct mmc {
 	int high_capacity;
 	uint bus_width;
 	uint clock;
+	enum mmc_voltage signal_voltage;
 	uint card_caps;
+	uint host_caps;
 	uint ocr;
 	uint dsr;
 	uint dsr_imp;
@@ -432,6 +531,7 @@ struct mmc {
 	u8 wr_rel_set;
 	u8 part_config;
 	uint tran_speed;
+	uint legacy_speed; /* speed for the legacy mode provided by the card */
 	uint read_bl_len;
 	uint write_bl_len;
 	uint erase_grp_size;	/* in 512-byte sectors */
@@ -453,6 +553,16 @@ struct mmc {
 	int ddr_mode;
 #ifdef CONFIG_DM_MMC
 	struct udevice *dev;	/* Device for this MMC controller */
+#endif
+	u32 cardtype;		/* cardtype read from the MMC */
+	enum mmc_voltage current_voltage;
+#ifdef CONFIG_MMC_HS200_SUPPORT
+	enum bus_mode selected_mode; /* mode currently used */
+	enum bus_mode best_mode; /* best mode is the supported mode with the
+				  * highest bandwidth. It may not always be the
+				  * operating mode due to limitations when
+				  * accessing the boot partitions
+				  */
 #endif
 };
 
@@ -508,6 +618,7 @@ void mmc_set_clock(struct mmc *mmc, uint clock);
 struct mmc *find_mmc_device(int dev_num);
 int mmc_set_dev(int dev_num);
 void print_mmc_devices(char separator);
+int mmc_send_tuning(struct mmc *mmc, u32 opcode, int *cmd_error);
 
 /**
  * get_mmc_num() - get the total MMC device number

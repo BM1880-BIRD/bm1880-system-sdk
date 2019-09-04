@@ -19,26 +19,14 @@
 #include <linux/of_address.h>
 #include <linux/of_reserved_mem.h>
 #include <linux/slab.h>
-#include <linux/mm.h>
-#include <linux/clk.h>
-#include <linux/dma-mapping.h>
-#include <linux/cma.h>
-#include <linux/dma-contiguous.h>
-#include <linux/io.h>
 #include <linux/uaccess.h>
 #include <asm/cacheflush.h>
-#include <linux/seq_file.h>
-#include <linux/debugfs.h>
-#include <linux/genalloc.h>
+#include <asm/pgtable.h>
+#include <linux/mm.h>
+#include <linux/swap.h>
 
-#include "bitmain_ion.h"
+#include "../ion.h"
 #include "../../uapi/ion_bitmain.h"
-
-struct ion_carveout_heap { // workaround to get private info of heap
-	struct ion_heap heap;
-	struct gen_pool *pool;
-	phys_addr_t base;
-};
 
 struct ion_of_heap {
 	const char *compat;
@@ -68,9 +56,20 @@ struct bm_ion_dev {
 	struct ion_platform_data *plat_data;
 };
 
+// heap id in ion_platform_heap is not used, id in ion_heap is assigned in ion_device_add_heap
 static struct ion_of_heap bm_ion_heap_list[] = {
-	// heap id in ion_platform_heap is not used, id in ion_heap is assigned in ion_device_add_heap
-	PLATFORM_HEAP("bitmain,carveout", 0, ION_HEAP_TYPE_CARVEOUT, "carveout"),
+	PLATFORM_HEAP("bitmain,carveout_vpp", 0,
+		      ION_HEAP_TYPE_CARVEOUT, "vpp"),
+	PLATFORM_HEAP("bitmain,cma_vpp", 0,
+		      ION_HEAP_TYPE_DMA, "vpp"),
+	PLATFORM_HEAP("bitmain,carveout_npu", 0,
+		      ION_HEAP_TYPE_CARVEOUT, "npu"),
+	PLATFORM_HEAP("bitmain,carveout", 0,
+		      ION_HEAP_TYPE_CARVEOUT, "carveout"),
+	PLATFORM_HEAP("bitmain,cma", 0,
+		      ION_HEAP_TYPE_DMA, "cma"),
+	PLATFORM_HEAP("bitmain,sys_contig", 0,
+		      ION_HEAP_TYPE_SYSTEM_CONTIG, "sys_contig"),
 	{}
 };
 
@@ -111,7 +110,7 @@ static int ion_setup_heap_common(struct platform_device *parent,
 	case ION_HEAP_TYPE_CHUNK:
 		if (heap->base && heap->size)
 			return 0;
-
+	case ION_HEAP_TYPE_DMA:
 		ret = of_reserved_mem_device_init(heap->priv);
 		break;
 	default:
@@ -152,32 +151,27 @@ struct ion_platform_data *ion_parse_dt(struct platform_device *pdev,
 
 		ret = ion_parse_dt_heap_common(node, &heaps[i], compatible);
 		if (ret)
-			return ERR_PTR(ret);
+			continue;
 
 		heap_pdev = of_platform_device_create(node, heaps[i].name,
 						      &pdev->dev);
 		if (!heap_pdev)
-			return ERR_PTR(-ENOMEM);
+			continue;
 		heap_pdev->dev.platform_data = &heaps[i];
 
 		heaps[i].priv = &heap_pdev->dev;
 
 		ret = ion_setup_heap_common(pdev, node, &heaps[i]);
-		if (ret)
-			goto out_err;
+		if (ret) {
+			of_device_unregister(to_platform_device(heaps[i].priv));
+			continue;
+		}
 		i++;
 	}
 
 	data->heaps = heaps;
 	data->nr = num_heaps;
 	return data;
-
-out_err:
-	for ( ; i >= 0; i--)
-		if (heaps[i].priv)
-			of_device_unregister(to_platform_device(heaps[i].priv));
-
-	return ERR_PTR(ret);
 }
 
 void ion_destroy_platform_data(struct ion_platform_data *data)
@@ -203,13 +197,22 @@ static int bitmain_get_heap_info(struct ion_device *dev, struct bitmain_heap_inf
 	plist_for_each_entry(heap, &dev->heaps, node) {
 		if (heap->id == info->id) {
 			switch (heap->type) {
+			case ION_HEAP_TYPE_DMA:
 			case ION_HEAP_TYPE_CARVEOUT:
+			case ION_HEAP_TYPE_CHUNK:
 			{
-				struct ion_carveout_heap *carveout_heap;
-
-				carveout_heap = container_of(heap, struct ion_carveout_heap, heap);
-				info->total_size = gen_pool_size(carveout_heap->pool);
-				info->avail_size = gen_pool_avail(carveout_heap->pool);
+				info->total_size = heap->total_size;
+				info->avail_size =
+					heap->total_size - heap->num_of_alloc_bytes;
+				break;
+			}
+			case ION_HEAP_TYPE_SYSTEM:
+			case ION_HEAP_TYPE_SYSTEM_CONTIG:
+			{
+				info->total_size =
+					get_num_physpages() << PAGE_SHIFT;
+				info->avail_size =
+					nr_free_pages() << PAGE_SHIFT;
 				break;
 			}
 			default:
@@ -220,6 +223,56 @@ static int bitmain_get_heap_info(struct ion_device *dev, struct bitmain_heap_inf
 	}
 
 	return -1;
+}
+
+u64 get_user_pa(u64 user_addr)
+{
+	pgd_t *pgd; //= (pgd_t*)per_cpu(current_pgd, smp_processor_id());
+	pud_t *pud;
+	pmd_t *pmd;
+	pte_t *pte;
+	struct mm_struct *mm;
+	u64 pa;
+
+	if (!find_vma(current->mm, user_addr)) {
+		pr_err("no va %llx\n", user_addr);
+		goto exit;
+	}
+
+	mm = current->mm;
+	if (!mm) {
+		pr_err("no vm_mm\n");
+		goto exit;
+	}
+
+	pgd = pgd_offset(mm, user_addr);
+	pr_debug("[%08llx] *pgd=%016llx", user_addr, pgd_val(*pgd));
+	if (pgd_none(*pgd) || pgd_bad(*pgd))
+		goto exit;
+
+	pud = pud_offset(pgd, user_addr);
+	pr_debug(", *pud=%016llx", pud_val(*pud));
+	if (pud_none(*pud) || pud_bad(*pud))
+		goto exit;
+
+	pmd = pmd_offset(pud, user_addr);
+	pr_debug(", *pmd=%016llx", pmd_val(*pmd));
+	if (pmd_none(*pmd) || pmd_bad(*pmd))
+		goto exit;
+
+	pte = pte_offset_map(pmd, user_addr);
+	pr_debug(", *pte=%016llx", pte_val(*pte));
+	if (!pte_present(*pte))
+		goto exit;
+
+	pa = ((pte_val(*pte) & PHYS_MASK) & PAGE_MASK) |
+						(user_addr & ~PAGE_MASK);
+
+	return pa;
+
+exit:
+	pr_err("failed to get pa\n");
+	return 0;
 }
 
 long bitmain_ion_ioctl(struct ion_device *dev, unsigned int cmd, unsigned long arg)
@@ -241,7 +294,30 @@ long bitmain_ion_ioctl(struct ion_device *dev, unsigned int cmd, unsigned long a
 		}
 		pr_debug("flush addr %p, size %zu\n", data.start, data.size);
 
-		__flush_dcache_area(data.start, data.size);
+		__flush_cache_user_range(data.start, ((u64)data.start) + data.size);
+		break;
+	}
+	case ION_IOC_BITMAIN_INVALIDATE_RANGE:
+	{
+		struct bitmain_cache_range data;
+		unsigned long  va, pa;
+
+		pr_debug("ion invalidate:%p, %u\n", data.start, data.size);
+		if (copy_from_user(&data, (void __user *)arg, sizeof(data)))
+			return -EFAULT;
+
+		if (IS_ERR(data.start)) {
+			pr_err(" addr %p, size %u!\n", data.start, data.size);
+			return -EFAULT;
+		}
+		pa = get_user_pa((u64)data.start);
+		if (!pa) {
+			pr_err("pa is 0\n");
+			break;
+		}
+		va = (unsigned long)phys_to_virt(pa);
+		pr_debug("IonInv  va:%llx, pa:%llx\n", va, pa);
+		__inval_cache_range(va, va + data.size);
 		break;
 	}
 	case ION_IOC_BITMAIN_GET_HEAP_INFO:
@@ -266,132 +342,98 @@ long bitmain_ion_ioctl(struct ion_device *dev, unsigned int cmd, unsigned long a
 	return ret;
 }
 
-static struct mutex debugfs_mutex;
-
-static int bm_ion_debug_heap_show(struct seq_file *s, void *unused)
-{
-	struct bm_ion_dev *ipdev = s->private;
-	struct ion_device *dev = ipdev->idev;
-	struct ion_heap *heap;
-	struct ion_buffer *pos, *n;
-
-	mutex_lock(&debugfs_mutex);
-	seq_puts(s, "Summary:\n");
-	plist_for_each_entry(heap, &dev->heaps, node) {
-		switch (heap->type) {
-		case ION_HEAP_TYPE_CARVEOUT:
-		{
-			struct ion_carveout_heap *carveout_heap;
-			size_t total_size;
-			size_t alloc_size;
-			int usage_rate;
-
-			carveout_heap = container_of(heap, struct ion_carveout_heap, heap);
-			total_size = gen_pool_size(carveout_heap->pool);
-			alloc_size = total_size - gen_pool_avail(carveout_heap->pool);
-			usage_rate = alloc_size * 100 / total_size;
-			if ((alloc_size * 100) % total_size)
-				usage_rate += 1;
-			seq_printf(s, "[%d] %s heap size:%ld bytes, used:%ld bytes, usage rate:%d%%\n",
-				   heap->id, heap->name, total_size, alloc_size, usage_rate);
-			break;
-		}
-		default:
-			break;
-		}
-	}
-
-	seq_printf(s, "\nDetails:\n%16s %16s %16s %16s\n", "heap_id", "alloc_buf_size", "phy_addr", "kmap_cnt");
-	mutex_lock(&dev->buffer_lock);
-	rbtree_postorder_for_each_entry_safe(pos, n, &dev->buffers, node) {
-		seq_printf(s, "%16d %16zu %16llx %16d\n",
-			   pos->heap->id, pos->size, pos->paddr, pos->kmap_cnt);
-	}
-	mutex_unlock(&dev->buffer_lock);
-	seq_puts(s, "\n");
-	mutex_unlock(&debugfs_mutex);
-
-	return 0;
-}
-
-static int bm_ion_debug_heap_open(struct inode *inode, struct file *file)
-{
-	return single_open(file, bm_ion_debug_heap_show, inode->i_private);
-}
-
-static const struct file_operations debug_heap_fops = {
-	.open = bm_ion_debug_heap_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = single_release,
-};
-
-static void bm_ion_create_debug_info(struct bm_ion_dev *ipdev, struct ion_heap *heap)
-{
-	struct dentry *debug_file;
-	struct ion_device *dev = heap->dev;
-	char debug_heap_name[64];
-
-	mutex_init(&debugfs_mutex);
-	snprintf(debug_heap_name, 64, "bm_%s_heap_dump", heap->name);
-	debug_file = debugfs_create_file(
-		debug_heap_name, 0644, dev->debug_root, ipdev,
-		&debug_heap_fops);
-	if (!debug_file) {
-		char buf[256], *path;
-
-		path = dentry_path(dev->debug_root, buf, 256);
-		pr_err("Failed to create heap debugfs at %s/%s\n", path, debug_heap_name);
-	}
-}
-
 static int bitmain_ion_probe(struct platform_device *pdev)
 {
 	struct bm_ion_dev *ipdev;
-	int i;
+	int i, er_count = 0;
+	int ret = 0;
 
 	ipdev = devm_kzalloc(&pdev->dev, sizeof(*ipdev), GFP_KERNEL);
-	if (!ipdev)
-		return -ENOMEM;
-
+	if (!ipdev) {
+		ret = -ENOMEM;
+		goto out;
+	}
 	platform_set_drvdata(pdev, ipdev);
 
 	ipdev->plat_data = ion_parse_dt(pdev, bm_ion_heap_list);
-	if (IS_ERR(ipdev->plat_data))
-		return PTR_ERR(ipdev->plat_data);
-
+	if (IS_ERR(ipdev->plat_data)) {
+		ret = PTR_ERR(ipdev->plat_data);
+		goto ipdev_free;
+	}
 	ipdev->heaps = devm_kzalloc(&pdev->dev,
 				sizeof(struct ion_heap *) * ipdev->plat_data->nr,
 				GFP_KERNEL);
 	if (!ipdev->heaps) {
 		ion_destroy_platform_data(ipdev->plat_data);
-		return -ENOMEM;
+		ret = -ENOMEM;
+		goto ipdev_free;
 	}
 
-	for (i = 0; i < ipdev->plat_data->nr; i++) {
-		if (ipdev->plat_data->heaps[i].type ==  ION_HEAP_TYPE_CARVEOUT) {
-			ipdev->heaps[i] = ion_carveout_heap_create(&ipdev->plat_data->heaps[i]);
-			if (IS_ERR(ipdev->heaps[i])) {
-				kfree(ipdev->heaps);
-				ion_destroy_platform_data(ipdev->plat_data);
-				return PTR_ERR(ipdev->heaps[i]);
+	for (i = 0, er_count = 0; i < ipdev->plat_data->nr; i++) {
+		/* Here we use local variable
+		 * to shorten name of parmater
+		 * pass to other functions
+		 */
+		struct device *dev = ipdev->plat_data->heaps[i].priv;
+		struct ion_platform_heap *pl_heap = &ipdev->plat_data->heaps[i];
+		u32 chunk_size;
+
+		switch (pl_heap->type) {
+		case ION_HEAP_TYPE_CARVEOUT:
+			ipdev->heaps[i] = ion_carveout_heap_create(pl_heap);
+			goto show_heap;
+		case ION_HEAP_TYPE_DMA:
+			ipdev->heaps[i] = ion_cma_heap_create(pl_heap);
+			goto show_heap;
+		case ION_HEAP_TYPE_CHUNK:
+			ret = of_property_read_u32(dev->of_node,
+						   "chunk-size", &chunk_size);
+			if (ret) {
+				WARN(1, "missing dts property \"chunk-size\"\n");
+				ipdev->heaps[i] = ERR_PTR(-EINVAL);
+			} else {
+				ipdev->heaps[i] =
+					ion_chunk_heap_create(pl_heap, chunk_size);
 			}
-			pr_info("add heap %d, type %d, base 0x%llx, size 0x%lx\n",
-				ipdev->heaps[i]->id, ipdev->heaps[i]->type,
-				ipdev->plat_data->heaps[i].base,
-				ipdev->plat_data->heaps[i].size);
-			ion_device_add_heap(ipdev->heaps[i]);
-
-			if (!ipdev->idev)
-				ipdev->idev = ipdev->heaps[i]->dev;
-			if (!ipdev->heaps[i]->dev->custom_ioctl)
-				ipdev->heaps[i]->dev->custom_ioctl = bitmain_ion_ioctl;
-
-			/* create debugfs to show heap/buffer info */
-			bm_ion_create_debug_info(ipdev, ipdev->heaps[i]);
+			goto show_heap;
+		default:
+			continue;
 		}
+show_heap:
+		if (IS_ERR(ipdev->heaps[i])) {
+			er_count++;
+			dev_err(dev, "ion %s create fail\n", pl_heap->name);
+			continue;
+		}
+
+		ion_device_add_heap(ipdev->heaps[i]);
+		if (!ipdev->idev) {
+			ipdev->idev = ipdev->heaps[i]->dev;
+			ipdev->idev->custom_ioctl = bitmain_ion_ioctl;
+		}
+		dev_info(dev, "[ion] add heap id %d, type %d, base 0x%llx, size 0x%lx\n",
+			 ipdev->heaps[i]->id, ipdev->heaps[i]->type,
+			 pl_heap->base,
+			 pl_heap->size);
 	}
-	return 0;
+
+	/* all heaps are created fail */
+	if (ipdev->plat_data->nr == er_count) {
+		ret = -ENODEV;
+		goto ipdev_heaps_free;
+	} else {
+		/* any heap is created */
+		goto out;
+	}
+ipdev_heaps_free:
+	ion_destroy_platform_data(ipdev->plat_data);
+	devm_kfree(&pdev->dev, ipdev->heaps);
+
+ipdev_free:
+	devm_kfree(&pdev->dev, ipdev);
+
+out:
+	return ret;
 }
 
 static int bitmain_ion_remove(struct platform_device *pdev)
@@ -465,6 +507,8 @@ static int __init rmem_ion_setup(struct reserved_mem *rmem)
 	return 0;
 }
 
+RESERVEDMEM_OF_DECLARE(vpp, "vpp-region", rmem_ion_setup);
+RESERVEDMEM_OF_DECLARE(npu, "npu-region", rmem_ion_setup);
 RESERVEDMEM_OF_DECLARE(ion, "ion-region", rmem_ion_setup);
 #endif
 

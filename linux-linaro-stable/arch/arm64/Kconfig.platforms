@@ -85,6 +85,16 @@ config ARCH_BM1880
 	select GENERIC_PINCONF
 	help
 	  This enables support for Bitmain's BM1880
+
+config ARCH_BM1882
+	bool "Bitmain BM1882 SoC"
+	select PINCTRL
+	select PINCTRL_BM
+	select PINMUX
+	select PINCONF
+	select GENERIC_PINCONF
+	help
+	  This enables support for Bitmain's BM1882
 endchoice
 
 if ARCH_BM1682
@@ -182,6 +192,33 @@ config BM1880_PRODUCT_EDB
 endif # end of ARCH_BM1880_ASIC
 
 endif # end of ARCH_BM1880
+
+if ARCH_BM1882
+choice
+	prompt "Select the platform of SoC"
+	default ARCH_BM1882
+	help
+	  Select the platform of SoC
+
+config ARCH_BM1882_PALLADIUM
+       bool "Bitmain BM1882 SoC - Palladium"
+       help
+         This enables support for Bitmain's BM1882 SoC on Palladium platform
+
+config ARCH_BM1882_FPGA
+       bool "Bitmain BM1882 SoC - FPGA"
+       help
+         This enables support for Bitmain's BM1882 SoC on FPGA platform
+
+config ARCH_BM1882_ASIC
+       bool "Bitmain BM1882 SoC- ASIC"
+       help
+         This enables support for Bitmain's BM1882 SoC AISC
+
+endchoice
+
+endif # end of ARCH_BM1880
+
 endif # end of ARCH_BITMAIN
 
 config ARCH_EXYNOS

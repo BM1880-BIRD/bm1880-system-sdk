@@ -1,0 +1,40 @@
+if TARGET_BITMAIN_BM1882
+
+choice
+	prompt "Bitman BM1882 verification platform type select"
+
+config TARGET_BITMAIN_BM1882_ASIC
+	bool "ASIC"
+	help
+	  This enables support for Bitmain's BM1882 SoC on ASIC platform.
+
+	  If unsure, say N.
+
+config TARGET_BITMAIN_BM1882_PALLADIUM
+	bool "Palladium"
+	help
+	  This enables support for Bitmain's BM1882 SoC on PALLADIUM platform.
+
+	  If unsure, say N.
+
+config TARGET_BITMAIN_BM1882_FPGA
+	bool "FPGA"
+	help
+	  This enables support for Bitmain's BM1882 SoC on FPGA platform.
+
+	  If unsure, say N.
+
+endchoice
+
+config SYS_BOARD
+	default "bm1882"
+
+config SYS_VENDOR
+	default "bitmain"
+
+config SYS_CONFIG_NAME
+	default "bm1882-asic" if TARGET_BITMAIN_BM1882_ASIC
+	default "bm1882-palladium" if TARGET_BITMAIN_BM1882_PALLADIUM
+	default "bm1882-fpga" if TARGET_BITMAIN_BM1882_FPGA
+
+endif

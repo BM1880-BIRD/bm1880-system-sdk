@@ -273,6 +273,8 @@ static int do_mmc_read(cmd_tbl_t *cmdtp, int flag,
 	struct mmc *mmc;
 	u32 blk, cnt, n;
 	void *addr;
+	ulong t1;
+	ulong t2;
 
 	if (argc != 4)
 		return CMD_RET_USAGE;
@@ -287,8 +289,10 @@ static int do_mmc_read(cmd_tbl_t *cmdtp, int flag,
 
 	printf("\nMMC read: dev # %d, block # %d, count %d addr:%p ",
 	       curr_device, blk, cnt, addr);
-
+	t1 = get_timer(0);
 	n = blk_dread(mmc_get_blk_desc(mmc), blk, cnt, addr);
+	t2 = get_timer(0);
+	printf("blk_dread time: %ld\n", t2 - t1);
 	/* flush cache after read */
 	flush_cache((ulong)addr, cnt * 512); /* FIXME */
 	printf("%d blocks read: %s\n", n, (n == cnt) ? "OK" : "ERROR");

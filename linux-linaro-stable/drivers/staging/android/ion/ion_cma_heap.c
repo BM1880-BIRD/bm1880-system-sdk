@@ -129,23 +129,19 @@ static struct ion_heap *__ion_cma_heap_create(struct cma *cma)
 	return &cma_heap->heap;
 }
 
-static int __ion_add_cma_heaps(struct cma *cma, void *data)
+struct ion_heap *ion_cma_heap_create(struct ion_platform_heap *data)
 {
+	struct device *dev = data->priv;
 	struct ion_heap *heap;
 
-	heap = __ion_cma_heap_create(cma);
+	heap = __ion_cma_heap_create(dev->cma_area);
 	if (IS_ERR(heap))
-		return PTR_ERR(heap);
+		return heap;
 
-	heap->name = cma_get_name(cma);
-
-	ion_device_add_heap(heap);
-	return 0;
+	heap->name = data->name;
+	data->base = cma_get_base(dev->cma_area);
+	data->size = cma_get_size(dev->cma_area);
+	heap->total_size = cma_get_size(dev->cma_area);
+	return heap;
 }
-
-static int ion_add_cma_heaps(void)
-{
-	cma_for_each_area(__ion_add_cma_heaps, NULL);
-	return 0;
-}
-device_initcall(ion_add_cma_heaps);
+EXPORT_SYMBOL(ion_cma_heap_create);

@@ -58,11 +58,20 @@ const uchar default_environment[] = {
 #ifdef	CONFIG_EMMCBOOTCOMMAND
 	"emmcboot="	CONFIG_EMMCBOOTCOMMAND		"\0"
 #endif
+#ifdef CONFIG_EMMCBKBOOTCOMMAND
+	"emmcboot_backup=" CONFIG_EMMCBKBOOTCOMMAND	"\0"
+#endif
 #ifdef	CONFIG_BMDLCOMMAND
 	"bmdl="	        CONFIG_BMDLCOMMAND		"\0"
 #endif
+#ifdef	CONFIG_BMTBCOMMAND
+	"bmtb="	        CONFIG_BMTBCOMMAND		"\0"
+#endif
 #ifdef	CONFIG_BMRBCOMMAND
 	"bmrb="	        CONFIG_BMRBCOMMAND		"\0"
+#endif
+#ifdef	CONFIG_BMSQCOMMAND
+	"bmsq="	        CONFIG_BMSQCOMMAND		"\0"
 #endif
 #if defined(CONFIG_BOOTDELAY) && (CONFIG_BOOTDELAY >= 0)
 	"bootdelay="	__stringify(CONFIG_BOOTDELAY)	"\0"

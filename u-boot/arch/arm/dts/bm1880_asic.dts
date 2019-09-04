@@ -242,9 +242,9 @@
 		compatible = "bitmain,synopsys-sdhc";
 		bus-width = <4>;
 		reg = <0x0 0x50100000 0x0 0x1000>;
-		max-frequency = <187000000>;
+		max-frequency = <125000000>;
 		mmc_init_freq = <200000>;
-		mmc_trans_freq = <25000000>;
+		mmc_trans_freq = <125000000>;
 		64_addressing;
 		index = <0x0>;
 		has_phy;
@@ -264,6 +264,14 @@
 		reset-names = "sdhci";
 		has_phy;
 		status = "okay";
+	};
+
+	host0:bm-usb-host@50090000 {
+		compatible = "bitmain,xhci-platform";
+		reg = <0x0 0x50090000 0x0 0x10000>;
+		interrupts = <GIC_SPI 85 IRQ_TYPE_EDGE_RISING>;
+		clock-frequency = <25000000>;
+		ext-hub;
 	};
 
     hpnfc0: hpnfc@500C0000{

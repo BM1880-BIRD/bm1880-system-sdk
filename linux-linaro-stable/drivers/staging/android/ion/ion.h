@@ -190,6 +190,14 @@ struct ion_heap {
 	spinlock_t free_lock;
 	wait_queue_head_t waitqueue;
 	struct task_struct *task;
+	u64 num_of_buffers;
+	u64 num_of_alloc_bytes;
+	u64 alloc_bytes_wm;
+	u64 total_size;
+	struct dentry *heap_dfs_root;
+
+	/* protect heap statistics */
+	spinlock_t stat_lock;
 
 	int (*debug_show)(struct ion_heap *heap, struct seq_file *, void *);
 };
@@ -233,6 +241,7 @@ int ion_alloc(size_t len,
 	      unsigned int flags,
 	      struct ion_buffer **buf);
 
+void ion_free(int fd);
 /**
  * ion_heap_init_shrinker
  * @heap:		the heap
@@ -348,6 +357,35 @@ void ion_page_pool_destroy(struct ion_page_pool *pool);
 struct page *ion_page_pool_alloc(struct ion_page_pool *pool);
 void ion_page_pool_free(struct ion_page_pool *pool, struct page *page);
 
+#ifdef CONFIG_ION_CARVEOUT_HEAP
+struct ion_heap *ion_carveout_heap_create(struct ion_platform_heap *heap_data);
+#else
+static inline struct ion_heap
+*ion_carveout_heap_create(struct ion_platform_heap *heap_data)
+{
+	return ERR_PTR(-EINVAL);
+}
+#endif
+#ifdef CONFIG_ION_CMA_HEAP
+struct ion_heap *ion_cma_heap_create(struct ion_platform_heap *data);
+#else
+static inline struct ion_heap
+*ion_cma_heap_create(struct ion_platform_heap *data)
+{
+	return ERR_PTR(-EINVAL);
+}
+#endif
+#ifdef CONFIG_ION_CHUNK_HEAP
+struct ion_heap
+*ion_chunk_heap_create(struct ion_platform_heap *data, u32 chunk_size);
+#else
+static inline struct ion_heap
+*ion_chunk_heap_create(struct ion_platform_heap *data, u32 chunk_size)
+{
+	return ERR_PTR(-EINVAL);
+}
+#endif
+
 /** ion_page_pool_shrink - shrinks the size of the memory cached in the pool
  * @pool:		the pool
  * @gfp_mask:		the memory type to reclaim
@@ -361,5 +399,7 @@ int ion_page_pool_shrink(struct ion_page_pool *pool, gfp_t gfp_mask,
 long ion_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
 
 int ion_query_heaps(struct ion_heap_query *query);
-
+#ifdef CONFIG_ARCH_BITMAIN
+void bm_ion_create_debug_info(struct ion_heap *heap);
+#endif
 #endif /* _ION_H */

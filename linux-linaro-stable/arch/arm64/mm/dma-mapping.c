@@ -43,8 +43,8 @@ static pgprot_t __get_dma_pgprot(unsigned long attrs, pgprot_t prot,
 
 static struct gen_pool *atomic_pool;
 
-#if defined(CONFIG_ARCH_BM1880) && defined(CONFIG_SND_BITMAIN_I2S)
-#define DEFAULT_DMA_COHERENT_POOL_SIZE  SZ_8M
+#if (defined(CONFIG_ARCH_BM1880) || defined(CONFIG_ARCH_BM1882)) && defined(CONFIG_SOUND)
+#define DEFAULT_DMA_COHERENT_POOL_SIZE  SZ_4M
 #else
 #define DEFAULT_DMA_COHERENT_POOL_SIZE  SZ_256K
 #endif

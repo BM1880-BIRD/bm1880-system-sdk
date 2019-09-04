@@ -1,7 +1,7 @@
 #ifndef __BMKERNEL_1880_H__
 #define __BMKERNEL_1880_H__
 
-#include <bmkernel/bm_kernel.h>
+#include <bmkernel/bm_kernel_legacy.h>
 
 #ifdef __cplusplus
 extern "C" {

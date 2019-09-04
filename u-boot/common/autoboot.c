@@ -208,6 +208,10 @@ static int __abortboot(int bootdelay)
 static int menukey;
 #endif
 
+#ifdef CONFIG_TARGET_BITMAIN_BM1682_HDS
+#define CLI_HOT_KEY 'j'
+#endif
+
 static int __abortboot(int bootdelay)
 {
 	int abort = 0;
@@ -223,9 +227,16 @@ static int __abortboot(int bootdelay)
 	 * Check if key already pressed
 	 */
 	if (tstc()) {	/* we got a key press	*/
+#ifdef CLI_HOT_KEY
+		if (getc() == CLI_HOT_KEY) {	/* consume input	*/
+			puts("\b\b\b 0");
+			abort = 1;	/* don't auto boot	*/
+		}
+#else
 		(void) getc();  /* consume input	*/
 		puts("\b\b\b 0");
 		abort = 1;	/* don't auto boot	*/
+#endif
 	}
 
 	while ((bootdelay > 0) && (!abort)) {
@@ -234,6 +245,13 @@ static int __abortboot(int bootdelay)
 		ts = get_timer(0);
 		do {
 			if (tstc()) {	/* we got a key press	*/
+#ifdef CLI_HOT_KEY
+				if (getc() == CLI_HOT_KEY) {	/* consume input	*/
+					abort  = 1;	/* don't auto boot	*/
+					bootdelay = 0;	/* no more delay	*/
+					break;
+				}
+#else
 				abort  = 1;	/* don't auto boot	*/
 				bootdelay = 0;	/* no more delay	*/
 # ifdef CONFIG_MENUKEY
@@ -242,6 +260,7 @@ static int __abortboot(int bootdelay)
 				(void) getc();  /* consume input	*/
 # endif
 				break;
+#endif
 			}
 			udelay(10000);
 		} while (!abort && get_timer(ts) < 1000);
@@ -255,11 +274,16 @@ static int __abortboot(int bootdelay)
 }
 # endif	/* CONFIG_AUTOBOOT_KEYED */
 
+__weak int board_abortboot(int bootdelay)
+{
+	return false;
+}
+
 static int abortboot(int bootdelay)
 {
-	int abort = 0;
+	int abort = board_abortboot(bootdelay);
 
-	if (bootdelay >= 0)
+	if (bootdelay >= 0 && !abort)
 		abort = __abortboot(bootdelay);
 
 #ifdef CONFIG_SILENT_CONSOLE
@@ -340,70 +364,91 @@ const char *bootdelay_process(void)
 }
 
 #ifdef CONFIG_TARGET_BITMAIN_BM1682_HDS
-int scanf(const char *fmt, ...)
+static int uart_recv(void)
 {
-	int i = 0;
-	unsigned char c;
-	va_list args;
-	char buffer[128];
-	int wait = 0;
+#define UART_BUFF_SIZE 256
+#define CMD_STR_LEN 8
+#define DATE_STR_LENGTH 8
+#define UART_RECV_WINDOW 1000 // ms
 
-#ifndef CONFIG_PRE_CONSOLE_BUFFER
-	if (!gd->have_console)
+	char buffer[UART_BUFF_SIZE + 1]; // the extra char is just for safety
+	char date_str[DATE_STR_LENGTH + 1]; // the extra char is for '\0'
+	unsigned int count = 0, hit_pos, hit_start = 0, date_hex;
+	int i;
+	char *hit, pr;
+	unsigned long ts;
+	/*
+	 * all commands must have 8 chars, leading by a '!',
+	 * and its argument should be surrounded by '[]'.
+	 * all characters should be in capital form.
+	 */
+	const char *cmd_recovery = "recovery";
+	const char *cmd_date = "DATETIME";
+
+	memset(buffer, 0, sizeof(buffer));
+	memset(date_str, 0, sizeof(date_str));
+	ts = get_timer(0);
+
+	printf("waiting strings on UART\n");
+	while (count < UART_BUFF_SIZE && get_timer(ts) < UART_RECV_WINDOW) {
+		if (tstc())
+			buffer[count++] = getc();
+	}
+
+	if (count < CMD_STR_LEN + 1) {
+		printf("no string received\n");
 		return 0;
-#endif
-	if (tstc()) { //get a key press
-		(void)getc(); // consume input
-		wait = 1;
 	}
-
-	if (wait) {
-		while (i < sizeof(buffer)) {
-			c = getc();
-			putc(c);
-			if ((c == 0x0d) || (c == 0x0a)) {
-				buffer[i] = '\0';
-				break;
-			}
-
-			buffer[i++] = c;
+	printf("received %d:", count);
+	for (i = 0; i < UART_BUFF_SIZE; i++) {
+		if (i % 64 == 0)
+			putc('\n');
+		pr = *(buffer + i);
+		if ((pr >= 'A' && pr <= 'Z') ||
+		    (pr >= 'a' && pr <= 'z') ||
+		    (pr >= '0' && pr <= '9') ||
+		    pr == '!' || pr == '[' || pr == ']')
+			putc(pr);
+		else
+			putc(' ');
+	}
+	putc('\n');
+next:
+	hit = NULL; // can't use strchr here as there are several strings in buffer
+	for (i = hit_start; i <= count - CMD_STR_LEN - 1; i++) {
+		pr = *(buffer + i);
+		if (pr == '!') {
+			hit = buffer + i;
+			break;
 		}
+	}
+	if (!hit) {
+		printf("no valid hit in string\n");
+		return 0;
+	}
+	hit_pos = (unsigned int)(hit - buffer);
 
-		va_start(args, fmt);
-		i = vsscanf(buffer, fmt, args);  //input from keyboards
-		va_end(args);
-
-		putc('r');
-		putc('n');
+	if (strncmp(hit + 1, cmd_recovery, strlen(cmd_recovery)) == 0) {
+		printf("enter recovery mode\n");
+		run_command_list("run recovery", -1, 0);
+		return 1;
+	} else if (strncmp(hit + 1, cmd_date, strlen(cmd_date)) == 0 &&
+		   hit_pos + 1 + CMD_STR_LEN + 1 + DATE_STR_LENGTH < count &&
+		   *(hit + 1 + CMD_STR_LEN) == '[' &&
+		   *(hit + 1 + CMD_STR_LEN + 1 + DATE_STR_LENGTH) == ']') {
+		// get argument, skip '!', command str, and '[']
+		strncpy(date_str, hit + 1 + CMD_STR_LEN + 1, DATE_STR_LENGTH);
+		date_hex = simple_strtoul(date_str, NULL, 16);
+		printf("date string %s @ %d: 0x%x\n", date_str, hit_pos, date_hex);
+		writel(date_hex & 0xFFFFFFFF, 0x50008240);
+		return 1;
+	} else if (hit_start + CMD_STR_LEN + 1 <= count) {
+		hit_start++;
+		goto next;
 	}
 
-	return i;
-}
-
-static char recovery[40];
-
-static int recoveryboot(void)
-{
-	int recovery_mode = 0;
-	char *update = "run recovery";
-	char *rcy = "recovery";
-	char str1[20];
-	const char ch = '!';
-	char *ret;
-
-	memset(str1, '\0', sizeof(str1));
-	scanf("%s", str1);
-	printf("wait scanf str is %s\n", str1);
-
-	ret = strchr(str1, ch);
-	if ((!strncmp(ret + 1, "recovery", strlen(rcy))) || (strlen(str1)))
-		recovery_mode = 1;
-
-	printf("run into %s mode\n", (recovery_mode == 1) ? "recovery" : "normal");
-	memset(recovery, '\0', sizeof(recovery));
-	strcpy(recovery, update);
-
-	return recovery_mode;
+	printf("no valid cmd in string\n");
+	return 0;
 }
 #endif
 
@@ -412,9 +457,7 @@ void autoboot_command(const char *s)
 	debug("### main_loop: bootcmd=\"%s\"\n", s ? s : "<UNDEFINED>");
 
 #ifdef CONFIG_TARGET_BITMAIN_BM1682_HDS
-	if (recoveryboot()) {
-		run_command_list(recovery, -1, 0);
-	}
+	uart_recv();
 #endif
 
 	if (stored_bootdelay != -1 && s && !abortboot(stored_bootdelay)) {

@@ -32,6 +32,7 @@ static struct dw_scl_sda_cfg byt_config = {
 #endif
 
 struct dw_i2c {
+	unsigned int i2c_clk_frq;
 	struct i2c_regs *regs;
 	struct dw_scl_sda_cfg *scl_sda_cfg;
 };
@@ -72,13 +73,17 @@ static void dw_i2c_enable(struct i2c_regs *i2c_base, bool enable)
  *
  * Set the i2c speed.
  */
-static unsigned int __dw_i2c_set_bus_speed(struct i2c_regs *i2c_base,
-					   struct dw_scl_sda_cfg *scl_sda_cfg,
+static unsigned int __dw_i2c_set_bus_speed(struct dw_i2c *i2c,
 					   unsigned int speed)
 {
+	int i2c_spd;
+	unsigned int clk_freq;
 	unsigned int cntl;
 	unsigned int hcnt, lcnt;
-	int i2c_spd;
+	struct i2c_regs *i2c_base = i2c->regs;
+	struct dw_scl_sda_cfg *scl_sda_cfg = i2c->scl_sda_cfg;
+
+	clk_freq = i2c->i2c_clk_frq ? (i2c->i2c_clk_frq / 1000000) : IC_CLK;
 
 	if (speed >= I2C_MAX_SPEED)
 		i2c_spd = IC_SPEED_MODE_MAX;
@@ -95,13 +100,13 @@ static unsigned int __dw_i2c_set_bus_speed(struct i2c_regs *i2c_base,
 	switch (i2c_spd) {
 #ifndef CONFIG_X86 /* No High-speed for BayTrail yet */
 	case IC_SPEED_MODE_MAX:
-		cntl |= IC_CON_SPD_SS;
+		cntl |= IC_CON_SPD_SS | IC_CON_RE;
 		if (scl_sda_cfg) {
 			hcnt = scl_sda_cfg->fs_hcnt;
 			lcnt = scl_sda_cfg->fs_lcnt;
 		} else {
-			hcnt = (IC_CLK * MIN_HS_SCL_HIGHTIME) / NANO_TO_MICRO;
-			lcnt = (IC_CLK * MIN_HS_SCL_LOWTIME) / NANO_TO_MICRO;
+			hcnt = (clk_freq * MIN_HS_SCL_HIGHTIME) / NANO_TO_MICRO;
+			lcnt = (clk_freq * MIN_HS_SCL_LOWTIME) / NANO_TO_MICRO;
 		}
 		writel(hcnt, &i2c_base->ic_hs_scl_hcnt);
 		writel(lcnt, &i2c_base->ic_hs_scl_lcnt);
@@ -114,8 +119,8 @@ static unsigned int __dw_i2c_set_bus_speed(struct i2c_regs *i2c_base,
 			hcnt = scl_sda_cfg->ss_hcnt;
 			lcnt = scl_sda_cfg->ss_lcnt;
 		} else {
-			hcnt = (IC_CLK * MIN_SS_SCL_HIGHTIME) / NANO_TO_MICRO;
-			lcnt = (IC_CLK * MIN_SS_SCL_LOWTIME) / NANO_TO_MICRO;
+			hcnt = (clk_freq * MIN_SS_SCL_HIGHTIME) / NANO_TO_MICRO;
+			lcnt = (clk_freq * MIN_SS_SCL_LOWTIME) / NANO_TO_MICRO;
 		}
 		writel(hcnt, &i2c_base->ic_ss_scl_hcnt);
 		writel(lcnt, &i2c_base->ic_ss_scl_lcnt);
@@ -128,8 +133,8 @@ static unsigned int __dw_i2c_set_bus_speed(struct i2c_regs *i2c_base,
 			hcnt = scl_sda_cfg->fs_hcnt;
 			lcnt = scl_sda_cfg->fs_lcnt;
 		} else {
-			hcnt = (IC_CLK * MIN_FS_SCL_HIGHTIME) / NANO_TO_MICRO;
-			lcnt = (IC_CLK * MIN_FS_SCL_LOWTIME) / NANO_TO_MICRO;
+			hcnt = (clk_freq * MIN_FS_SCL_HIGHTIME) / NANO_TO_MICRO;
+			lcnt = (clk_freq * MIN_FS_SCL_LOWTIME) / NANO_TO_MICRO;
 		}
 		writel(hcnt, &i2c_base->ic_fs_scl_hcnt);
 		writel(lcnt, &i2c_base->ic_fs_scl_lcnt);
@@ -511,7 +516,7 @@ static int designware_i2c_set_bus_speed(struct udevice *bus, unsigned int speed)
 {
 	struct dw_i2c *i2c = dev_get_priv(bus);
 
-	return __dw_i2c_set_bus_speed(i2c->regs, i2c->scl_sda_cfg, speed);
+	return __dw_i2c_set_bus_speed(i2c, speed);
 }
 
 static int designware_i2c_probe_chip(struct udevice *bus, uint chip_addr,
@@ -532,7 +537,11 @@ static int designware_i2c_probe_chip(struct udevice *bus, uint chip_addr,
 
 static int designware_i2c_probe(struct udevice *bus)
 {
+	int node;
+	const void *blob = gd->fdt_blob;
 	struct dw_i2c *priv = dev_get_priv(bus);
+
+	node = dev_of_offset(bus);
 
 	if (device_is_on_pci_bus(bus)) {
 #ifdef CONFIG_DM_PCI
@@ -546,6 +555,8 @@ static int designware_i2c_probe(struct udevice *bus)
 #endif
 	} else {
 		priv->regs = (struct i2c_regs *)devfdt_get_addr_ptr(bus);
+		priv->i2c_clk_frq = fdtdec_get_int(blob, node,
+				"bus-clocks", 25000000);
 	}
 
 	__dw_i2c_init(priv->regs, 0, 0);

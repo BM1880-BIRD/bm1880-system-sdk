@@ -993,7 +993,7 @@ int AcmApp(void)
 #endif
 	acm_mem_init();
 	print_buf_addr();
-	fip_src = plat_bm_gpio_read(BIT_MASK_GPIO_BOOT_SEL);
+	fip_src = plat_bm_gpio_read(0);
 	NOTICE("fip_src %d\n", fip_src);
 	if (fip_src == FIP_SRC_USB)
 		flagEnterDL = 1;

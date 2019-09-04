@@ -151,6 +151,30 @@ static int pwm_bm_set_polarity(struct pwm_chip *chip,
 	return 0;
 }
 
+static int pwm_bm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
+			      struct pwm_state *state)
+{
+	struct bm_pwm_chip *pc = to_bm_pwm_chip(chip);
+	int ret;
+
+	ret = pwm_bm_config(chip, pwm, state->duty_cycle, state->period);
+	if (ret) {
+		dev_err(chip->dev, "pwm apply err\n");
+		return ret;
+	}
+	dev_dbg(chip->dev, "pwm_bm_apply tate->enabled =%d\n", state->enabled);
+	if (state->enabled)
+		ret = pwm_bm_enable(chip, pwm);
+	else
+		pwm_bm_disable(chip, pwm);
+
+	if (ret) {
+		dev_err(chip->dev, "pwm apply failed\n");
+		return ret;
+	}
+	return ret;
+}
+
 static const struct pwm_ops pwm_bm_ops = {
 	.request	= pwm_bm_request,
 	.free		= pwm_bm_free,
@@ -158,6 +182,7 @@ static const struct pwm_ops pwm_bm_ops = {
 	.disable	= pwm_bm_disable,
 	.config		= pwm_bm_config,
 	.set_polarity	= pwm_bm_set_polarity,
+	.apply		= pwm_bm_apply,
 	.owner		= THIS_MODULE,
 };
 

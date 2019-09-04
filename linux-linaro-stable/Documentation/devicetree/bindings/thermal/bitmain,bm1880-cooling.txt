@@ -1,0 +1,11 @@
+BM1880 cooling device
+
+Required properties:
+- compatible: "bitmain,bm1880-cooling"
+- #cooling-cells: Must be 2
+
+Example:
+	bm1880_cooling: bm1880_cooling {
+		compatible = "bitmain,bm1880-cooling";
+		#cooling-cells = <2>;
+	};

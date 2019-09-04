@@ -4,8 +4,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
-
-#include <bmkernel/bm_kernel.h>
+#include <bmkernel/bm_kernel_legacy.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,6 +22,7 @@ void bm_device_close(bmdev_t dev);
 bmerr_t bm_device_query(bmdev_t dev, int id, void *buf);
 bmerr_t bm_device_config(bmdev_t dev, int id, void *buf);
 bmk_chip_info_t bm_device_get_info(bmdev_t dev);
+int bm_device_get_chip_ver(bmdev_t dev);
 u64 bm_device_get_gmem_size(bmdev_t dev);
 bmerr_t bm_context_create(bmctx_t *ctx);
 void bm_context_destroy(bmctx_t ctx);
@@ -116,6 +116,13 @@ bmerr_t bm_memcpy_d2h(bmctx_t ctx, bmmem_host_t dst, bmmem_device_t src,
 
 bmerr_t bm_memcpy_s2d(bmctx_t ctx, bmmem_device_t dst, uint8_t* src);
 bmerr_t bm_memcpy_d2s(bmctx_t ctx, uint8_t* dst, bmmem_device_t src);
+bmerr_t bm_memcpy_s2t(bmctx_t ctx, bmmem_device_t dst, uint8_t *src);
+bmerr_t bm_memcpy_t2s(bmctx_t ctx, uint8_t *dst, bmmem_device_t src);
+
+//similar to bm_memcpy_s2d, [offset, size] is area in bmmem_device_t dst
+bmerr_t bm_memcpy_s2d_ex(bmctx_t ctx, bmmem_device_t dst, uint8_t* src, uint64_t offset, size_t size);
+//similar to bm_memcpy_d2s, [offset, size] is area in bmmem_device_t src
+bmerr_t bm_memcpy_d2s_ex(bmctx_t ctx, uint8_t* dst, bmmem_device_t src, uint64_t offset, size_t size);
 
 bmerr_t bm_load_cmdbuf(bmctx_t ctx, uint8_t *cmdbuf, size_t sz,
                        bmmem_device_t *cmdbuf_mem);
@@ -128,6 +135,25 @@ bmerr_t bm_wait_cmdbuf_done(bmctx_t ctx, uint16_t seq_no);
 bmerr_t bm_run_cmdbuf_pio(bmctx_t ctx, uint8_t *cmdbuf, size_t sz);
 
 const char * bm_library_type();
+
+void bm_device_set_base_reg(bmctx_t ctx, u32 inx, u64 addr);
+u64 bm_device_read_base_reg(bmctx_t ctx, u32 inx);
+bmmem_device_t bmmem_device_tsm_alloc(bmctx_t ctx, bmshape_t *shape);
+bmmem_device_t bmmem_device_tsm_alloc_raw(bmctx_t ctx, size_t size);
+void bmmem_device_tsm_free(bmctx_t ctx, bmmem_device_t mem);
+
+// copy u8 data only support for 1682
+int bm_data_copy_u8(bmctx_t ctx, u64 gaddr_s, int input_n, int input_c, int input_h, int input_w,
+                       int stride_n, int stride_c, int stride_h, u64 gaddr_d);
+// do data transition only support for 1682
+int bm_data_transition(bmctx_t ctx, u64 gaddr_a, int input_n, int input_c, int input_h,
+                          int input_w, int stride_n, int stride_c, int stride_h, float S, float B,
+                          u64 gaddr_r);
+
+// redefine it for compitable with old interface, but not suggest to use in future
+#define bmnet_data_copy_u8 bm_data_copy_u8
+#define bmnet_data_transition bm_data_transition
+
 
 #ifdef __cplusplus
 }

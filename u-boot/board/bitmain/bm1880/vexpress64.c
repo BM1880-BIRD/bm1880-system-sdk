@@ -15,6 +15,7 @@
 #include <dm/platform_data/serial_pl01x.h>
 #include <asm/armv8/mmu.h>
 #include <asm/arch-armv8/mmio.h>
+#include <asm/gpio.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -214,3 +215,52 @@ void software_root_reset(void)
 	while (1)
 		;
 }
+
+/*
+ * EDB USB host init.
+ */
+#define BM_TUSB_RST_L		8
+#define EN_P5V			5
+#define EN_P5V_USBHUB		9
+
+int onboard_hub_reset(void)
+{
+	int ret;
+
+	/* EDB 1.8V setting. */
+	mmio_write_32(0x50010400, mmio_read_32(0x50010400) | 0x04);
+
+	/* 1. Reset usb hub, set BM_TUSB_RST_L 0. */
+	ret = gpio_request(BM_TUSB_RST_L, "tusb_reset_l");
+	if (ret && ret != -EBUSY) {
+		printf("gpio: requesting pin %u failed\n", BM_TUSB_RST_L);
+		return -1;
+	}
+	gpio_direction_output(BM_TUSB_RST_L, 0);
+
+	/* 2. Set EN_P5V. */
+	ret = gpio_request(EN_P5V, "en_p5v");
+	if (ret && ret != -EBUSY) {
+		printf("gpio: requesting pin %u failed\n", EN_P5V);
+		return -1;
+	}
+	gpio_direction_output(EN_P5V, 0);
+
+	/* 3. Set EN_P5V_USBHUB */
+	ret = gpio_request(EN_P5V_USBHUB, "en_p5v_usbhub");
+	if (ret && ret != -EBUSY) {
+		printf("gpio: requesting pin %u failed\n", EN_P5V_USBHUB);
+		return -1;
+	}
+	gpio_direction_output(EN_P5V_USBHUB, 0);
+
+	/* 4. Reset usb hub set BM_TUSB_RST_L 0->1. */
+	gpio_direction_output(EN_P5V, 1);
+	gpio_direction_output(EN_P5V_USBHUB, 1);
+	mdelay(1000);
+	gpio_direction_output(BM_TUSB_RST_L, 1);
+
+	printf("reset hub complete\n");
+	return 0;
+}
+

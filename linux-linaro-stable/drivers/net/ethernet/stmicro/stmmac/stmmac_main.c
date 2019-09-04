@@ -2315,7 +2315,17 @@ static void stmmac_tx_timer(unsigned long data)
 
 	/* let's scan all the tx queues */
 	for (queue = 0; queue < tx_queues_count; queue++)
+#if defined(CONFIG_ARCH_BM1880)
+	{
+		struct netdev_queue *dev_queue;
+
+		dev_queue = netdev_get_tx_queue(priv->dev, queue);
+		dev_queue->enter_point = 1;
 		stmmac_tx_clean(priv, queue);
+	}
+#else
+		stmmac_tx_clean(priv, queue);
+#endif
 }
 
 /**
@@ -3661,7 +3671,17 @@ static int stmmac_poll(struct napi_struct *napi, int budget)
 
 	/* check all the queues */
 	for (queue = 0; queue < tx_count; queue++)
+#if defined(CONFIG_ARCH_BM1880)
+	{
+		struct netdev_queue *dev_queue;
+
+		dev_queue = netdev_get_tx_queue(priv->dev, queue);
+		dev_queue->enter_point = 2;
 		stmmac_tx_clean(priv, queue);
+	}
+#else
+		stmmac_tx_clean(priv, queue);
+#endif
 
 	work_done = stmmac_rx(priv, budget, rx_q->queue_index);
 	if (work_done < budget) {

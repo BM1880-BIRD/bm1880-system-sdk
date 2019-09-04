@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# setup watchdog
+#
+file="/dev/watchdog0"
+if [ -e $file ]; then
+    echo $file found!
+    watchdog -T 1 $file
+else
+    echo $file not found!
+fi
+

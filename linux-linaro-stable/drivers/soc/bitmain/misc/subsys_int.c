@@ -94,6 +94,9 @@ static int subsys_int_probe(struct platform_device *pdev)
 	if (!err)
 		sysint->i2s_int_mask = val;
 	bm_enable_uart_int(UART0, true);
+	bm_enable_uart_int(UART1, true);
+	bm_enable_uart_int(UART2, true);
+
 
 	return 0;
 }

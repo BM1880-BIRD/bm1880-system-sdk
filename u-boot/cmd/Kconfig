@@ -337,7 +337,7 @@ endmenu
 menu "Memory commands"
 
 config CMD_MEMORY
-	bool "md, mm, nm, mw, cp, cmp, base, loop"
+	bool "md, mm, nm, mw, cp, cmp, base, loop, ip_update"
 	default y
 	help
 	  Memory commands.
@@ -349,6 +349,7 @@ config CMD_MEMORY
 	    cmp - memory compare
 	    base - print or set address offset
 	    loop - initialize loop on address range
+	    ip_update - sync ip from mem 0x400038C/900 to uboot env
 
 config CMD_CRC32
 	bool "crc32"
@@ -1262,6 +1263,16 @@ config CMD_UBIFS
 	help
 	  UBIFS is a file system for flash devices which works on top of UBI.
 
+config CMD_BM_GET_ITB_SIZE
+	bool "Parse itb file and get total file size"
+	depends on CMD_MMC
+	help
+	  Support for parsing the itb file and verify if it is a correct
+	  itb file by checking the magic number.
+	  After verified the correctness of the header, it will get the size
+	  according to the header struct, divide it to sector size and then
+	  set the block count to the 1st parameter.
+
 config CMD_BM_EMMC_BURN
 	bool "EMMC BURN command support"
 	select FS_FAT
@@ -1273,6 +1284,16 @@ config CMD_BM_UPDATE
 	depends on CMD_MMC
 	help
 	  Support for the emmc update
+
+
+config CMD_BM_SD_UPDATE
+	bool "SD update command supports 1880v2"
+	depends on CMD_MMC
+	help
+	  Support for the 1880v2 emmc update
+	  uboot will check flag in SRAM, and then load images from SD
+	  if data are load from SD successfully and the images will be
+	  written to eMMC (TODO : spinor/spinan )
 
 config CMD_BM_MMCBCB
 	bool "MMC bootloader control block support"
@@ -1286,6 +1307,15 @@ config CMD_BM_CDUMP
        help
          Support for the crash memory dump
 
+config CMD_BM_CDUMP_AUTO
+       bool "support crash dump automatically after system panic"
+       depends on CMD_BM_CDUMP
+       help
+         Support the crash memory dump automatically after panic
+         currently sw will detect the magic 0x8a7b6c5d at 0x100020000
+         it need to be the same to the setting in kernel dts
+         And CMD_BM_CDUMP need to be enabled
+
 config CMD_BM_REBOOT
        bool "software root reset command support"
        help
@@ -1295,4 +1325,10 @@ config CMD_BM_UTASK
        bool "Bitmain usb task command support"
        help
          Support for the Bitmain usb task
+
+config CMD_BM_DDR
+       bool "Bitmain ddr size command support"
+       help
+         Support for the Bitmain ddr size
+
 endmenu

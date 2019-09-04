@@ -15,26 +15,6 @@ config BITMAIN_BMDNN
 	help
 	  Simulate PCIe driver's interface on SoC.
 
-config BM1682_MCU_DRV
-	bool "bm1682 mcu i2c driver"
-	default n
-	help
-	  Enable mcu i2c driver to implement bm1682 powre flow.
-
-config BM1682_WDT_DRV
-	bool "bm1682 watchdog driver"
-	default n
-	depends on BM1682_MCU_DRV
-	help
-	  enable watchdog to reset bm1682 if any core hang.
-
-config BM1682_I2C_SLAVE_DRV
-	bool "bm1682 i2c slave mode driver"
-	default n
-	select I2C_SLAVE
-	depends on I2C_DESIGNWARE_PLATFORM
-	help
-	  enable bm1682 i2c0 slave mode.
 
 config BM_SUBSYS_INT_EN
 	bool "bm1684/bm1880 subsys interrupt i2s/uart/dma enable"
@@ -43,18 +23,6 @@ config BM_SUBSYS_INT_EN
 	help
 	  enable bm1684/bm1880 i2s/uart/dma interrupts.
 
-config BM_FAN_SPEED
-	bool "bm1684 fan driver"
-	default n
-	help
-	  enable bm1684 fan driver
-
-config BM_EFUSE_DRV
-	bool "bm efuse driver"
-	default n
-	depends on ARCH_BITMAIN
-	help
-	  enable bm efuse driver
 
 config I2C_SUPPRESS_SCL_100KHZ
 	bool "DW I2C master mode driver option"

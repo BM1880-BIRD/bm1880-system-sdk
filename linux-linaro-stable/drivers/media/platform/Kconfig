@@ -345,6 +345,18 @@ config VIDEO_TI_VPE_DEBUG
 	---help---
 	  Enable debug messages on VPE driver.
 
+config VIDEO_BITMAIN_VIP
+	tristate "Bitmain VIP driver"
+	depends on VIDEO_DEV && VIDEO_V4L2 && HAS_DMA
+	depends on I2C && VIDEO_V4L2_SUBDEV_API
+	select V4L2_MEM2MEM_DEV
+	default n
+	---help---
+	  This is a V4L2 driver for the Bitmain video processing engine.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called bm-vip.
+
 endif # V4L_MEM2MEM_DRIVERS
 
 menuconfig V4L_TEST_DRIVERS

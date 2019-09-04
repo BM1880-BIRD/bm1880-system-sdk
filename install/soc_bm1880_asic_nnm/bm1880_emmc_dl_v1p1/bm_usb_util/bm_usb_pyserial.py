@@ -50,7 +50,9 @@ class bm_usb_pyserial:
             cksum = self.crc16_tab[((cksum >> 8) ^ HexData[i]) & 0xff] ^ ((cksum << 8) & 0xff00)
         return cksum
 
-    def serial_query(self, vid_pid_list, timeout=0, verify=0):
+    def serial_query(self, vid_pid_list, timeout=0, verify=0, location=None):
+        if location is not None:
+            self.location = location
         progress_symbol = ['---', ' \\', ' \\', ' |', ' |', ' |', ' |', ' /', ' /']
         found = -1
         i = 0
@@ -62,6 +64,10 @@ class bm_usb_pyserial:
             sys.stdout.flush()
             comlist = serial.tools.list_ports.comports()
             for element in comlist:
+                if self.location is not None:
+                    #print(self.location + " " + element.hwid)
+                    if element.hwid.find(self.location) == -1:
+                        continue
                 for vid_pid in vid_pid_list:
                     found = element.hwid.find(vid_pid)
                     if found != -1:
@@ -403,6 +409,15 @@ class bm_usb_pyserial:
                 s = s.replace('timeout=', "")
                 self.emmc_timeout = int(s)
                 print("emmc timeout = %d s" % self.emmc_timeout)
+            if 'location' in sys.argv[i]:
+                self.location = sys.argv[i]
+                self.location = self.location.replace('location=', '')
+                print("bus location = " + self.location)
+            if 'stdout' in sys.argv[i]:
+                self.stdout = sys.argv[i]
+                self.stdout = self.stdout.replace('stdout=', '')
+                print("stdout = " + self.stdout)
+                sys.stdout=open(self.stdout, "a")
             if 'usage' in sys.argv[i]:
                 self.show_usage()
                 sys.exit(0)
@@ -437,6 +452,8 @@ class bm_usb_pyserial:
         self.pkt_cnt = 0
         self.filesize = 0
         self.emmc_timeout = 0
+        self.location = None
+        self.stdout = None
         self.python_version = 3
         if sys.version_info[0] < 3:
             self.python_version = 2;

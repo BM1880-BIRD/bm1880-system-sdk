@@ -27,6 +27,7 @@
 #include <linux/spinlock.h>
 #include <linux/platform_data/gpio-dwapb.h>
 #include <linux/slab.h>
+#include <linux/clk.h>
 
 #include "gpiolib.h"
 
@@ -528,6 +529,7 @@ static int dwapb_gpio_probe(struct platform_device *pdev)
 	int err;
 	struct device *dev = &pdev->dev;
 	struct dwapb_platform_data *pdata = dev_get_platdata(dev);
+	struct clk *base_clk;
 
 	if (!pdata) {
 		pdata = dwapb_gpio_get_pdata(dev);
@@ -554,6 +556,15 @@ static int dwapb_gpio_probe(struct platform_device *pdev)
 	gpio->regs = devm_ioremap_resource(&pdev->dev, res);
 	if (IS_ERR(gpio->regs))
 		return PTR_ERR(gpio->regs);
+
+	base_clk = devm_clk_get(&pdev->dev, NULL);
+	if (IS_ERR(base_clk)) {
+		dev_warn(dev, "cannot get gpio base clk\n");
+	} else {
+		err = clk_prepare_enable(base_clk);
+		if (err < 0)
+			dev_err(dev, "failed to enable base clock\n");
+	}
 
 	for (i = 0; i < gpio->nr_ports; i++) {
 		err = dwapb_gpio_add_port(gpio, &pdata->properties[i], i);

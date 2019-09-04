@@ -1,0 +1,19 @@
+Bitmain Cryptographic Engines
+
+Required properties:
+- compatible: should be one of the following string
+	      "bitmain,crypto-engine"
+	      "bitmain,spacc"
+	      "bitmain,ce"
+
+- reg: base physical address of the engine and length of memory mapped region.
+- interrupts: interrupt number
+
+Examples:
+
+	bce@58004000 {
+		compatible = "bitmain,crypto-engine";
+		reg = <0x00000000 0x58004000 0x00000000 0x00001000>;
+		interrupts = <GIC_SPI 18 IRQ_TYPE_LEVEL_HIGH>;
+		bus-width = <4>;
+	};

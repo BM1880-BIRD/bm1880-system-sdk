@@ -9,8 +9,8 @@
 #ifndef _BMRUNTIME_BMNET_H_
 #define _BMRUNTIME_BMNET_H_
 
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include <libbmruntime/bmruntime.h>
@@ -20,21 +20,18 @@ extern "C" {
 #endif
 
 /**
- * @name    bmnet_info_t
- * @brief   Structure to describe information of a BMNET.
+ * @name    bmnet_input_info_t
+ * @brief   Structure to describe input info of a BMNET.
  * @ingroup bmruntime
  */
-typedef struct bmnet_info_s {
-    uint32_t          batch_size;      //!< batch size
-    uint8_t          *weight;          //!< pointer to weight buffer
-    size_t            weight_size;     //!< size of weight in bytes
-    uint8_t          *cmdbuf;          //!< pointer to cmdbuf buffer
-    size_t            cmdbuf_size;     //!< size of cmdbuf in bytes
-    size_t            neuron_size;     //!< total neuron size in bytes
-    size_t            input_size;      //!< input neuron size in bytes
-    uint64_t          output_offset;   //!< output neuron offset to neuron base
-    size_t            output_size;     //!< output neuron size in bytes
-} bmnet_info_t;
+typedef struct bmnet_input_info_s {
+  size_t input_size;       // !< total input size in bytes
+  size_t input_num;        // !< output number
+  shape_t *shape_array;    // !< array of pointers to the input shapes
+  float *threshold_array;  // !< array of pointers to the input threshold
+  size_t *size_array;      // !< array of pointers to the input size in bytes
+  uint32_t *fmt_array;     // !< array of pointers to the input fmt, like FMT_I8/FMT_F32
+} bmnet_input_info_t;
 
 /**
  * @name    bmnet_output_info_t
@@ -42,12 +39,28 @@ typedef struct bmnet_info_s {
  * @ingroup bmruntime
  */
 typedef struct bmnet_output_info_s {
-    size_t            output_size;     // !< output size in bytes
-    size_t            output_num;      // !< output number
-    char            **name_array;      // !< array of pointers to the output names
-    shape_t          *shape_array;     // !< array of pointers to the output shapes
-    float            *threshold_array; // !< array of pointers to the output threshold
+  size_t output_size;      // !< total output size in bytes
+  size_t output_num;       // !< output number
+  char **name_array;       // !< array of pointers to the output names
+  shape_t *shape_array;    // !< array of pointers to the output shapes
+  float *threshold_array;  // !< array of pointers to the output threshold
+  size_t *size_array;      // !< array of pointers to the output size
+  uint32_t *fmt_array;     // !< array of pointers to the output fmt, like FMT_I8/FMT_F32
 } bmnet_output_info_t;
+
+/**
+ * @name    bmnet_model_info_t
+ * @brief   Structure to describe model info of a BMNET.
+ *          it contains all inputs and outputs info
+ * @ingroup bmruntime
+ */
+typedef struct bmnet_model_info_s {
+  char *net_name;                          // !< net name in bmodel
+  uint32_t chip;                           // !< chip number in bmodel
+  uint32_t command_num;                    // !< command number in bmodel
+  bmnet_input_info_t *input_info_array;    // !< input info for each command
+  bmnet_output_info_t *output_info_array;  // !< output info for each command
+} bmnet_model_info_t;
 
 struct bmnet_context;
 /**
@@ -56,49 +69,6 @@ struct bmnet_context;
  * @ingroup bmruntime
  */
 typedef struct bmnet_context *bmnet_t;
-
-/**
- * @name    bmnet_register
- * @brief   To register a compiled neuron network (bmnet) to BM runtime.
- * @ingroup bmruntime
- *
- * This API registers a compiled neuron network (bmnet) to BM runtime. It
- * first allocates sufficient device memory for neuron, weight, and cmdbuf,
- * does gmem address relocation to the with allocated addresses, then preloads
- * weight and cmdbuf to device memory. By doing weight and cmdbuf preload
- * during register, we don't need to load them again every time inference runs.
- * @todo: to preload to local memory directly if certain conditions are met.
- *
- * @param [in]  ctx    BM runtime context.
- * @param [in]  info   BMNET info, in bmnet_info_t.
- * @param [out] net    BMNET context handler.
- *
- * @retval BM_SUCCESS  Successfully.
- * @retval others      Error code.
- */
-bmerr_t bmnet_register(bmctx_t ctx, bmnet_info_t *info, bmnet_t *net);
-
-/**
- * @name    bmnet_register_noalloc
- * @brief   To register a compiled neuron network (bmnet) to BM runtime,
- *          without allocating weight and neuron devmem.
- * @ingroup bmruntime
- *
- * This API registers a compiled neuron network (bmnet) to BM runtime, without
- * allocating weight and neuron devmem. Compared to bmnet_register, this API
- * doesn't allocate weight and neuron devmem, and doesn't do gmem address
- * relocation. We need to import weight and neuron devmem, and load cmdbuf
- * to do gmem allocate later. By doing this, application can implement device
- * memory management itself or share device memory between bmnet context.
- *
- * @param [in]  ctx    BM runtime context.
- * @param [in]  info   BMNET info, in bmnet_info_t.
- * @param [out] net    BMNET context handler.
- *
- * @retval BM_SUCCESS  Successfully.
- * @retval others      Error code.
- */
-bmerr_t bmnet_register_noalloc(bmctx_t ctx, bmnet_info_t *info, bmnet_t *net);
 
 /**
  * @name    bmnet_register_bmodel
@@ -141,8 +111,7 @@ bmerr_t bmnet_register_bmodel(bmctx_t ctx, const char *bmodel, bmnet_t *net);
  * @retval BM_SUCCESS  Successfully.
  * @retval others      Error code.
  */
-bmerr_t bmnet_register_bmodel_data(bmctx_t ctx, uint8_t *bmodel_data,
-                                   size_t size, bmnet_t *net);
+bmerr_t bmnet_register_bmodel_data(bmctx_t ctx, uint8_t *bmodel_data, size_t size, bmnet_t *net);
 
 /**
  * @name    bmnet_set_input_shape
@@ -167,7 +136,7 @@ bmerr_t bmnet_set_input_shape(bmnet_t net, shape_t shape);
  * @ingroup bmruntime
  *
  * This API set multiple input shapes for a registered bmnet. The bmodel or
- * caffemodel net may suport different input shape, this API can set the input 
+ * caffemodel net may suport different input shape, this API can set the input
  * shapes in these shapes.
  *
  * @param [in]  ctx    BM runtime context.
@@ -181,7 +150,7 @@ bmerr_t bmnet_set_input_shape2(bmnet_t net, shape_t *shape, int num);
 
 /**
  * @name    bmnet_get_output info
- * @brief   To get output info of current ipnut shape.
+ * @brief   To get output info of current command.
  * @ingroup bmruntime
  *
  * This API get output info of current input shape. The bmodel or caffemodel
@@ -195,7 +164,39 @@ bmerr_t bmnet_set_input_shape2(bmnet_t net, shape_t *shape, int num);
  * @retval others      Error code.
  */
 bmerr_t bmnet_get_output_info(bmnet_t net, bmnet_output_info_t *output_info);
-bmerr_t bmnet_get_input_shape(bmnet_t net, shape_t *input_shape, int num);
+
+/**
+ * @name    bmnet_get_input info
+ * @brief   To get input info of current command.
+ * @ingroup bmruntime
+ *
+ * This API get input info. The bmodel or caffemodel
+ * net may suport different input shape, this API can get input info of the
+ * current input shape.
+ *
+ * @param [in]  ctx          BM runtime context.
+ *
+ * @retval input_info  input information.
+ * @retval NULL        if get failed
+ */
+bmnet_input_info_t * bmnet_get_input_info(bmnet_t net);
+
+/**
+ * @name    bmnet_get_input info
+ * @brief   To get input info of current ipnut shape.
+ * @ingroup bmruntime
+ *
+ * This API get input info of current input shape. The bmodel or caffemodel
+ * net may suport different input shape, this API can get output info of the
+ * current input shape.
+ *
+ * @param [in]  ctx          BM runtime context.
+ * @param [out] input_info   input information.
+ *
+ * @retval BM_SUCCESS  Successfully.
+ * @retval others      Error code.
+ */
+bmnet_model_info_t * bmnet_get_model_info(bmnet_t net);
 
 /**
  * @name    bmnet_cleanup
@@ -308,6 +309,23 @@ bmmem_device_t bmnet_output_devmem(bmnet_t net);
 bmerr_t bmnet_load_input(bmnet_t net, uint8_t *input);
 
 /**
+ * @name    bmnet_load_part_input
+ * @brief   To load input partial data for a registered bmnet.
+ * @ingroup bmruntime
+ *
+ * This API loads input data for a registered bmnet, from system memory. A
+ * memory copy from system memory to device memory happens during loading.
+ *
+ * @param [in]  ctx    BM runtime context.
+ * @param [in]  input  Pointer to the input buffer.
+ * @param [in]  size   Size of input data.
+ *
+ * @retval BM_SUCCESS  Successfully.
+ * @retval others      Error code.
+ */
+bmerr_t bmnet_load_part_input(bmnet_t net, uint8_t *input, size_t size);
+
+/**
  * @name    bmnet_load_cmdbuf
  * @brief   To load cmdbuf for a registered bmnet.
  * @ingroup bmruntime
@@ -322,40 +340,6 @@ bmerr_t bmnet_load_input(bmnet_t net, uint8_t *input);
  * @retval others      Error code.
  */
 bmerr_t bmnet_load_cmdbuf(bmnet_t net, const uint8_t *cmdbuf, int cmdbuf_size);
-
-/**
- * @name    bmnet_import_weight_mem
- * @brief   To import weight devmem for a registered bmnet.
- * @ingroup bmruntime
- *
- * This API imports weight devmem for a registered bmnet. The preload weight
- * devmem, if exist, will be freed, the new weight devmem will be referred. We
- * need to call bmnet_load_cmdbuf to relocate cmdbuf after this.
- *
- * @param [in]  ctx         BM runtime context.
- * @param [in]  weight_mem  Pointer to the weight devmem.
- *
- * @retval BM_SUCCESS  Successfully.
- * @retval others      Error code.
- */
-bmerr_t bmnet_import_weight_devmem(bmnet_t net, bmmem_device_t weight_mem);
-
-/**
- * @name    bmnet_import_neuron_mem
- * @brief   To import neuron devmem for a registered bmnet.
- * @ingroup bmruntime
- *
- * This API imports neuron devmem for a registered bmnet. The preload neuron
- * devmem, if exist, will be freed, the new neuron devmem will be referred. We
- * need to call bmnet_load_cmdbuf to relocate cmdbuf after this.
- *
- * @param [in]  ctx         BM runtime context.
- * @param [in]  neuron_mem  Pointer to the neuron devmem.
- *
- * @retval BM_SUCCESS  Successfully.
- * @retval others      Error code.
- */
-bmerr_t bmnet_import_neuron_devmem(bmnet_t net, bmmem_device_t neuron_mem);
 
 /**
  * @name    bmnet_store_output
@@ -389,8 +373,7 @@ bmerr_t bmnet_store_output(bmnet_t net, uint8_t *output);
  * @retval BM_SUCCESS  Successfully.
  * @retval others      Error code.
  */
-bmerr_t bmnet_store_neuron(bmnet_t net, uint64_t neuron_offset, int neuron_size,
-                           uint8_t *neuron);
+bmerr_t bmnet_store_neuron(bmnet_t net, uint64_t neuron_offset, int neuron_size, uint8_t *neuron);
 
 /**
  * @name    bmnet_load_neuron
@@ -408,8 +391,7 @@ bmerr_t bmnet_store_neuron(bmnet_t net, uint64_t neuron_offset, int neuron_size,
  * @retval BM_SUCCESS  Successfully.
  * @retval others      Error code.
  */
-bmerr_t bmnet_load_neuron(bmnet_t net, uint64_t neuron_offset, int neuron_size,
-                           uint8_t *neuron);
+bmerr_t bmnet_load_neuron(bmnet_t net, uint64_t neuron_offset, int neuron_size, uint8_t *neuron);
 /**
  * @name    bmnet_inference
  * @brief   To run inference with a registered bmnet
@@ -419,7 +401,7 @@ bmerr_t bmnet_load_neuron(bmnet_t net, uint64_t neuron_offset, int neuron_size,
  * data in system memory. Memory copy between device memory and system memory
  * happens during the call.
  *
- * @param [in]  ctx    BM runtime context.
+ * @param [in]  net    BM net handle.
  * @param [in]  input  Pointer to the input buffer.
  * @param [in]  output Pointer to the output buffer.
  *
@@ -427,65 +409,6 @@ bmerr_t bmnet_load_neuron(bmnet_t net, uint64_t neuron_offset, int neuron_size,
  * @retval others      Error code.
  */
 bmerr_t bmnet_inference(bmnet_t net, uint8_t *input, uint8_t *output);
-
-/**
- * @name    bmnet_inference_once
- * @brief   To run inference all in one function (for testing only)
- * @ingroup bmruntime
- *
- * This API runs inference all in one function. It registers a bmnet first,
- * runs inference, and then cleanup the bmnet. This function is provided as a
- * wrapper for fast testing, and should NOT been used during production
- * environment.
- *
- * @param [in]  ctx    BM runtime context.
- * @param [in]  input  Pointer to the input buffer.
- * @param [in]  output Pointer to the output buffer.
- *
- * @retval BM_SUCCESS  Successfully.
- * @retval others      Error code.
- */
-bmerr_t bmnet_inference_once(
-    bmctx_t             ctx,
-    uint8_t            *input,
-    uint8_t            *output,
-    uint32_t            batch_size,
-    uint8_t            *weight,
-    size_t              weight_size,
-    uint8_t            *cmdbuf,
-    size_t              cmdbuf_size,
-    size_t              neuron_size,
-    size_t              input_size,
-    uint64_t            output_offset,
-    size_t              output_size);
-
-int bmnet_data_transition(
-    bmctx_t ctx,
-    u64   gaddr_a,
-    int   input_n,
-    int   input_c,
-    int   input_h,
-    int   input_w,
-    int   stride_n,
-    int   stride_c,
-    int   stride_h,
-    float S,
-    float B,
-    u64   gaddr_r);
-
-int bmnet_data_copy_u8(
-    bmctx_t ctx,
-    u64   gaddr_s,
-    int   input_n,
-    int   input_c,
-    int   input_h,
-    int   input_w,
-    int   stride_n,
-    int   stride_c,
-    int   stride_h,
-    u64   gaddr_d);
-
-float bmnet_get_input_threshold(bmnet_t net);
 
 #ifdef __cplusplus
 }

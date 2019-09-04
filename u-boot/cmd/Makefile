@@ -54,11 +54,14 @@ obj-$(CONFIG_CMD_FDT) += fdt.o
 obj-$(CONFIG_CMD_FITUPD) += fitupd.o
 obj-$(CONFIG_CMD_FLASH) += flash.o
 obj-$(CONFIG_CMD_BM_EMMC_BURN) += bm_emmc_burn.o
+obj-$(CONFIG_CMD_BM_SD_UPDATE) += bm_sd_update.o
 obj-$(CONFIG_CMD_BM_UPDATE) += bm_update.o
+obj-$(CONFIG_CMD_BM_GET_ITB_SIZE) += bm_get_itb_size.o
 obj-$(CONFIG_CMD_BM_MMCBCB) += mmcbcb.o
 obj-$(CONFIG_CMD_BM_CDUMP) += bm_cdump.o
 obj-$(CONFIG_CMD_BM_REBOOT) += bm_reboot.o
 obj-$(CONFIG_CMD_BM_UTASK) += bm_utask.o
+obj-$(CONFIG_CMD_BM_DDR) += bm_ddr.o
 ifdef CONFIG_FPGA
 obj-$(CONFIG_CMD_FPGA) += fpga.o
 endif

@@ -195,6 +195,7 @@ static void i2c_dw_configure_master(struct dw_i2c_dev *dev)
 	}
 }
 
+#ifdef CONFIG_I2C_SLAVE
 static void i2c_dw_configure_slave(struct dw_i2c_dev *dev)
 {
 	dev->functionality = I2C_FUNC_SLAVE | DW_IC_DEFAULT_FUNCTIONALITY;
@@ -216,6 +217,7 @@ static void i2c_dw_configure_slave(struct dw_i2c_dev *dev)
 		dev->slave_cfg |= DW_IC_CON_SPEED_FAST;
 	}
 }
+#endif
 
 static int i2c_dw_plat_prepare_clk(struct dw_i2c_dev *i_dev, bool prepare)
 {
@@ -261,6 +263,7 @@ static int dw_i2c_plat_probe(struct platform_device *pdev)
 	struct resource *mem;
 	int i, irq, ret;
 	const int supported_speeds[] = { 0, 1000, 100000, 400000, 1000000, 3400000 };
+	const char *reset_name;
 
 	irq = platform_get_irq(pdev, 0);
 	if (irq < 0)
@@ -279,15 +282,18 @@ static int dw_i2c_plat_probe(struct platform_device *pdev)
 	dev->irq = irq;
 	platform_set_drvdata(pdev, dev);
 
-	dev->rst = devm_reset_control_get(&pdev->dev, "i2c0");
-	if (IS_ERR(dev->rst)) {
-		ret = PTR_ERR(dev->rst);
-		dev_err(&pdev->dev, "i2c register reset failed\n");
-	} else {
-		dev_info(&pdev->dev, "i2c0 reset for all\n");
-		reset_control_assert(dev->rst);
-		udelay(10);
-		reset_control_deassert(dev->rst);
+	if (of_find_property(pdev->dev.of_node, "reset-names", NULL)) {
+		device_property_read_string(&pdev->dev, "reset-names", &reset_name);
+		dev->rst = devm_reset_control_get(&pdev->dev, reset_name);
+		if (IS_ERR(dev->rst)) {
+			ret = PTR_ERR(dev->rst);
+			dev_err(&pdev->dev, "%s register reset failed\n", reset_name);
+		} else {
+			dev_dbg(&pdev->dev, "%s reset for all\n", reset_name);
+			reset_control_assert(dev->rst);
+			udelay(10);
+			reset_control_deassert(dev->rst);
+		}
 	}
 
 	if (pdata) {

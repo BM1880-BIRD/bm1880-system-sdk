@@ -821,6 +821,11 @@ static int eqos_set_mii_speed_100(struct udevice *dev)
 	setbits_le32(&eqos->mac_regs->configuration,
 		     EQOS_MAC_CONFIGURATION_PS | EQOS_MAC_CONFIGURATION_FES);
 
+#ifdef CONFIG_TARGET_BITMAIN_BM1684
+	writel(0x290009, 0x5001085c);
+	writel(0x290009, 0x50010868);
+#endif
+
 	return 0;
 }
 
@@ -993,9 +998,10 @@ static int eqos_write_hwaddr(struct udevice *dev)
 #define BITMAIN_OUI_1     0xA5
 #define BITMAIN_OUI_2     0x09
 
-#define EFUSE_NUM_ADDRESS_BITS           4
+#define EFUSE_NUM_ADDRESS_BITS           7
 #define EFUSE_BASE              0x50028000
 #define EFUSE_FLAG_MAC_ADDR           0xE1
+#define EFUSE_FLAG_MAC_ADDR_HEAD      0xE2
 
 static const u64 EFUSE_MODE = EFUSE_BASE;
 static const u64 EFUSE_ADR = EFUSE_BASE + 0x4;
@@ -1050,8 +1056,8 @@ int eqos_read_rom_hwaddr(struct udevice *dev)
 {
 	struct eth_pdata *pdata = dev_get_platdata(dev);
 	int i, n_cells = 1 << EFUSE_NUM_ADDRESS_BITS;
-	int hit = 0;
-	u32 value;
+	int tail_hit = 0, head_hit = 0;
+	u32 value, head = 0, tail = 0;
 	u8 flag;
 
 	debug("%s(): enters\n", __func__);
@@ -1074,34 +1080,54 @@ int eqos_read_rom_hwaddr(struct udevice *dev)
 		flag = value >> 24;
 
 		debug("%s(): idx=%d, value=0x%08x, flag=0x%02x\n", __func__, i, value, flag);
-
-		if (flag == EFUSE_FLAG_MAC_ADDR) {
-			hit = 1;
-			break;
+		if (!head_hit) {
+			if (flag == EFUSE_FLAG_MAC_ADDR_HEAD) {
+				printf("eth0: MAC address head (%02x:%02x:%02x) found in eFuse at cell %d.\n",
+				       (u8)((value & 0x00ff0000) >> 16),
+				       (u8)((value & 0x0000ff00) >> 8),
+				       (u8)((value & 0x000000ff)),
+				       i);
+				head = value;
+				head_hit = 1;
+			}
 		}
+		if (!tail_hit) {
+			if (flag == EFUSE_FLAG_MAC_ADDR) {
+				printf("eth0: MAC address tail (%02x:%02x:%02x) found in eFuse at cell %d.\n",
+				       (u8)((value & 0x00ff0000) >> 16),
+				       (u8)((value & 0x0000ff00) >> 8),
+				       (u8)((value & 0x000000ff)),
+				       i);
+				tail = value;
+				tail_hit = 1;
+			}
+		}
+		if (head_hit && tail_hit)
+			break;
 	}
 
-	if (!hit) {
+	if (!tail_hit) {
 		printf("eth0: Warning - MAC address not found in eFuse!\n");
 		return 0;
+	}
+	if (!head_hit) {
+		printf("eth0: Warning - MAC address head not found in eFuse!\n");
+		pdata->enetaddr[0] = BITMAIN_OUI_0;
+		pdata->enetaddr[1] = BITMAIN_OUI_1;
+		pdata->enetaddr[2] = BITMAIN_OUI_2;
 	} else {
-		printf("eth0: MAC address (%02x:%02x:%02x) found in eFuse at cell %d.\n",
-		       (u8)((value & 0x00ff0000) >> 16),
-		       (u8)((value & 0x0000ff00) >> 8),
-		       (u8)((value & 0x000000ff)),
-		       i);
+		pdata->enetaddr[0] = (u8)((head & 0x00ff0000) >> 16);
+		pdata->enetaddr[1] = (u8)((head & 0x0000ff00) >> 8);
+		pdata->enetaddr[2] = (u8)(head & 0x000000ff);
 	}
 
-	pdata->enetaddr[0] = BITMAIN_OUI_0;
-	pdata->enetaddr[1] = BITMAIN_OUI_1;
-	pdata->enetaddr[2] = BITMAIN_OUI_2;
-	/* only the last 3 bytes of mac@ are stored in eFuse */
-	pdata->enetaddr[3] = (u8)((value & 0x00ff0000) >> 16);
-	pdata->enetaddr[4] = (u8)((value & 0x0000ff00) >> 8);
-	pdata->enetaddr[5] = (u8)(value & 0x000000ff);
+	pdata->enetaddr[3] = (u8)((tail & 0x00ff0000) >> 16);
+	pdata->enetaddr[4] = (u8)((tail & 0x0000ff00) >> 8);
+	pdata->enetaddr[5] = (u8)(tail & 0x000000ff);
 
 	return 0;
 }
+
 #endif /* CONFIG_TARGET_BITMAIN_BM1682 */
 
 static int eqos_start(struct udevice *dev)
@@ -1641,6 +1667,8 @@ static int eqos_mdio_register(struct udevice *dev)
 	int phyaddr = 0, phy_detected = 0;
 	int val, ret;
 	ofnode fl_node;
+	const char *phy_mode;
+	int phy_interface = 0;
 
 	fl_node = dev_read_subnode(dev, "fixed-link");
 	if (ofnode_valid(fl_node)) {
@@ -1687,7 +1715,11 @@ static int eqos_mdio_register(struct udevice *dev)
 		goto err_free_mdio;
 	}
 
-	eqos->phy = phy_connect(eqos->mii, phyaddr, dev, 0);
+	phy_mode = fdt_getprop(gd->fdt_blob, dev_of_offset(dev), "phy-mode", NULL);
+	if (phy_mode)
+		phy_interface = phy_get_interface_by_name(phy_mode);
+
+	eqos->phy = phy_connect(eqos->mii, phyaddr, dev, phy_interface);
 	if (!eqos->phy) {
 		error("phy_connect() failed");
 		ret = -ENXIO;
@@ -1729,11 +1761,30 @@ static int eqos_reset_phy(struct udevice *dev)
 	/* RESET_PU */
 	mdelay(50);
 
+#if defined(CONFIG_TARGET_BITMAIN_BM1684) && defined(CONFIG_OF_BOARD)
+	static volatile uint32_t *g_pcb_version = (void *)UBOOT_DTB_SELECTOR_ADDR;
+
+	if (*g_pcb_version == EVB_BOARD || *g_pcb_version == EVB_BOARD_SRANK) {
+		/*
+		 * EVB hardware bug, 1684 GPIO out is 1.8V, can't meet PHY reset's
+		 * minimum requirement (2V), so just set it to input mode, let the
+		 * pull up do the trick.
+		 */
+		dm_gpio_set_dir_flags(&eqos->phy_reset_gpio, GPIOD_IS_IN);
+	} else if (*g_pcb_version == SA5_BOARD) {
+		ret = dm_gpio_set_value(&eqos->phy_reset_gpio, 1);
+		if (ret < 0) {
+			error("dm_gpio_set_value(phy_reset, deassert) failed: %d", ret);
+			return ret;
+		}
+	}
+#else
 	ret = dm_gpio_set_value(&eqos->phy_reset_gpio, 1);
 	if (ret < 0) {
 		error("dm_gpio_set_value(phy_reset, deassert) failed: %d", ret);
 		return ret;
 	}
+#endif
 
 	/* RC charging time */
 	mdelay(50);

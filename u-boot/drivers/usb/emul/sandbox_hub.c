@@ -96,7 +96,12 @@ static struct usb_hub_descriptor hub_desc = {
 								1 << 7),
 	.bPwrOn2PwrGood		= 2,
 	.bHubContrCurrent	= 5,
-	.DeviceRemovable	= {0, 0xff}, /* all ports removeable */
+	{
+		{
+			/* all ports removeable */
+			.DeviceRemovable	= {0, 0xff}
+		}
+	}
 #if SANDBOX_NUM_PORTS > 8
 #error "This code sets up an incorrect mask"
 #endif
@@ -269,8 +274,7 @@ static int sandbox_hub_submit_control_msg(struct udevice *bus,
 
 static int sandbox_hub_bind(struct udevice *dev)
 {
-	return usb_emul_setup_device(dev, PACKET_SIZE_64, hub_strings,
-				     hub_desc_list);
+	return usb_emul_setup_device(dev, hub_strings, hub_desc_list);
 }
 
 static int sandbox_child_post_bind(struct udevice *dev)

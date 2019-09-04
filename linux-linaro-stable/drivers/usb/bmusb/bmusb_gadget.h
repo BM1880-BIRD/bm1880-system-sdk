@@ -84,11 +84,8 @@
 
 #define ENDPOINT_DIR_MASK		0x80
 
-#ifdef CONFIG_BITMAIN_LIBUSB_PATH
 #define MAX_TRANSFER_LENGTH     65536
 
-#define PRECISE_BURST_LENGTH    (0x00000010<<24U)
-#endif
 /*-------------------------------------------------------------------------*/
 /* Other driver macros */
 
@@ -165,6 +162,7 @@ struct usb_ss_endpoint {
 	int wedge_flag;
 	void *cpu_addr;
 	dma_addr_t dma_addr;
+	int disabling;
 };
 
 struct usb_ss_dev {

@@ -10,6 +10,51 @@ menuconfig CRYPTO_HW
 
 if CRYPTO_HW
 
+config CRYPTO_DEV_BCE
+	tristate "Bitmain Crypto Engine(SPACC)"
+	default n
+	select CRYPTO_AES
+	select CRYPTO_DES
+	select CRYPTO_HASH
+	select CRYPTO_BLKCIPHER
+	select CRYPTO_ENGINE
+	help
+	  Bitmain hardware based crypto engine.
+
+	  Support algorithms:
+	  AES with 128, 192 or 256 bits long key.
+	  DES, 3DES with EDE mode. SM4.
+	  With chain mode: ECB, CBC, CTR
+	  When working on CTR mode, it counts from IV steps by +1.
+	  Support hashs:
+	  SHA1, SHA2-256
+	  Support base64(RFC 4648)
+	  It should be intigrated into bm1684 and
+	  later SoCs. Also may be called SPACC.
+	  It support below features:
+	  * It always working on DMA mode with one channel.
+	  * Interrupt support.
+	  * Hardware supports chained descriptor mode.
+	  * One register based descriptor area is provided for no external memory cases.
+	  * This driver does not use chain mode.
+	  Any questions, chao.wei@bitmain.com
+
+if CRYPTO_DEV_BCE
+
+config CRYPTO_DEV_BCE_DUMMY
+	bool "Bitmain Crypto Engine Dummy Driver"
+	default n if ARCH_BM1684
+	default y if ARCH_BM1682
+	help
+	  Bitmain crypto engine dummy driver instead of real hardware driver.
+
+	  Dummy driver provide the same interfaces of low level crypto engine driver(ce.c).
+	  It does not drive real hardware, most cases, it just return success.
+	  This is used to debug kernel code. low level crypto engine driver should be
+	  verified on bmtest(a bare metal environment, simple and much faster for emulators).
+
+endif # CRYPTO_DEV_BCE
+
 config CRYPTO_DEV_PADLOCK
 	tristate "Support for VIA PadLock ACE"
 	depends on X86 && !UML

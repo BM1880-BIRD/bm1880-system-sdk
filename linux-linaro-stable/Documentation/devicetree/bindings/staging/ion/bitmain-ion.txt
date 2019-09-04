@@ -2,12 +2,16 @@ Bitmain SoC ION
 
 Required properties:
 - compatible : "ion-region"
+- compatible : "vpp-region"
+- compatible : "npu-region"
+- compatible : "vpu-region"
+- compatible : "jpu-region"
 - compatible : "bitmain,bitmain-ion"
 Heaps:
 - compatible : "bitmain,sys_user"
 - compatible : "bitmain,sys_contig"
 - compatible : "bitmain,carveout"
-        this is the carveout regoin for NPU, VPP and video codec usage.
+- compatible : "bitmain,carveout_vpp"
+- compatible : "bitmain,carveout_npu"
 - compatible : "bitmain,dma"
-        we created a 16MB CMA region.
-
+- compatible : "bitmain,cma_vpp"

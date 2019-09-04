@@ -117,7 +117,8 @@ static struct ion_heap_ops chunk_heap_ops = {
 	.unmap_kernel = ion_heap_unmap_kernel,
 };
 
-struct ion_heap *ion_chunk_heap_create(struct ion_platform_heap *heap_data)
+struct ion_heap
+*ion_chunk_heap_create(struct ion_platform_heap *heap_data, u32 chunk_size)
 {
 	struct ion_chunk_heap *chunk_heap;
 	int ret;
@@ -135,7 +136,7 @@ struct ion_heap *ion_chunk_heap_create(struct ion_platform_heap *heap_data)
 	if (!chunk_heap)
 		return ERR_PTR(-ENOMEM);
 
-	chunk_heap->chunk_size = (unsigned long)heap_data->priv;
+	chunk_heap->chunk_size = (unsigned long)chunk_size;
 	chunk_heap->pool = gen_pool_create(get_order(chunk_heap->chunk_size) +
 					   PAGE_SHIFT, -1);
 	if (!chunk_heap->pool) {
@@ -150,6 +151,8 @@ struct ion_heap *ion_chunk_heap_create(struct ion_platform_heap *heap_data)
 	chunk_heap->heap.ops = &chunk_heap_ops;
 	chunk_heap->heap.type = ION_HEAP_TYPE_CHUNK;
 	chunk_heap->heap.flags = ION_HEAP_FLAG_DEFER_FREE;
+	chunk_heap->heap.total_size = heap_data->size;
+	chunk_heap->heap.name = heap_data->name;
 	pr_debug("%s: base %pa size %zu\n", __func__,
 		 &chunk_heap->base, heap_data->size);
 

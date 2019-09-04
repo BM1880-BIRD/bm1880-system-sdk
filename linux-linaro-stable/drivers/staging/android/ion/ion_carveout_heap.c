@@ -24,6 +24,11 @@
 #include <linux/vmalloc.h>
 #include "ion.h"
 
+#if !defined(CONFIG_ARCH_BM1682) && !defined(CONFIG_ARCH_BM1684)
+#define ENABLE_DEFERRED_FREE
+#define ENABLE_DATA_ZERO
+#endif
+
 #define ION_CARVEOUT_ALLOCATE_FAIL	-1
 
 struct ion_carveout_heap {
@@ -97,9 +102,9 @@ static void ion_carveout_heap_free(struct ion_buffer *buffer)
 	struct sg_table *table = buffer->sg_table;
 	struct page *page = sg_page(table->sgl);
 	phys_addr_t paddr = PFN_PHYS(page_to_pfn(page));
-
+#ifdef ENABLE_DATA_ZERO
 	ion_heap_buffer_zero(buffer);
-
+#endif
 	ion_carveout_free(heap, paddr, buffer->size);
 	sg_free_table(table);
 	kfree(table);
@@ -116,6 +121,7 @@ static struct ion_heap_ops carveout_heap_ops = {
 struct ion_heap *ion_carveout_heap_create(struct ion_platform_heap *heap_data)
 {
 	struct ion_carveout_heap *carveout_heap;
+#ifdef ENABLE_DATA_ZERO
 	int ret;
 
 	struct page *page;
@@ -127,7 +133,7 @@ struct ion_heap *ion_carveout_heap_create(struct ion_platform_heap *heap_data)
 	ret = ion_heap_pages_zero(page, size, pgprot_writecombine(PAGE_KERNEL));
 	if (ret)
 		return ERR_PTR(ret);
-
+#endif
 	carveout_heap = kzalloc(sizeof(*carveout_heap), GFP_KERNEL);
 	if (!carveout_heap)
 		return ERR_PTR(-ENOMEM);
@@ -142,8 +148,11 @@ struct ion_heap *ion_carveout_heap_create(struct ion_platform_heap *heap_data)
 		     -1);
 	carveout_heap->heap.ops = &carveout_heap_ops;
 	carveout_heap->heap.type = ION_HEAP_TYPE_CARVEOUT;
+#ifdef ENABLE_DEFERRED_FREE
 	carveout_heap->heap.flags = ION_HEAP_FLAG_DEFER_FREE;
+#endif
 	carveout_heap->heap.name = heap_data->name;
+	carveout_heap->heap.total_size = heap_data->size;
 
 	return &carveout_heap->heap;
 }

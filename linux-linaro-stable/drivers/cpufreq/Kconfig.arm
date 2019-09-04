@@ -234,6 +234,16 @@ config ARM_TEGRA124_CPUFREQ
 	help
 	  This adds the CPUFreq driver support for Tegra124 SOCs.
 
+config ARM_BM_CPUFREQ
+        tristate "Bitmain CPUFreq support"
+        depends on ARCH_BITMAIN
+        default n
+        help
+          This adds the CPUFreq driver support for Bitmain SOCs.
+          in 1682 , the freq is fixed to 1800000 kHz,
+          in 1684 , the freq is fixed to 2300000 kHz,
+          in 1680 , the freq is fixed to 1500000 kHz
+
 config ARM_PXA2xx_CPUFREQ
 	tristate "Intel PXA2xx CPUfreq driver"
 	depends on PXA27x || PXA25x

@@ -222,6 +222,7 @@ static int pwm_fan_probe(struct platform_device *pdev)
 	struct device *hwmon;
 	int duty_cycle;
 	int ret;
+	const char *pwm_inuse = NULL;
 
 	ctx = devm_kzalloc(&pdev->dev, sizeof(*ctx), GFP_KERNEL);
 	if (!ctx)
@@ -229,7 +230,10 @@ static int pwm_fan_probe(struct platform_device *pdev)
 
 	mutex_init(&ctx->lock);
 
-	ctx->pwm = devm_of_pwm_get(&pdev->dev, pdev->dev.of_node, NULL);
+	if (of_find_property(pdev->dev.of_node, "pwm_inuse", NULL))
+		device_property_read_string(&pdev->dev, "pwm_inuse", &pwm_inuse);
+
+	ctx->pwm = devm_of_pwm_get(&pdev->dev, pdev->dev.of_node, pwm_inuse);
 	if (IS_ERR(ctx->pwm)) {
 		dev_err(&pdev->dev, "Could not get PWM\n");
 		return PTR_ERR(ctx->pwm);
@@ -274,7 +278,7 @@ static int pwm_fan_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	ctx->pwm_fan_state = ctx->pwm_fan_max_state;
+	ctx->pwm_fan_state = 0;
 	if (IS_ENABLED(CONFIG_THERMAL)) {
 		cdev = thermal_of_cooling_device_register(pdev->dev.of_node,
 							  "pwm-fan", ctx,

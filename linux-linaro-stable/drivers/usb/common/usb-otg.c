@@ -895,8 +895,12 @@ static void usb_otg_stop_fsm(struct otg_fsm *fsm)
 
 	/* Stop state machine / timers */
 	if (!otgd->drd_only) {
-		for (i = 0; i < ARRAY_SIZE(otgd->timers); i++)
+		for (i = 0; i < ARRAY_SIZE(otgd->timers); i++) {
+			/* Ignore the uninitialized timers. */
+			if (!otgd->timers[i].otgd)
+				continue;
 			hrtimer_cancel(&otgd->timers[i].timer);
+		}
 	}
 
 	flush_workqueue(otgd->wq);

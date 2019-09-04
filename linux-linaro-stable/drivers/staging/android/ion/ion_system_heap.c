@@ -24,6 +24,8 @@
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
 #include "ion.h"
+#include <linux/mm.h>
+#include <linux/swap.h>
 
 #define NUM_ORDERS ARRAY_SIZE(orders)
 
@@ -354,7 +356,7 @@ static int ion_system_heap_create(void)
 	if (IS_ERR(heap))
 		return PTR_ERR(heap);
 	heap->name = "ion_system_heap";
-
+	heap->total_size = get_num_physpages() << PAGE_SHIFT;
 	ion_device_add_heap(heap);
 	return 0;
 }
@@ -448,6 +450,7 @@ static int ion_system_contig_heap_create(void)
 	if (IS_ERR(heap))
 		return PTR_ERR(heap);
 
+	heap->total_size = get_num_physpages() << PAGE_SHIFT;
 	ion_device_add_heap(heap);
 	return 0;
 }

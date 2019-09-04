@@ -183,6 +183,110 @@ static int m88e1xxx_parse_status(struct phy_device *phydev)
 	return 0;
 }
 
+/* Parse the 88E1512's status register for speed and duplex
+ * information
+ */
+static int m88e1512_parse_status(struct phy_device *phydev)
+{
+	unsigned int speed;
+	unsigned int mii_reg;
+
+	/* Select page 0 */
+	phy_write(phydev, MDIO_DEVAD_NONE, MIIM_88E1118_PHY_PAGE, 0);
+	mii_reg = phy_read(phydev, MDIO_DEVAD_NONE, MIIM_88E1xxx_PHY_STATUS);
+
+	if ((mii_reg & MIIM_88E1xxx_PHYSTAT_LINK) &&
+	    !(mii_reg & MIIM_88E1xxx_PHYSTAT_SPDDONE)) {
+		int i = 0;
+
+		puts("Waiting for PHY realtime link");
+		while (!(mii_reg & MIIM_88E1xxx_PHYSTAT_SPDDONE)) {
+			/* Timeout reached ? */
+			if (i > PHY_AUTONEGOTIATE_TIMEOUT) {
+				puts(" TIMEOUT !\n");
+				phydev->link = 0;
+				return -ETIMEDOUT;
+			}
+
+			if ((i++ % 1000) == 0)
+				putc('.');
+			udelay(1000);
+			mii_reg = phy_read(phydev, MDIO_DEVAD_NONE,
+					   MIIM_88E1xxx_PHY_STATUS);
+		}
+		puts(" done\n");
+		mdelay(500);	/* another 500 ms (results in faster booting) */
+	} else {
+		if (mii_reg & MIIM_88E1xxx_PHYSTAT_LINK)
+			phydev->link = 1;
+		else
+			phydev->link = 0;
+	}
+
+	if (phydev->link == 0) {
+		/* Select page 1 */
+		phy_write(phydev, MDIO_DEVAD_NONE, MIIM_88E1118_PHY_PAGE, 1);
+		mii_reg = phy_read(phydev, MDIO_DEVAD_NONE, MIIM_88E1xxx_PHY_STATUS);
+
+		if ((mii_reg & MIIM_88E1xxx_PHYSTAT_LINK) &&
+		    !(mii_reg & MIIM_88E1xxx_PHYSTAT_SPDDONE)) {
+			int i = 0;
+
+			puts("Waiting for PHY realtime link");
+			while (!(mii_reg & MIIM_88E1xxx_PHYSTAT_SPDDONE)) {
+				/* Timeout reached ? */
+				if (i > PHY_AUTONEGOTIATE_TIMEOUT) {
+					puts(" TIMEOUT !\n");
+					phydev->link = 0;
+					return -ETIMEDOUT;
+				}
+
+				if ((i++ % 1000) == 0)
+					putc('.');
+				udelay(1000);
+				mii_reg = phy_read(phydev, MDIO_DEVAD_NONE,
+						   MIIM_88E1xxx_PHY_STATUS);
+			}
+			puts(" done\n");
+			mdelay(500);	/* another 500 ms (results in faster booting) */
+		} else {
+			if (mii_reg & MIIM_88E1xxx_PHYSTAT_LINK)
+				phydev->link = 1;
+			else
+				phydev->link = 0;
+		}
+	}
+
+	if (mii_reg & MIIM_88E1xxx_PHYSTAT_DUPLEX)
+		phydev->duplex = DUPLEX_FULL;
+	else
+		phydev->duplex = DUPLEX_HALF;
+
+	speed = mii_reg & MIIM_88E1xxx_PHYSTAT_SPEED;
+
+	switch (speed) {
+	case MIIM_88E1xxx_PHYSTAT_GBIT:
+		phydev->speed = SPEED_1000;
+		break;
+	case MIIM_88E1xxx_PHYSTAT_100:
+		phydev->speed = SPEED_100;
+		break;
+	default:
+		phydev->speed = SPEED_10;
+		break;
+	}
+
+	// resume back to page 0, prepare for kernel eth initiatied.
+	phy_write(phydev, MDIO_DEVAD_NONE, MIIM_88E1118_PHY_PAGE, 0);
+
+	return 0;
+}
+
+static int m88e1512_startup(struct phy_device *phydev)
+{
+	return m88e1512_parse_status(phydev);
+}
+
 static int m88e1011s_startup(struct phy_device *phydev)
 {
 	int ret;
@@ -298,6 +402,60 @@ void m88e1518_phy_writebits(struct phy_device *phydev,
 	reg |= data << offset;
 
 	phy_write(phydev, MDIO_DEVAD_NONE, reg_num, reg);
+}
+
+static int m88e1512_config(struct phy_device *phydev)
+{
+	/*
+	 * As per Marvell Release Notes - Alaska 88E1510/88E1518/88E1512
+	 * /88E1514 Rev A0, Errata Section 3.1
+	 */
+
+	/* EEE initialization */
+	phy_write(phydev, MDIO_DEVAD_NONE, MIIM_88E1118_PHY_PAGE, 0x00ff);
+	phy_write(phydev, MDIO_DEVAD_NONE, 17, 0x214B);
+	phy_write(phydev, MDIO_DEVAD_NONE, 16, 0x2144);
+	phy_write(phydev, MDIO_DEVAD_NONE, 17, 0x0C28);
+	phy_write(phydev, MDIO_DEVAD_NONE, 16, 0x2146);
+	phy_write(phydev, MDIO_DEVAD_NONE, 17, 0xB233);
+	phy_write(phydev, MDIO_DEVAD_NONE, 16, 0x214D);
+	phy_write(phydev, MDIO_DEVAD_NONE, 17, 0xCC0C);
+	phy_write(phydev, MDIO_DEVAD_NONE, 16, 0x2159);
+	phy_write(phydev, MDIO_DEVAD_NONE, MIIM_88E1118_PHY_PAGE, 0x0000);
+
+	if (phy_interface_is_rgmii(phydev)) {
+		/* Select page 18 */
+		phy_write(phydev, MDIO_DEVAD_NONE, MIIM_88E1118_PHY_PAGE, 18);
+
+		/* In reg 20, write MODE[2:0] = 0x6 (RGMII to AUTO) */
+		m88e1518_phy_writebits(phydev, MIIM_88E151x_GENERAL_CTRL,
+				       0, 3, 6);
+
+		/* PHY reset is necessary after changing MODE[2:0] */
+		m88e1518_phy_writebits(phydev, MIIM_88E151x_GENERAL_CTRL,
+				       MIIM_88E151x_RESET_OFFS, 1, 1);
+
+		/* Reset page selection */
+		phy_write(phydev, MDIO_DEVAD_NONE, MIIM_88E1118_PHY_PAGE, 0);
+
+		udelay(100);
+
+	} else {
+		printf("Warning: not rgmii!!!\n");
+	}
+
+	/* Refine output amplitude for sgmii with long wire */
+	phy_write(phydev, MDIO_DEVAD_NONE, MIIM_88E1118_PHY_PAGE, 1);
+	m88e1518_phy_writebits(phydev, 26, 0, 3, 0x6);
+	phy_write(phydev, MDIO_DEVAD_NONE, MIIM_88E1118_PHY_PAGE, 0);
+
+	/* soft reset */
+	phy_reset(phydev);
+
+	genphy_config_aneg(phydev);
+	genphy_restart_aneg(phydev);
+
+	return 0;
 }
 
 static int m88e1518_config(struct phy_device *phydev)
@@ -696,6 +854,16 @@ static struct phy_driver M88E1518_driver = {
 	.shutdown = &genphy_shutdown,
 };
 
+static struct phy_driver M88E1512_driver = {
+	.name = "Marvell 88E1512",
+	.uid = 0x1410dd1,
+	.mask = 0xfffffff,
+	.features = PHY_GBIT_FEATURES,
+	.config = &m88e1512_config,
+	.startup = &m88e1512_startup,
+	.shutdown = &genphy_shutdown,
+};
+
 static struct phy_driver M88E1310_driver = {
 	.name = "Marvell 88E1310",
 	.uid = 0x01410e90,
@@ -727,6 +895,7 @@ int phy_marvell_init(void)
 	phy_register(&M88E1111S_driver);
 	phy_register(&M88E1011S_driver);
 	phy_register(&M88E1510_driver);
+	phy_register(&M88E1512_driver);
 	phy_register(&M88E1518_driver);
 	phy_register(&M88E1680_driver);
 

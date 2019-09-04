@@ -27,7 +27,7 @@
 
 		ion_reserved: ion@110000000 {
 			compatible = "ion-region";
-			size = <0x0 0x20000000>; // 512MB
+			size = <0x0 0x18000000>; // 384MB
 		};
 
 		jpu_reserved: jpu {
@@ -35,25 +35,18 @@
 			 * and restrict to 4G address range
 			 */
 			alloc-ranges = <0x1 0x00000000 0 0xFFFFFFFF>;
-			size = <0x0 0x07f00000>; // 128M
+			size = <0x0 0x01000000>; // 16M
 			no-map;
 		};
-
-		spi_lcd_reserved: spi_lcd {
-			size = <0x0 0x0100000>; // 1M
-			no-map;
-		};
-
 		vpu_reserved: vpu {
 			/* <start, length> pair
 			 * and restrict to 4G address range
 			 */
 			alloc-ranges = <0x1 0x00000000 0 0xFFFFFFFF>;
-			size = <0x0 0x08000000>; // 128M
+			size = <0x0 0x04000000>; // 64M
 			no-map;
 		};
 	};
-
 
 	edb-gpio3-mux{
 		compatible = "bitmain,edb-gpio-mux";
@@ -211,18 +204,30 @@
 		reg = <0x0 0x50030000 0x0 0x1000>;
 		interrupts = <GIC_SPI 65 IRQ_TYPE_LEVEL_HIGH>;
 		clocks = <&pclk>;
-		clock-frequency = <25000000>;
+		clock-frequency = <50000000>;
 		#address-cells = <1>;
 		#size-cells = <0>;
 		num-cs = <1>;
-		switch-gpios = <&port0a 7 0>;
 
 		spidev: spidev@0 {
 			compatible = "rohm,dh2228fv";
-			memory-region = <&spi_lcd_reserved>;
-			spi-max-frequency = <25000000>;
+			spi-max-frequency = <50000000>;
 			reg = <0>;
 		};
+
+		//edb-display@0 {
+		//	compatible = "ilitek,ili9341";
+		//	reg = <0>;
+		//
+		//	spi-max-frequency = <50000000>;
+		//	rotate = <90>;
+		//	bgr;
+		//	fps = <30>;
+		//	buswidth = <16>;
+		//	reset-gpios = <&port1a 19 0>;//gpio51
+		//	dc-gpios = <&port0a 7 0>;//gpio7
+		//	debug = <0>;
+		//};
 	};
 
 	/delete-node/ ethernet@58028000; //delete ETH1

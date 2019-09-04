@@ -12,6 +12,12 @@ int fbtft_write_spi(struct fbtft_par *par, void *buf, size_t len)
 	};
 	struct spi_message m;
 
+#if defined(CONFIG_ARCH_BM1880)
+	if ((len > 128) && (par->pdata->display.buswidth == 16))
+		t.bits_per_word = 16;
+	else
+		t.bits_per_word = 8;
+#endif
 	fbtft_par_dbg_hex(DEBUG_WRITE, par, par->info->device, u8, buf, len,
 		"%s(len=%d): ", __func__, len);
 

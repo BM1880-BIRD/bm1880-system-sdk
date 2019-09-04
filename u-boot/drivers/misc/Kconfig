@@ -188,4 +188,28 @@ config I2C_EEPROM
 	depends on MISC
 	help
 	  Enable a generic driver for EEPROMs attached via I2C.
+
+config BM16XX_MCU_DRV
+	bool "bm16xx mcu i2c driver"
+	default n
+	select DM_I2C
+	select MISC
+	help
+	  Unified MCU driver.
+	  It contains MCU misc functions.
+	  1684 SoC based products is supported.
+	  Detailed information, please see README.
+
+config BM16XX_EEPROM_DRV
+	bool "bm16xx eeprom i2c driver"
+	default n
+	select DM_I2C
+	select MISC
+	select OF_CONTROL
+	help
+	  MCU emulated EEPROM driver.
+	  Only read function is supported.
+	  1684 SoC based products is supported.
+	  Detailed information, please see README.
+
 endmenu

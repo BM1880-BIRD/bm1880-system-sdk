@@ -122,38 +122,11 @@ extern u32 debug_level;
 	emit_task_descriptor(p_command, eng_id)
 #endif
 
-/* irq */
-#define IRQ_LEVEL   0
-#define IRQ_EDGE    3
-
 #define PERI_UART3_INTR     50
 #define PERI_UART2_INTR     47
 #define PERI_UART1_INTR     44
 #define PERI_UART0_INTR     41
 #define USB_OTG_INTR        (114 - INTR_SPI_BASE)
 #define USB_DEV_INTR1       (116 - INTR_SPI_BASE)
-
-#define IRQF_TRIGGER_NONE    0x00000000
-#define IRQF_TRIGGER_RISING  0x00000001
-#define IRQF_TRIGGER_FALLING 0x00000002
-#define IRQF_TRIGGER_HIGH    0x00000004
-#define IRQF_TRIGGER_LOW     0x00000008
-#define IRQF_TRIGGER_MASK   (IRQF_TRIGGER_HIGH | IRQF_TRIGGER_LOW | \
-			     IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING)
-
-typedef int (*irq_handler_t)(int irqn, void *priv);
-
-extern int request_irq(unsigned int irqn, irq_handler_t handler, unsigned long flags,
-		       const char *name, void *priv);
-
-void disable_irq(unsigned int irqn);
-void enable_irq(unsigned int irqn);
-
-void cpu_enable_irqs(void);
-void cpu_disable_irqs(void);
-
-extern void irq_trigger(int irqn);
-extern void irq_clear(int irqn);
-extern int irq_get_nums(void);
 
 #endif

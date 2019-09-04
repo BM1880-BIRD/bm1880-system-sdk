@@ -15,6 +15,8 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+extern int g_abnormal_reset;
+extern int do_cdump(void);
 /*
  * Board-specific Platform code can reimplement show_boot_progress () if needed
  */
@@ -58,6 +60,11 @@ void main_loop(void)
 #if defined(CONFIG_UPDATE_TFTP)
 	update_tftp(0UL, NULL, NULL);
 #endif /* CONFIG_UPDATE_TFTP */
+
+#ifdef CONFIG_CMD_BM_CDUMP_AUTO
+	if (g_abnormal_reset)
+		do_cdump();
+#endif
 
 	s = bootdelay_process();
 	if (cli_process_fdt(&s))

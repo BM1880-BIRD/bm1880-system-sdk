@@ -429,6 +429,16 @@ config GENERIC_ADC_THERMAL
 	  to this driver. This driver reports the temperature by reading ADC
 	  channel and converts it to temperature based on lookup table.
 
+config BM1880_CLOCK_COOLING
+	tristate "BM1880 clock cooling"
+	depends on ARCH_BM1880 || COMPILE_TEST
+	default y
+	help
+	  Adds BM1880 clock cooling devices, and these cooling devices can be
+	  bound to thermal zone trip points. When a trip point reached, the
+	  bound clock cooling device turns active to set device clock low to
+	  cool down the device.
+
 menu "Qualcomm thermal drivers"
 depends on (ARCH_QCOM && OF) || COMPILE_TEST
 source "drivers/thermal/qcom/Kconfig"

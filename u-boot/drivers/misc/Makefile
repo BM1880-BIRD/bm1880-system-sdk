@@ -51,3 +51,5 @@ obj-$(CONFIG_FSL_DEVICE_DISABLE) += fsl_devdis.o
 obj-$(CONFIG_WINBOND_W83627) += winbond_w83627.o
 obj-$(CONFIG_QFW) += qfw.o
 obj-$(CONFIG_ROCKCHIP_EFUSE) += rockchip-efuse.o
+obj-$(CONFIG_BM16XX_MCU_DRV) += bitmain-mcu.o
+obj-$(CONFIG_BM16XX_EEPROM_DRV) += bitmain-eeprom.o

@@ -1,0 +1,6 @@
+# Aliases extracted from modules themselves.
+alias spi:spidev spidev
+alias of:N*T*Clineartechnology,ltc2488C* spidev
+alias of:N*T*Clineartechnology,ltc2488 spidev
+alias of:N*T*Crohm,dh2228fvC* spidev
+alias of:N*T*Crohm,dh2228fv spidev

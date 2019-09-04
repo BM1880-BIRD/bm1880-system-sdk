@@ -1,0 +1,8 @@
+Bitmain cpufreq
+
+Required properties:
+- compatible: "bitmain,bm-cpufreq"
+- bitmain,cpufreq-table: cpu frequency table (kHz), now only one freq in 1682/1684/1880
+     example for 1682:
+          bitmain,cpufreq-table =  <  1800000 >;
+

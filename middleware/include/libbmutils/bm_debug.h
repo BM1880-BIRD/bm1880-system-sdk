@@ -168,5 +168,4 @@ int write_string_file(const char * const str, char *filename);
 #endif
 
 #endif
-
 #endif /* _BM_DEBUG_H_ */

@@ -7,7 +7,11 @@
 # This Makefile builds the internal U-Boot fdt if CONFIG_OF_CONTROL is
 # enabled. See doc/README.fdt-control for more details.
 
+ifeq ($(CONFIG_OF_BOARD),y)
+DEVICE_TREE ?= $(subst $\",, $(CONFIG_DEFAULT_DEVICE_TREE))
+else
 DEVICE_TREE ?= $(CONFIG_DEFAULT_DEVICE_TREE:"%"=%)
+endif
 ifeq ($(DEVICE_TREE),)
 DEVICE_TREE := unset
 endif
@@ -18,12 +22,21 @@ dtb_depends := arch-dtbs
 ifneq ($(EXT_DTB),)
 DTB := $(EXT_DTB)
 else
+ifeq ($(CONFIG_OF_BOARD),y)
+DTB := $(patsubst %, $(ARCH_PATH)/%.dtb, $(DEVICE_TREE))
+else
 DTB := $(ARCH_PATH)/$(DEVICE_TREE).dtb
+endif
 dtb_depends += $(DTB:.dtb=.dts)
 endif
 
+ifeq ($(CONFIG_OF_BOARD),y)
+$(obj)/dt.dtb: $(DTB) FORCE
+	@$(objtree)/tools/dtb_combine $(DTB) > $@
+else
 $(obj)/dt.dtb: $(DTB) FORCE
 	$(call if_changed,shipped)
+endif
 
 targets += dt.dtb
 

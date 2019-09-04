@@ -97,7 +97,9 @@ class bm_usb_libusb:
         pid = pid.split(':', 1)[1]
         return int(pid, 16)
 
-    def libusb_query(self, vid_pid_list, timeout=0):
+    def libusb_query(self, vid_pid_list, timeout=0, location=None):
+        if location is not None:
+            self.location = location
         progress_symbol = ['---', ' \\', ' \\', ' |', ' |', ' |', ' |', ' /', ' /']
         found = -1
         self.device = None
@@ -107,8 +109,18 @@ class bm_usb_libusb:
             i = i + 1
             sys.stdout.write("Waiting for BM1880 USB port: %s    \r" % (progress_symbol[i%len(progress_symbol)]))
             sys.stdout.flush()
+            t_bus = None
+            t_port_numbers = None
+            if self.location is not None:
+                t_bus = int(self.location.split('-')[0])
+                t_port_numbers = self.location.split('-')[-1].split('.')
+                t_port_numbers = tuple([int(j) for j in t_port_numbers])
             for vid_pid in vid_pid_list:
-                self.device = usb.core.find(idVendor=self.get_vid(vid_pid), idProduct=self.get_pid(vid_pid))
+                if self.location is not None:
+                    self.device = usb.core.find(idVendor=self.get_vid(vid_pid),
+                                                idProduct=self.get_pid(vid_pid), bus=t_bus, port_numbers=t_port_numbers)
+                else:
+                    self.device = usb.core.find(idVendor=self.get_vid(vid_pid), idProduct=self.get_pid(vid_pid))
                 if self.device is not None:
                     # found = 1
                     time.sleep(1)
@@ -168,12 +180,13 @@ class bm_usb_libusb:
 
     def libusb_write(self, command, recv_ack, delay_ms):
         start_time = time.time()
+        write_len = -1;
         try:
-            self.epOut.write(command, 5000)
+            write_len = self.epOut.write(command, 5000)
         except usb.USBError as e:
-            print ("Write data timeout")
+            print ("Write error" + e)
         
-        return pkt.SUCCESS
+        return write_len
 
     def usb_send_file(self, filename, dest_addr, delay_ms):
         self.ioTime = 0
@@ -198,13 +211,15 @@ class bm_usb_libusb:
                     self.data.fromfile(content_file, tx_len)
                 last_pos = content_file.tell()
 
-                send_ok = self.libusb_write(self.data, 1, delay_ms)
+                send_len = self.libusb_write(self.data, 1, delay_ms)
 
-                if send_ok == 0:
-                    dest_addr += tx_len
-                    content_size -= tx_len
+                if send_len >= 0:
+                    dest_addr += send_len
+                    content_size -= send_len
+                    last_pos = last_pos - tx_len + send_len
                 else:
-                    last_pos -= tx_len
+                    print ("IO error, stop send file")
+                    break
             # print ("complete_cnt %d" % complete_cnt)
             print ("--- %s Seconds ---" % round(time.time() - start_time, 2 ))
             # print ("--- %s Seconds ---" % str(self.ioTime))
@@ -437,6 +452,15 @@ class bm_usb_libusb:
                 s = s.replace('timeout=', "")
                 self.emmc_timeout = int(s)
                 print("emmc timeout = %d s" % self.emmc_timeout)
+            if 'location' in sys.argv[i]:
+                self.location = sys.argv[i]
+                self.location = self.location.replace('location=', '')
+                print("bus location = " + self.location)
+            if 'stdout' in sys.argv[i]:
+                self.stdout = sys.argv[i]
+                self.stdout = self.stdout.replace('stdout=', '')
+                print("stdout = " + self.stdout)
+                sys.stdout=open(self.stdout, "a")
             if 'usage' in sys.argv[i]:
                 show_usage()
                 sys.exit(0)
@@ -464,5 +488,7 @@ class bm_usb_libusb:
         self.ioTime = 0
         self.emmc_timeout = 0
         self.python_version = 3
+        self.location = None
+        self.stdout = None
         if sys.version_info[0] < 3:
             self.python_version = 2;

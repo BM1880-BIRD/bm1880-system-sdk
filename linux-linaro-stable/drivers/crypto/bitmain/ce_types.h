@@ -1,0 +1,61 @@
+#ifndef __CE_TYPES_H__
+#define __CE_TYPES_H__
+
+#define CRA_PRIORITY		(100)
+
+#define DES_BLOCKLEN		(64 / 8)
+#define DES_EDE3_BLOCKLEN	(DES_BLOCKLEN)
+#define AES_BLOCKLEN		(128 / 8)
+#define SM4_BLOCKLEN		(128 / 8)
+
+#define MAX_BLOCKLEN		(AES_BLOCKLEN)
+
+#define DES_MIN_KEYLEN		(64 / 8)
+#define DES_MAX_KEYLEN		DES_MIN_KEYLEN
+#define DES_EDE3_MIN_KEYLEN	(DES_MIN_KEYLEN * 3)
+#define DES_EDE3_MAX_KEYLEN	DES_EDE3_MIN_KEYLEN
+#define AES_MIN_KEYLEN		(128 / 8)
+#define AES_MAX_KEYLEN		(256 / 8)
+#define SM4_MIN_KEYLEN		(128 / 8)
+#define SM4_MAX_KEYLEN		SM4_MIN_KEYLEN
+
+#define MAX_KEYLEN		(AES_MAX_KEYLEN)
+
+#define SHA1_HASHLEN		(160 / 8)
+#define SHA256_HASHLEN		(256 / 8)
+#define MAX_HASHLEN		(SHA256_HASHLEN)
+#define SHA1_HASH_BLOCKLEN	(512 / 8)
+#define SHA256_HASH_BLOCKLEN	(512 / 8)
+#define MAX_HASH_BLOCKLEN	(SHA256_HASH_BLOCKLEN)
+
+#define ALG(cipher, mode)
+#define HASH(hash)
+
+enum {
+	CE_CIPHER,
+	CE_BASE,
+	CE_HASH,
+	CE_TYPE_MAX,
+};
+
+enum {
+	CE_ECB,
+	CE_CBC,
+	CE_CTR,
+	CE_MODE_MAX,
+};
+
+enum {
+	CE_DES,
+	CE_DES_EDE3,
+	CE_AES,
+	CE_SM4,
+	CE_ALG_MAX,
+};
+
+enum {
+	CTX_DONE,
+	CTX_INPROCESS,
+};
+
+#endif

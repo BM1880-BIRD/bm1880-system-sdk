@@ -1,0 +1,136 @@
+
+#####################
+# files to boot a minimal recovery system
+
+file /init ../target/init_recovery.sh 775 0 0
+
+dir /dev 755 0 0
+dir /dev/shm 755 0 0
+dir /dev/pts 755 0 0
+nod /dev/console 644 0 0 c 5 1
+
+dir /usr 755 0 0
+dir /usr/lib 755 0 0
+dir /usr/bin 755 0 0
+dir /usr/sbin 755 0 0
+dir /usr/share 755 0 0
+dir /usr/share/udhcpc 755 0 0
+dir /usr/local 755 0 0
+dir /usr/local/bin 755 0 0
+dir /usr/local/etc 755 0 0
+dir /bin 755 1000 1000
+
+file /bin/busybox ../target/bin/busybox 755 0 0
+file /bin/su ../target/bin/busybox 4755 0 0
+file /bin/mke2fs ../target/bin/mke2fs 755 0 0
+file /bin/partprobe ../target/bin/busybox 755 0 0
+file /bin/parted ../target/bin/parted 755 0 0
+file /bin/sgdisk ../target/bin/sgdisk 755 0 0
+file /bin/resize2fs ../target/bin/resize2fs 755 0 0
+file /usr/local/bin/scp ../target/usr/local/bin/scp 755 0 0
+file /usr/local/bin/ssh ../target/usr/local/bin/ssh 755 0 0
+file /usr/local/bin/sshd ../target/usr/local/bin/sshd 755 0 0
+file /usr/local/bin/sftp ../target/usr/local/bin/sftp 755 0 0
+file /usr/local/bin/ntpdate ../target/usr/local/bin/ntpdate 755 0 0
+file /usr/local/bin/daemon_ip ../target/usr/local/bin/daemon_ip 755 0 0
+file /usr/bin/expand.sh ../target/usr/bin/expand.sh 755 0 0
+
+file /usr/local/etc/ssh_host_ed25519_key.pub ../target/usr/local/etc/ssh_host_ed25519_key.pub 600 1000 1000
+file /usr/local/etc/ssh_host_ecdsa_key ../target/usr/local/etc/ssh_host_ecdsa_key 600 1000 1000
+file /usr/local/etc/ssh_host_ed25519_key ../target/usr/local/etc/ssh_host_ed25519_key 600 1000 1000
+file /usr/local/etc/moduli ../target/usr/local/etc/moduli 664 1000 1000
+file /usr/local/etc/ssh_host_ecdsa_key.pub ../target/usr/local/etc/ssh_host_ecdsa_key.pub 600 1000 1000
+file /usr/local/etc/ssh_host_rsa_key ../target/usr/local/etc/ssh_host_rsa_key 600 1000 1000
+file /usr/local/etc/ssh_host_dsa_key ../target/usr/local/etc/ssh_host_dsa_key 600 1000 1000
+file /usr/local/etc/sshd_config ../target/usr/local/etc/sshd_config 600 1000 1000
+file /usr/local/etc/ssh_host_rsa_key.pub ../target/usr/local/etc/ssh_host_rsa_key.pub 600 1000 1000
+file /usr/local/etc/ssh_config ../target/usr/local/etc/ssh_config 600 1000 1000
+file /usr/local/etc/ssh_host_dsa_key.pub ../target/usr/local/etc/ssh_host_dsa_key.pub 600 1000 1000
+
+file /usr/default.script ../target/usr/default.script 755 1000 1000
+file /usr/share/udhcpc/default.script ../target/usr/share/udhcpc/default.script 755 1000 1000
+
+slink /bin/sh /bin/busybox 755 0 0
+slink /linuxrc /bin/busybox 755 0 0
+slink /bin/tar /bin/busybox 755 0 0
+slink /bin/mkfs.ext4 /bin/mke2fs 755 0 0
+
+dir /sbin 755 0 0
+dir /proc 755 0 0
+dir /sys 755 0 0
+dir /mnt 755 0 0
+dir /run 755 0 0
+dir /tmp 755 0 0
+dir /lib 755 0 0
+dir /data 755 0 0
+
+file /sbin/ifconfig ../target/sbin/ifconfig 755 0 0
+file /sbin/shutdown ../target/sbin/shutdown 755 0 0
+
+dir /var 755 0 0
+dir /var/run 755 0 0
+dir /var/log 755 0 0
+dir /var/empty 755 0 0
+
+dir /root 755 0 0
+dir /home 755 0 0
+dir /home/bitmain 755 1000 1000
+
+dir /etc 755 0 0
+dir /etc/init.d 755 0 0
+dir /etc/network 755 1000 1000
+dir /etc/network/if-pre-up.d 755 1000 1000
+dir /etc/network/if-up.d 755 1000 1000
+dir /etc/network/if-down.d 755 1000 1000
+dir /etc/network/if-post-down.d 755 1000 1000
+file /etc/inittab ../target/etc/inittab 644 0 0
+file /etc/group ../target/etc/group 644 0 0
+file /etc/passwd ../target/etc/passwd 644 0 0
+file /etc/shadow ../target/etc/shadow 644 0 0
+file /etc/hostname ../target/etc/hostname 644 0 0
+file /etc/issue ../target/etc/issue 644 0 0
+file /etc/os-release ../target/etc/os-release 644 0 0
+file /etc/init.d/rcS ../target/etc/init.d/rcS 755 0 0
+file /etc/init.d/S00update ../target/etc/init.d/S00update 755 0 0
+file /etc/init.d/S20network ../target/etc/init.d/S20network 755 0 0
+file /etc/init.d/S22sshd ../target/etc/init.d/S22sshd 755 0 0
+file /etc/init.d/S23daemonip ../target/etc/init.d/S23daemonip 755 0 0
+
+
+file /lib/ld-linux-aarch64.so.1 ../target/lib/ld-linux-aarch64.so.1 775 0 0
+file /lib/libpthread.so.0 ../target/lib/libpthread.so.0 775 0 0
+file /lib/libc.so.6 ../target/lib/libc.so.6 775 0 0
+file /lib/libparted.so.2 ../target/lib/libparted.so.2 775 0 0
+file /lib/libuuid.so.1 ../target/lib/libuuid.so.1 775 0 0
+file /lib/libdl.so.2 ../target/lib/libdl.so.2 775 0 0
+file /lib/libdevmapper.so.1.02.1 ../target/lib/libdevmapper.so.1.02.1 775 0 0
+file /lib/libblkid.so.1 ../target/lib/libblkid.so.1 775 0 0
+file /lib/libreadline.so.7 ../target/lib/libreadline.so.7 775 0 0
+file /lib/libtinfo.so.5 ../target/lib/libtinfo.so.5 775 0 0
+file /lib/libpopt.so.0 ../target/lib/libpopt.so.0 775 0 0
+file /lib/libstdc++.so.6 ../target/lib/libstdc++.so.6 775 0 0
+file /lib/libm.so.6 ../target/lib/libm.so.6 775 0 0
+file /lib/libgcc_s.so.1 ../target/lib/libgcc_s.so.1 775 0 0
+file /lib/librt.so.1 ../target/lib/librt.so.1 775 0 0
+file /lib/libselinux.so.1 ../target/lib/libselinux.so.1 775 0 0
+file /lib/libudev.so.1 ../target/lib/libudev.so.1 775 0 0
+file /lib/libpcre.so.3 ../target/lib/libpcre.so.3 775 0 0
+file /lib/libutil.so.1 ../target/lib/libutil.so.1 775 0 0
+file /lib/libz.so.1 ../target/lib/libz.so.1 775 0 0
+file /lib/libcrypt.so.1 ../target/lib/libcrypt.so.1 775 0 0
+file /lib/libresolv.so.2 ../target/lib/libresolv.so.2 775 0 0
+
+file /lib/libnss_files.so.2 ../target/lib/libnss_files.so.2 775 1000 1000
+file /lib/libnss_nis-2.23.so ../target/lib/libnss_nis-2.23.so 775 1000 1000
+file /lib/libnss_db-2.23.so ../target/lib/libnss_db-2.23.so 775 1000 1000
+file /lib/libnss_hesiod.so.2 ../target/lib/libnss_hesiod.so.2 775 1000 1000
+file /lib/libnss_db.so.2 ../target/lib/libnss_db.so.2 775 1000 1000
+file /lib/libnss_nisplus-2.23.so ../target/lib/libnss_nisplus-2.23.so 775 1000 1000
+file /lib/libnss_hesiod-2.23.so ../target/lib/libnss_hesiod-2.23.so 775 1000 1000
+file /lib/libnss_compat.so.2 ../target/lib/libnss_compat.so.2 775 1000 1000
+file /lib/libnss_nisplus.so.2 ../target/lib/libnss_nisplus.so.2 775 1000 1000
+file /lib/libnss_dns-2.23.so ../target/lib/libnss_dns-2.23.so 775 1000 1000
+file /lib/libnss_nis.so.2 ../target/lib/libnss_nis.so.2 775 1000 1000
+file /lib/libnss_dns.so.2 ../target/lib/libnss_dns.so.2 775 1000 1000
+file /lib/libnss_files-2.23.so ../target/lib/libnss_files-2.23.so 775 1000 1000
+file /lib/libnss_compat-2.23.so ../target/lib/libnss_compat-2.23.so 775 1000 1000

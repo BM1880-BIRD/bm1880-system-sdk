@@ -4,7 +4,7 @@
 # ====================================================================
 CHIP=${CHIP:-bm1880}
 SUBTYPE=${SUBTYPE:-asic}
-BOARD=${BOARD:-edb}
+BOARD=edb
 DEBUG=${DEBUG:-0}
 TAG=${TAG:-}
 # ====================================================================
@@ -21,6 +21,8 @@ IMG_ENC_KSRC=dev
 #    keyfile : read key from key file. IMG_ENC_KPATH should contain the path
 #    dev     : dev mode, using key = 0
 IMG_ENC_KPATH=
+
+IMG_CMPS=1
 
 function gettop
 {
@@ -78,20 +80,29 @@ function build_uboot()
 
   make IMG_ENC=${IMG_ENC} IMG_ENC_KSRC=${IMG_ENC_KSRC} bitmain_${PROJECT_FULLNAME}_defconfig
   make IMG_ENC=${IMG_ENC} IMG_ENC_KSRC=${IMG_ENC_KSRC} all
-  if [ $VBOOT -eq 1 ]; then
-    uboot_vboot
-  fi
-  unset KBUILD_OUTPUT
 
+  # catch uboot build failure
   ret=$?
-  popd
-  if [ $ret -ne 0 ]; then
-    echo "making u-boot failed"
-    return $ret
-  fi
+  if [ 0 -ne $ret ]; then
+      echo "build u-boot failed"
+      return $ret
+  else
+    if [ $VBOOT -eq 1 ]; then
+      uboot_vboot
+    fi
+    unset KBUILD_OUTPUT
 
-  cp $UBOOT_PATH/$UBOOT_OUTPUT_FOLDER/u-boot.bin $OUTPUT_DIR/
-  cp $UBOOT_PATH/$UBOOT_OUTPUT_FOLDER/u-boot $OUTPUT_DIR/
+    # catch uboot makimage failure
+    ret=$?
+    popd
+    if [ $ret -ne 0 ]; then
+      echo "making u-boot failed"
+      return $ret
+    fi
+
+    cp $UBOOT_PATH/$UBOOT_OUTPUT_FOLDER/u-boot.bin $OUTPUT_DIR/
+    cp $UBOOT_PATH/$UBOOT_OUTPUT_FOLDER/u-boot $OUTPUT_DIR/
+  fi
 
   build_fip
 }
@@ -121,6 +132,13 @@ function build_kernel()
       echo "kernel checkout tag $TAG"
       git checkout $TAG
   fi
+
+  # check if a fixed link exists, remove it to avoid loop
+  pushd $KERNEL_PATH/linux/
+  if [ -L ./${CHIP}_${SUBTYPE} ]; then
+    rm -rf ./${CHIP}_${SUBTYPE}
+  fi
+  popd
 
   make ARCH=arm64 O=./$KERNEL_OUTPUT_FOLDER bitmain_${PROJECT_FULLNAME}_defconfig
   pushd ./$KERNEL_OUTPUT_FOLDER
@@ -172,28 +190,120 @@ function clean_kernel()
   rm -rf $RAMDISK_PATH/prebuild/include/linux
 }
 
+function create_ramdisk_folder()
+{
+  mkdir -p $OUTPUT_DIR
+  mkdir -p $RAMDISK_PATH/$RAMDISK_OUTPUT_BASE/target
+  mkdir -p $RAMDISK_PATH/$RAMDISK_OUTPUT_BASE/configs
+
+  # create target folder with priority: project->chip->common
+  cp -r $RAMDISK_PATH/target/common/* $RAMDISK_PATH/$RAMDISK_OUTPUT_BASE/target
+  if [ -d $RAMDISK_PATH/target/overlay/$CHIP ]; then
+    cp -r $RAMDISK_PATH/target/overlay/$CHIP/* $RAMDISK_PATH/$RAMDISK_OUTPUT_BASE/target
+  fi
+  if [ -d $RAMDISK_PATH/target/overlay/$PROJECT_FULLNAME ] ; then
+    cp -r $RAMDISK_PATH/target/overlay/$PROJECT_FULLNAME/* $RAMDISK_PATH/$RAMDISK_OUTPUT_BASE/target
+  fi
+
+  # create config folder with priority: project->chip
+  if [ -d $RAMDISK_PATH/configs/$CHIP ]; then
+    cp -r $RAMDISK_PATH/configs/$CHIP/* $RAMDISK_PATH/$RAMDISK_OUTPUT_BASE/configs
+  fi
+  if [ -d $RAMDISK_PATH/configs/$PROJECT_FULLNAME ] ; then
+    cp -r $RAMDISK_PATH/configs/$PROJECT_FULLNAME/* $RAMDISK_PATH/$RAMDISK_OUTPUT_BASE/configs
+  fi
+}
+
+function build_ramboot_mini()
+{
+  create_ramdisk_folder
+
+  if [ ! -d $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER ] ; then
+    mkdir -p $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER
+  fi
+
+  pushd $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER
+  rm -f ramboot_mini_files.txt
+
+  cp ../configs/multi.its ./
+  cp ../configs/ramboot_fixed_files.txt ./ramboot_mini_files.txt
+
+  $RAMDISK_PATH/tools/gen_init_cpio ramboot_mini_files.txt > ramboot_mini.cpio
+  
+  if  [ $IMG_CMPS = 1 ] ; then
+    gzip -9 -f -k Image
+    gzip -9 -f -k ramboot_mini.cpio
+    sed -i "s/data = \/incbin\/(\".\/rootfs.cpio.gz\");/data = \/incbin\/(\".\/ramboot_mini.cpio.gz\");/g" multi.its
+  else
+    sed -i "s/data = \/incbin\/(\".\/rootfs.cpio\");/data = \/incbin\/(\".\/ramboot_mini.cpio\");/g" multi.its
+  fi
+
+  sed -i "s/data = \/incbin\/(\".\/bitmain.dtb\");/data = \/incbin\/(\".\/${PROJECT_FULLNAME}.dtb\");/g" multi.its
+
+  $TOP_DIR/build/mkimage -f multi.its -k $VBOOT_PATH ramboot_mini.itb
+  cp ./ramboot_mini.itb $OUTPUT_DIR/
+  popd
+
+  internal_enc_helper $OUTPUT_DIR/ramboot_mini.itb
+}
+
+function build_ramboot_full()
+{
+  create_ramdisk_folder
+
+  pushd $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER
+  rm -f ramboot_fixed_files.txt
+  rm -f ramboot_full_files.txt
+  rm -f ramboot_final_files.txt
+
+  cp ../configs/multi.its ./
+  cp ../configs/ramboot_fixed_files.txt .
+  $RAMDISK_PATH/tools/gen_initramfs_list.sh $RAMDISK_PATH/$RAMDISK_OUTPUT_BASE/target > ramboot_full_files.txt
+  python $RAMDISK_PATH/tools/sort.py ramboot_fixed_files.txt ramboot_full_files.txt > ramboot_final_files.txt
+
+
+  $RAMDISK_PATH/tools/gen_init_cpio ramboot_final_files.txt > ramboot_full.cpio
+
+  if  [ $IMG_CMPS = 1 ] ; then
+    gzip --fast -f -k Image
+    gzip --fast -f -k ramboot_full.cpio
+    sed -i "s/data = \/incbin\/(\".\/rootfs.cpio.gz\");/data = \/incbin\/(\".\/ramboot_full.cpio.gz\");/g" multi.its
+  else
+    sed -i "s/data = \/incbin\/(\".\/rootfs.cpio\");/data = \/incbin\/(\".\/ramboot_full.cpio\");/g" multi.its
+  fi
+
+  sed -i "s/data = \/incbin\/(\".\/bitmain.dtb\");/data = \/incbin\/(\".\/${PROJECT_FULLNAME}.dtb\");/g" multi.its
+
+  $UBOOT_PATH/$UBOOT_OUTPUT_FOLDER/tools/mkimage -f multi.its -k $VBOOT_PATH ramboot_full.itb
+  cp ./ramboot_full.itb $OUTPUT_DIR/
+  popd
+}
+
 function build_recovery()
 {
-  if [ ! -d $OUTPUT_DIR ] ; then
-    mkdir -p $OUTPUT_DIR
-  fi
+  create_ramdisk_folder
+
   if [ ! -d $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER ] ; then
     mkdir -p $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER
   fi
 
   pushd $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER
   rm -f recovery_files.txt
+  rm -f recovery_final_files.txt
 
-  cat $RAMDISK_PATH/scripts/recovery_fixed_files.txt > recovery_files.txt
-  $RAMDISK_PATH/scripts/gen_initramfs_list.sh $RAMDISK_PATH/target/etc | sed 's/\//\/etc\//' >> recovery_files.txt
-  $RAMDISK_PATH/scripts/gen_init_cpio recovery_files.txt > recovery.cpio
+  cp ../configs/multi.its ./
+  $RAMDISK_PATH/tools/gen_initramfs_list.sh $RAMDISK_PATH/$RAMDISK_OUTPUT_BASE/target/etc | sed 's/\//\/etc\//' > recovery_files.txt
+  python $RAMDISK_PATH/tools/sort.py ../configs/recovery_fixed_files.txt recovery_files.txt > recovery_final_files.txt
+  $RAMDISK_PATH/tools/gen_init_cpio recovery_final_files.txt > recovery.cpio
 
-  if [ -f $RAMDISK_PATH/scripts/${PROJECT_FULLNAME}_multi.its ]; then
-    cp $RAMDISK_PATH/scripts/${PROJECT_FULLNAME}_multi.its ./multi.its
+  if  [ $IMG_CMPS = 1 ] ; then
+    gzip -9 -f -k Image
+    gzip -9 -f -k recovery.cpio
+    sed -i "s/data = \/incbin\/(\".\/rootfs.cpio.gz\");/data = \/incbin\/(\".\/recovery.cpio.gz\");/g" multi.its
   else
-    cp $RAMDISK_PATH/scripts/multi.its ./multi.its
+    sed -i "s/data = \/incbin\/(\".\/rootfs.cpio\");/data = \/incbin\/(\".\/recovery.cpio\");/g" multi.its
   fi
-  sed -i "s/data = \/incbin\/(\".\/rootfs.cpio\");/data = \/incbin\/(\".\/recovery.cpio\");/g" multi.its
+
   sed -i "s/data = \/incbin\/(\".\/bitmain.dtb\");/data = \/incbin\/(\".\/${PROJECT_FULLNAME}.dtb\");/g" multi.its
 
   $TOP_DIR/build/mkimage -f multi.its -k $VBOOT_PATH recovery.itb
@@ -204,9 +314,8 @@ function build_recovery()
 
 function build_emmcboot()
 {
-  if [ ! -d $OUTPUT_DIR ] ; then
-    mkdir -p $OUTPUT_DIR
-  fi
+  create_ramdisk_folder
+
   if [ ! -d $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER ] ; then
     mkdir -p $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER
   fi
@@ -214,17 +323,18 @@ function build_emmcboot()
   pushd $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER
   rm -f emmcboot_files.txt
 
-  cat $RAMDISK_PATH/scripts/emmcboot_fixed_files.txt >> emmcboot_files.txt
-  $RAMDISK_PATH/scripts/gen_init_cpio emmcboot_files.txt > emmcboot.cpio
+  cp ../configs/multi.its ./
+  cp ../configs/emmcboot_fixed_files.txt emmcboot_files.txt
+  $RAMDISK_PATH/tools/gen_init_cpio emmcboot_files.txt > emmcboot.cpio
 
-  if [ -f $RAMDISK_PATH/scripts/${PROJECT_FULLNAME}_multi.its ]; then
-    cp $RAMDISK_PATH/scripts/${PROJECT_FULLNAME}_multi.its ./multi.its
+  if  [ $IMG_CMPS = 1 ] ; then
+    gzip -9 -f -k Image
+    gzip -9 -f -k emmcboot.cpio
+    sed -i "s/data = \/incbin\/(\".\/rootfs.cpio.gz\");/data = \/incbin\/(\".\/emmcboot.cpio.gz\");/g" multi.its
   else
-    cp $RAMDISK_PATH/scripts/multi.its ./multi.its
+    sed -i "s/data = \/incbin\/(\".\/rootfs.cpio\");/data = \/incbin\/(\".\/emmcboot.cpio\");/g" multi.its
   fi
 
-  sed -i "s/data = \/incbin\/(\".\/rootfs.cpio\");/data = \/incbin\/(\".\/emmcboot.cpio\");/g" multi.its
-  
   sed -i "s/data = \/incbin\/(\".\/bitmain.dtb\");/data = \/incbin\/(\".\/${PROJECT_FULLNAME}.dtb\");/g" multi.its
 
   $TOP_DIR/build/mkimage -f multi.its -k $VBOOT_PATH emmcboot.itb
@@ -235,9 +345,8 @@ function build_emmcboot()
 
 function build_sdboot()
 {
-  if [ ! -d $OUTPUT_DIR ] ; then
-    mkdir -p $OUTPUT_DIR
-  fi
+  create_ramdisk_folder
+
   if [ ! -d $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER ] ; then
     mkdir -p $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER
   fi
@@ -245,15 +354,18 @@ function build_sdboot()
   pushd $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER
   rm -f sdboot_files.txt
 
-  cat $RAMDISK_PATH/scripts/sdboot_fixed_files.txt >> sdboot_files.txt
-  $RAMDISK_PATH/scripts/gen_init_cpio sdboot_files.txt > sdboot.cpio
+  cp ../configs/multi.its ./
+  cp ../configs/sdboot_fixed_files.txt sdboot_files.txt
+  $RAMDISK_PATH/tools/gen_init_cpio sdboot_files.txt > sdboot.cpio
 
-  if [ -f $RAMDISK_PATH/scripts/${PROJECT_FULLNAME}_multi.its ]; then
-    cp $RAMDISK_PATH/scripts/${PROJECT_FULLNAME}_multi.its ./multi.its
+  if  [ $IMG_CMPS = 1 ] ; then
+    gzip -9 -f -k Image
+    gzip -9 -f -k sdboot.cpio
+    sed -i "s/data = \/incbin\/(\".\/rootfs.cpio.gz\");/data = \/incbin\/(\".\/sdboot.cpio.gz\");/g" multi.its
   else
-    cp $RAMDISK_PATH/scripts/multi.its ./multi.its
+    sed -i "s/data = \/incbin\/(\".\/rootfs.cpio\");/data = \/incbin\/(\".\/sdboot.cpio\");/g" multi.its
   fi
-  sed -i "s/data = \/incbin\/(\".\/rootfs.cpio\");/data = \/incbin\/(\".\/sdboot.cpio\");/g" multi.its
+
   sed -i "s/data = \/incbin\/(\".\/bitmain.dtb\");/data = \/incbin\/(\".\/${PROJECT_FULLNAME}.dtb\");/g" multi.its
 
   $TOP_DIR/build/mkimage -f multi.its -k $VBOOT_PATH sdboot.itb
@@ -264,34 +376,16 @@ function build_sdboot()
 
 function build_rootfs()
 {
-  if [ ! -d $ROOTFS_DIR ] ; then
-    mkdir -p $ROOTFS_DIR
-  fi
-  if [ ! -d $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER ] ; then
-    mkdir -p $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER
-  fi
+  build_ramboot_full
 
-  pushd $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER
-  rm -f rootfs_files.txt
-
-  # customization
-  cat $RAMDISK_PATH/scripts/ramboot_fixed_files.txt > rootfs_files.txt
-
-  $RAMDISK_PATH/scripts/gen_initramfs_list.sh $RAMDISK_PATH/target >> rootfs_files.txt
-  $RAMDISK_PATH/scripts/gen_init_cpio rootfs_files.txt > rootfs.cpio
-  popd
+  mkdir -p $ROOTFS_DIR
 
   pushd $ROOTFS_DIR
-  cat $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER/rootfs.cpio | fakeroot cpio -i
+  cat $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER/ramboot_full.cpio | fakeroot cpio -i --preserve-modification-time
   popd
-
-  if [ -d $ROOTFS_OVERLAY ]; then
-    echo copy overlay files...
-    cp -rpf $ROOTFS_OVERLAY/* $ROOTFS_DIR
-  fi
 }
 
-pack_emmc_image(){
+build_emmc_tar_image(){
   build_recovery
   pushd $OUTPUT_DIR
   mkdir -p emmc_nnmc_pkg
@@ -305,20 +399,12 @@ pack_emmc_image(){
 
 function clean_ramdisk()
 {
-  rm -rf $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER
+  rm -rf $RAMDISK_PATH/$RAMDISK_OUTPUT_BASE
   rm -f $OUTPUT_DIR/*.cpio
   rm -f $OUTPUT_DIR/*.itb
-  rm -f $BUILD_PATH/image_tool/images/*.itb
-}
-
-function clean_rootfs()
-{
-  rm -f $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER/rootfs_files.txt
-  rm -f $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER/rootfs.cpio
   mv $ROOTFS_DIR/system $TOP_DIR/
   rm -rf $ROOTFS_DIR/*
   mv $TOP_DIR/system $ROOTFS_DIR/
-  rm -rf $BUILD_PATH/image_tool/images/rootfs
 }
 
 function enc_image()
@@ -381,10 +467,10 @@ function build_fip()
   fi
 
   $FIPTOOL create ${FIP_ARGS} ./fip.bin
-  $FIPTOOL info ./fip.bin	
+  $FIPTOOL info ./fip.bin
   echo "Built fip.bin successfully"
 
- popd 
+ popd
 }
 
 function copy_emmc_img()
@@ -402,12 +488,13 @@ function clean_emmc_img()
 function build_all()
 {
 # to generate fip.bin, u-boot must be built first
-  build_uboot  
+  build_uboot
   build_kernel
+  build_ramboot_mini
   build_sdboot
   build_emmcboot
   build_rootfs
-  pack_emmc_image
+  build_emmc_tar_image
   copy_emmc_img
 }
 
@@ -416,7 +503,7 @@ function clean_all()
   clean_kernel
   clean_uboot
   clean_ramdisk
-  clean_rootfs
+#  clean_rootfs
   clean_emmc_img
 }
 
@@ -433,13 +520,14 @@ VBOOT_PATH=$TOP_DIR/build/vboot
 UBOOT_PATH=$TOP_DIR/u-boot
 KERNEL_PATH=$TOP_DIR/linux-linaro-stable
 RAMDISK_PATH=$TOP_DIR/ramdisk
-ROOTFS_OVERLAY=${RAMDISK_PATH}/overlay/soc_${PROJECT_FULLNAME}
+ROOTFS_OVERLAY=${RAMDISK_PATH}/target/overlay/soc_${PROJECT_FULLNAME}
 BUILD_PATH=$TOP_DIR/build
 
 # subfolder path for buidling, chosen accroding to .gitignore rules
 UBOOT_OUTPUT_FOLDER=u-boot/$PROJECT_FULLNAME
 KERNEL_OUTPUT_FOLDER=linux/$PROJECT_FULLNAME
-RAMDISK_OUTPUT_FOLDER=build/$PROJECT_FULLNAME
+RAMDISK_OUTPUT_BASE=build/$PROJECT_FULLNAME
+RAMDISK_OUTPUT_FOLDER=$RAMDISK_OUTPUT_BASE/workspace
 KERNEL_OBJ_OVERLAY_PATH=/linux/$PROJECT_FULLNAME
 
 #fiptool path
