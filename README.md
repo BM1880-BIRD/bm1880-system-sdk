@@ -17,6 +17,11 @@ $ unzip gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu.tar.xz.zip && xz -d gc
 $ tar -xvf gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu.tar
 ```
 
+#### preparation:  
+
+update protobuf to version 3.6 with libprotobuf.so.17  
+  
+
 ### Build SDK, you can build sdk for EDB **OR** NNM
 #### Build SDK for EDB:
 
