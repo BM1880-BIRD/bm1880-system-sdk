@@ -19,15 +19,16 @@ $ tar -xvf gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu.tar
 
 #### preparation:  
 
-    update protobuf to version 3.6 with libprotobuf.so.17:  
-    first, get code from  https://github.com/protocolbuffers/protobuf/tree/3.6.x  
-    $./autogen.sh  
-    $./configure  
-    $make  
-    $sudo make install
-    $sudo ldconfig
-    $protoc --version  
-  
+Update protobuf to version 3.6 with libprotobuf.so.17:  
+First, get code from  https://github.com/protocolbuffers/protobuf/tree/3.6.x  
+```bash
+$ ./autogen.sh  
+$ ./configure  
+$ make  
+$ sudo make install
+$ sudo ldconfig
+$ protoc --version  
+```  
 
 ### Build SDK, you can build sdk for EDB **OR** NNM
 #### Build SDK for EDB:
