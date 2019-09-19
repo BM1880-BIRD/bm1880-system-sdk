@@ -13,16 +13,16 @@ else
 
   sleep 2
 
-  read -t 5 -p "Do you want to format rootfs/data parition(enter YES to format)?" answer
+  #read -t 5 -p "Do you want to format rootfs/data parition(enter YES to format)?" answer
 
-  if [ "$answer" == "YES" ] ;then
+  #if [ "$answer" == "YES" ] ;then
 
       echo Format rootfs partition;
       busybox mke2fs -T ext4 /dev/mmcblk0p3;
 
       echo Format data partition;
       busybox mke2fs -T ext4 /dev/mmcblk0p6;
-  fi
+  #fi
 fi
 
 mkdir /data
