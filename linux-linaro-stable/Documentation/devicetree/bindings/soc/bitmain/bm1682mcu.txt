@@ -1,4 +1,0 @@
-Bitmain bm1682 MCU driver, just for soc aisc platform.
-Required properties:
-- compatible: "bitmain,bm1682-mcu"
-- reg: should be the mcu slave address in i2c bus.

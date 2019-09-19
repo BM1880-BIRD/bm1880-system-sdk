@@ -1,2 +1,0 @@
-# UNCONFIGURED FSTAB FOR BASE SYSTEM
-/dev/mmcblk0p7  /data   ext4    defaults        0       2
