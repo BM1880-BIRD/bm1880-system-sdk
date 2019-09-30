@@ -1097,10 +1097,11 @@ static int spidev_probe(struct spi_device *spi)
 	}
 
 #ifdef CONFIG_FB
-	fb_mem = devm_kzalloc(&(spi->dev), fb_memlen, GFP_KERNEL);
+	//fb_mem = devm_kzalloc(&(spi->dev), fb_memlen, GFP_KERNEL);
+	fb_mem = kzalloc(fb_memlen, GFP_KERNEL);
 	if (!fb_mem)
 		return -1;
-
+	//printk("memlen = %d, fbmem = 0x%llX , pa = 0x%llX .\n", fb_memlen, fb_mem, __pa(fb_mem));
 	fb_info = framebuffer_alloc(0, NULL);
 	if (!fb_info)
 		return -1;
@@ -1116,10 +1117,15 @@ static int spidev_probe(struct spi_device *spi)
 	fb_info->fix.visual = FB_VISUAL_TRUECOLOR;
 	fb_info->fix.line_length = TFT_COL*2;
 	fb_info->var.bits_per_pixel = 16;
-	fb_info->var.red.offset = 0;
-	fb_info->var.green.offset = 0;
+
+	fb_info->var.red.offset = 11;
+	fb_info->var.red.length = 5;
+	fb_info->var.green.offset = 5;
+	fb_info->var.green.length = 6;
 	fb_info->var.blue.offset = 0;
+	fb_info->var.blue.length = 5;
 	fb_info->var.transp.offset = 0;
+	fb_info->var.transp.length = 0;
 
 	err = register_framebuffer(fb_info);
 	if (err != 0)
