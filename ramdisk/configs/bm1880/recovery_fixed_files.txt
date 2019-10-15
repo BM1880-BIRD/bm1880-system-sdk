@@ -33,6 +33,7 @@ file /usr/local/bin/sshd ../target/usr/local/bin/sshd 755 0 0
 file /usr/local/bin/sftp ../target/usr/local/bin/sftp 755 0 0
 file /usr/local/bin/ntpdate ../target/usr/local/bin/ntpdate 755 0 0
 #file /usr/local/bin/daemon_ip ../target/usr/local/bin/daemon_ip 755 0 0
+file /usr/local/bin/autologin ../target/usr/local/bin/autologin 755 0 0
 file /usr/bin/expand.sh ../target/usr/bin/expand.sh 755 0 0
 
 file /usr/local/etc/ssh_host_ed25519_key.pub ../target/usr/local/etc/ssh_host_ed25519_key.pub 600 1000 1000
