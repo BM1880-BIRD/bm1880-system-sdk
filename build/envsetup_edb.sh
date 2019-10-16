@@ -476,6 +476,7 @@ function build_fip()
 function copy_emmc_img()
 {
   cp -f $OUTPUT_DIR/fip.bin $OUTPUT_DIR/bm1880_emmc_dl_v1p1/
+  cp -f $OUTPUT_DIR/ramboot_mini.itb $OUTPUT_DIR/bm1880_emmc_dl_v1p1/
   mv $OUTPUT_DIR/emmc.tar.gz $OUTPUT_DIR/bm1880_emmc_dl_v1p1/
 }
 
