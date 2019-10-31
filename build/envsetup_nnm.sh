@@ -382,6 +382,8 @@ function build_rootfs()
 
   pushd $ROOTFS_DIR
   cat $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER/ramboot_full.cpio | fakeroot cpio -i --preserve-modification-time
+
+  rm init_emmcboot.sh init_emmcboot.sh.sqsh init_kdump.sh init_ramboot.sh init_ramboot.sh.sqsh init_recovery.sh init_sdboot.sh
   popd
 }
 
@@ -476,6 +478,7 @@ function build_fip()
 function copy_emmc_img()
 {
   cp -f $OUTPUT_DIR/fip.bin $OUTPUT_DIR/bm1880_emmc_dl_v1p1/
+  cp -f $OUTPUT_DIR/ramboot_mini.itb $OUTPUT_DIR/bm1880_emmc_dl_v1p1/
   mv $OUTPUT_DIR/emmc.tar.gz $OUTPUT_DIR/bm1880_emmc_dl_v1p1/
 }
 
@@ -491,7 +494,7 @@ function build_all()
   build_uboot
   build_kernel
   build_ramboot_mini
-  build_sdboot
+#  build_sdboot
   build_emmcboot
   build_rootfs
   build_emmc_tar_image

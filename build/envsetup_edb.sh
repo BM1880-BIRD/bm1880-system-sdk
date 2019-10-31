@@ -382,6 +382,8 @@ function build_rootfs()
 
   pushd $ROOTFS_DIR
   cat $RAMDISK_PATH/$RAMDISK_OUTPUT_FOLDER/ramboot_full.cpio | fakeroot cpio -i --preserve-modification-time
+
+  rm init_emmcboot.sh init_emmcboot.sh.sqsh init_kdump.sh init_ramboot.sh init_ramboot.sh.sqsh init_recovery.sh init_sdboot.sh
   popd
 }
 
